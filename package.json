@@ -1,14 +1,22 @@
 {
-  "name": "vapi-new",
+  "name": "vapi-caio",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Disparador automático de chamadas com Vapi, Node.js e MySQL",
+  "main": "src/server.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start:poc": "npx tsx src/poc.ts",
-    "dev": "npx nodemon --exec tsx src/server.ts"
+    "dev": "nodemon --exec tsx src/server.ts",
+    "start": "tsx src/server.ts",
+    "worker": "tsx src/worker.ts",
+    "db:setup": "tsx src/setupDb.ts",
+    "start:poc": "tsx src/poc.ts",
+    "typecheck": "tsc --noEmit"
   },
-  "keywords": [],
+  "keywords": [
+    "vapi",
+    "dialer",
+    "typescript",
+    "mysql"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
