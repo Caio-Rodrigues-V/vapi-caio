@@ -1,18 +1,35 @@
 {
-  "name": "vapi-new",
+  "name": "vapi-caio",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Disparador automático de chamadas com Vapi, Node.js e MySQL",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start:poc": "npx tsx src/poc.ts",
-    "dev": "npx nodemon --exec tsx src/server.ts"
+    "dev": "nodemon --exec tsx src/server.ts",
+    "clean": "node -e \"const fs=require('fs'); fs.rmSync('dist',{recursive:true,force:true}); fs.rmSync('frontend/dist',{recursive:true,force:true});\"",
+    "frontend:install": "npm --prefix frontend ci --include=dev",
+    "build:backend": "tsc -p tsconfig.json",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm run clean && npm run build:backend && npm run build:frontend",
+    "start": "node app.js",
+    "worker": "node dist/worker.js",
+    "worker:dev": "tsx src/worker.ts",
+    "db:setup": "node dist/setupDb.js",
+    "db:setup:dev": "tsx src/setupDb.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm --prefix frontend run build -- --emptyOutDir=false",
+    "postinstall": "npm run frontend:install && npm run build"
   },
-  "keywords": [],
+  "keywords": ["vapi", "dialer", "typescript", "mysql"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^26.1.2",
     "axios": "^1.19.0",
     "cors": "^2.8.6",
     "csv-parse": "^7.0.1",
@@ -20,16 +37,11 @@
     "express": "^5.2.1",
     "multer": "^2.2.0",
     "mysql2": "^3.23.2",
-    "openai": "^7.2.0"
+    "openai": "^7.2.0",
+    "typescript": "^7.0.2"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/multer": "^2.2.0",
-    "@types/node": "^26.1.2",
     "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.23.1",
-    "typescript": "^7.0.2"
+    "tsx": "^4.23.1"
   }
 }
