@@ -7,13 +7,52 @@ const BATCH_SIZE = Number(process.env.WORKER_BATCH_SIZE || 5);
 const MAX_TRIES = Number(process.env.WORKER_MAX_TRIES || 5);
 const RETRY_DELAY_MS = Number(process.env.WORKER_RETRY_DELAY_MS || 60000);
 const STALE_LOCK_MINUTES = Number(process.env.WORKER_STALE_LOCK_MINUTES || 15);
+const BUSINESS_TIMEZONE = process.env.BUSINESS_TIMEZONE || 'America/Sao_Paulo';
+
+function validarConfiguracao(): void {
+  const obrigatorias = [
+    'VAPI_API_KEY',
+    'VAPI_PHONE_NUMBER_ID',
+    'VAPI_ASSISTANT_ID',
+  ];
+  const ausentes = obrigatorias.filter((nome) => !process.env[nome]);
+
+  if (ausentes.length > 0) {
+    throw new Error(`Variáveis obrigatórias ausentes: ${ausentes.join(', ')}`);
+  }
+
+  if (!Number.isInteger(BATCH_SIZE) || BATCH_SIZE < 1) {
+    throw new Error('WORKER_BATCH_SIZE deve ser um inteiro maior que zero.');
+  }
+
+  if (!Number.isInteger(MAX_TRIES) || MAX_TRIES < 1) {
+    throw new Error('WORKER_MAX_TRIES deve ser um inteiro maior que zero.');
+  }
+}
+
+function obterHorarioComercial(): { diaSemana: string; hora: number } {
+  const partes = new Intl.DateTimeFormat('en-US', {
+    timeZone: BUSINESS_TIMEZONE,
+    weekday: 'short',
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date());
+
+  const diaSemana = partes.find((parte) => parte.type === 'weekday')?.value;
+  const hora = Number(partes.find((parte) => parte.type === 'hour')?.value);
+
+  if (!diaSemana || Number.isNaN(hora)) {
+    throw new Error(`Não foi possível calcular o horário em ${BUSINESS_TIMEZONE}.`);
+  }
+
+  return { diaSemana, hora };
+}
 
 function isHorarioLegal(): boolean {
-  const agora = new Date();
-  const dia = agora.getDay();
-  const hora = agora.getHours();
+  const { diaSemana, hora } = obterHorarioComercial();
+  const fimDeSemana = diaSemana === 'Sat' || diaSemana === 'Sun';
 
-  return dia !== 0 && dia !== 6 && hora >= 8 && hora < 20;
+  return !fimDeSemana && hora >= 8 && hora < 20;
 }
 
 async function liberarRegistrosTravados(): Promise<void> {
@@ -115,8 +154,10 @@ async function processarRegistro(registro: any): Promise<void> {
 }
 
 async function processarLote(): Promise<void> {
+  validarConfiguracao();
+
   if (!isHorarioLegal()) {
-    console.log('Fora do horário permitido. Worker encerrado.');
+    console.log(`Fora do horário permitido em ${BUSINESS_TIMEZONE}. Worker encerrado.`);
     return;
   }
 
