@@ -5,23 +5,20 @@
   "main": "app.js",
   "scripts": {
     "dev": "nodemon --exec tsx src/server.ts",
-    "build": "npm run clean && tsc -p tsconfig.json",
-    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "clean": "node -e \"const fs=require('fs'); fs.rmSync('dist',{recursive:true,force:true}); fs.rmSync('frontend/dist',{recursive:true,force:true});\"",
+    "frontend:install": "npm --prefix frontend ci --include=dev",
+    "build:backend": "tsc -p tsconfig.json",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm run clean && npm run build:backend && npm run build:frontend",
     "start": "node app.js",
     "worker": "node dist/worker.js",
     "worker:dev": "tsx src/worker.ts",
     "db:setup": "node dist/setupDb.js",
     "db:setup:dev": "tsx src/setupDb.ts",
-    "start:poc": "tsx src/poc.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "postinstall": "npm run build"
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm --prefix frontend run build -- --emptyOutDir=false",
+    "postinstall": "npm run frontend:install && npm run build"
   },
-  "keywords": [
-    "vapi",
-    "dialer",
-    "typescript",
-    "mysql"
-  ],
+  "keywords": ["vapi", "dialer", "typescript", "mysql"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -45,7 +42,6 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
     "tsx": "^4.23.1"
   }
 }
