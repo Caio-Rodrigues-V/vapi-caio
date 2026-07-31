@@ -23,7 +23,7 @@
   "license": "ISC",
   "type": "commonjs",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "@types/cors": "^2.8.19",
