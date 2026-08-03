@@ -50,6 +50,16 @@ export class MySqlCampaignRepository implements CampaignRepository {
     return rows[0] ? mapCampaign(rows[0]) : null;
   }
 
+  async findRunnable(limit: number): Promise<Campaign[]> {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      `SELECT * FROM campaigns
+       WHERE status = 'running' AND (scheduled_at IS NULL OR scheduled_at <= NOW())
+       ORDER BY COALESCE(scheduled_at, created_at), id LIMIT ?`,
+      [Math.max(1, limit)]
+    );
+    return rows.map(mapCampaign);
+  }
+
   async updateStatus(id: number, status: CampaignStatus): Promise<void> {
     await pool.execute('UPDATE campaigns SET status = ? WHERE id = ?', [status, id]);
   }
@@ -73,7 +83,7 @@ export class MySqlCampaignCallRepository implements CampaignCallRepository {
         `SELECT * FROM campaign_calls
          WHERE campaign_id = ? AND status IN ('pending','retry_scheduled')
            AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
-         ORDER BY id LIMIT ? FOR UPDATE SKIP LOCKED`, [campaignId, limit]
+         ORDER BY id LIMIT ? FOR UPDATE SKIP LOCKED`, [campaignId, Math.max(1, limit)]
       );
       if (!rows.length) { await connection.commit(); return []; }
       const ids = rows.map((row) => Number(row.id));
@@ -85,6 +95,14 @@ export class MySqlCampaignCallRepository implements CampaignCallRepository {
       return rows.map((row) => ({ ...mapCall(row), status: 'reserved', lockedAt: new Date(), metadata: { ...parseMetadata(row.metadata), lockId } }));
     } catch (error) { await connection.rollback(); throw error; }
     finally { connection.release(); }
+  }
+
+  async countActive(campaignId?: number): Promise<number> {
+    const params: number[] = [];
+    let sql = `SELECT COUNT(*) AS total FROM campaign_calls WHERE status IN ('reserved','queued','in_progress','answered')`;
+    if (campaignId !== undefined) { sql += ' AND campaign_id = ?'; params.push(campaignId); }
+    const [rows] = await pool.execute<RowDataPacket[]>(sql, params);
+    return Number(rows[0]?.total ?? 0);
   }
 
   async attachProviderCall(id: number, providerCallId: string): Promise<void> {
@@ -106,6 +124,20 @@ export class MySqlCampaignCallRepository implements CampaignCallRepository {
     const [result] = await pool.execute<ResultSetHeader>(
       `UPDATE campaign_calls SET status='retry_scheduled', locked_at=NULL, next_attempt_at=NOW(), last_error='stale_lock_recovered'
        WHERE status='reserved' AND locked_at < ?`, [olderThan]
+    );
+    return result.affectedRows;
+  }
+
+  async recoverTimedOutCalls(olderThan: Date, maxAttempts: number): Promise<number> {
+    const [result] = await pool.execute<ResultSetHeader>(
+      `UPDATE campaign_calls
+       SET status = CASE WHEN attempts + 1 >= ? THEN 'failed' ELSE 'retry_scheduled' END,
+           attempts = attempts + 1,
+           next_attempt_at = CASE WHEN attempts + 1 >= ? THEN NULL ELSE NOW() END,
+           locked_at = NULL,
+           last_error = 'watchdog_timeout'
+       WHERE status IN ('queued','in_progress','answered') AND updated_at < ?`,
+      [maxAttempts, maxAttempts, olderThan]
     );
     return result.affectedRows;
   }
