@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const rawBase = env.VITE_BASE_PATH || '/vapi/';
+  const rawBase = env.VITE_BASE_PATH || '/';
   const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
 
   return {
