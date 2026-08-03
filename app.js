@@ -3,7 +3,9 @@
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
-const appModule = require('./dist/server');
+
+require('tsx/cjs');
+const appModule = require('./src/server.ts');
 
 const app = appModule.default || appModule;
 const frontendDist = path.join(__dirname, 'frontend', 'dist');
