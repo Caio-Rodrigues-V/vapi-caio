@@ -12,6 +12,7 @@
     "build": "npm run clean && npm run build:backend && npm run build:frontend",
     "start": "node app.js",
     "worker": "tsx src/worker.ts",
+    "worker:campaigns": "tsx src/workers/campaignDispatcher.ts",
     "db:setup": "tsx src/setupDb.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && npm --prefix frontend run build -- --emptyOutDir=false"
   },
