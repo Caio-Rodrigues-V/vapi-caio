@@ -62,12 +62,12 @@ export class DispatchCampaignBatch {
           debtMetadata = {
             debtCheckedAt: new Date().toISOString(),
             hasDebt: true,
-            institution: debt.institution,
-            debtorName: debt.debtorName,
-            calculationId: debt.calculationId,
-            nominalAmount: debt.nominalAmount,
-            cashAmount: debt.cashAmount,
-            firstDueDate: debt.firstDueDate,
+            institution: debt.institution ?? null,
+            debtorName: debt.debtorName ?? null,
+            calculationId: debt.calculationId ?? null,
+            nominalAmount: debt.nominalAmount ?? null,
+            cashAmount: debt.cashAmount ?? null,
+            firstDueDate: debt.firstDueDate ?? null,
             installments: debt.installments,
             assistantId,
           };
@@ -83,7 +83,7 @@ export class DispatchCampaignBatch {
             ...debtMetadata,
             campaignId: campaign.id,
             campaignCallId: call.id,
-            cpf: call.cpf ?? undefined,
+            cpf: call.cpf ?? null,
           },
         });
         await this.calls.attachProviderCall(call.id, providerResult.providerCallId);
