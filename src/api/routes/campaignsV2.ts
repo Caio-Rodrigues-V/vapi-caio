@@ -1,9 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import fs from 'fs';
-import path from 'path';
 import { parse } from 'csv-parse';
-import * as XLSX from 'xlsx';
 import pool from '../../db';
 import { normalizePhone } from '../../utils/phoneValidator';
 
@@ -25,26 +23,6 @@ function normalizedRow(row: Record<string, unknown>): Record<string, string> {
   return Object.fromEntries(
     Object.entries(row).map(([key, value]) => [String(key).trim().toLowerCase(), String(value ?? '').trim()]),
   );
-}
-
-async function readImportedRows(file: Express.Multer.File): Promise<Record<string, string>[]> {
-  const extension = path.extname(file.originalname).toLowerCase();
-  if (extension === '.xlsx' || extension === '.xls') {
-    const workbook = XLSX.readFile(file.path, { cellDates: false });
-    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-    if (!firstSheet) return [];
-    return XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, { defval: '' }).map(normalizedRow);
-  }
-
-  const rows: Record<string, string>[] = [];
-  await new Promise<void>((resolve, reject) => {
-    fs.createReadStream(file.path)
-      .pipe(parse({ columns: true, trim: true, skip_empty_lines: true, bom: true }))
-      .on('data', (row) => rows.push(normalizedRow(row)))
-      .on('error', reject)
-      .on('end', resolve);
-  });
-  return rows;
 }
 
 campaignsV2Router.use(requireAdmin);
@@ -144,8 +122,16 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
     return res.status(404).json({ error: 'Campanha não encontrada' });
   }
 
+  const rows: Record<string, string>[] = [];
   try {
-    const rows = await readImportedRows(req.file);
+    await new Promise<void>((resolve, reject) => {
+      fs.createReadStream(req.file!.path)
+        .pipe(parse({ columns: true, trim: true, skip_empty_lines: true, bom: true }))
+        .on('data', (row) => rows.push(normalizedRow(row)))
+        .on('error', reject)
+        .on('end', resolve);
+    });
+
     const connection = await pool.getConnection();
     let inserted = 0;
     let ignored = 0;
