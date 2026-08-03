@@ -8,13 +8,16 @@ require('tsx/cjs');
 const appModule = require('./src/server.ts');
 const migrationsModule = require('./src/api/routes/adminMigrations.ts');
 const webhookModule = require('./src/api/routes/vapiWebhook.ts');
+const campaignsModule = require('./src/api/routes/campaignsV2.ts');
 
 const app = appModule.default || appModule;
 const adminMigrationsRouter = migrationsModule.adminMigrationsRouter;
 const vapiWebhookRouter = webhookModule.default || webhookModule;
+const campaignsV2Router = campaignsModule.campaignsV2Router;
 
 app.use('/api/admin', adminMigrationsRouter);
 app.use('/api/v2', vapiWebhookRouter);
+app.use('/api/v2', campaignsV2Router);
 
 const frontendDist = path.join(__dirname, 'frontend', 'dist');
 const frontendIndex = path.join(frontendDist, 'index.html');
