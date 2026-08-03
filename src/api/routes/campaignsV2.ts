@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import multer from 'multer';
 import fs from 'fs';
+import path from 'path';
 import { parse } from 'csv-parse';
+import * as XLSX from 'xlsx';
 import pool from '../../db';
 import { normalizePhone } from '../../utils/phoneValidator';
 
@@ -19,6 +21,32 @@ function requireAdmin(req: any, res: any, next: any) {
   return next();
 }
 
+function normalizedRow(row: Record<string, unknown>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [String(key).trim().toLowerCase(), String(value ?? '').trim()]),
+  );
+}
+
+async function readImportedRows(file: Express.Multer.File): Promise<Record<string, string>[]> {
+  const extension = path.extname(file.originalname).toLowerCase();
+  if (extension === '.xlsx' || extension === '.xls') {
+    const workbook = XLSX.readFile(file.path, { cellDates: false });
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+    if (!firstSheet) return [];
+    return XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, { defval: '' }).map(normalizedRow);
+  }
+
+  const rows: Record<string, string>[] = [];
+  await new Promise<void>((resolve, reject) => {
+    fs.createReadStream(file.path)
+      .pipe(parse({ columns: true, trim: true, skip_empty_lines: true, bom: true }))
+      .on('data', (row) => rows.push(normalizedRow(row)))
+      .on('error', reject)
+      .on('end', resolve);
+  });
+  return rows;
+}
+
 campaignsV2Router.use(requireAdmin);
 
 campaignsV2Router.get('/campaigns', async (req, res) => {
@@ -26,9 +54,9 @@ campaignsV2Router.get('/campaigns', async (req, res) => {
   const limit = Math.min(100, Math.max(1, Number(req.query.limit || 25)));
   const offset = (page - 1) * limit;
   const status = String(req.query.status || '').trim();
-
   const where = status ? 'WHERE c.status = ?' : '';
   const params = status ? [status, limit, offset] : [limit, offset];
+
   const [rows]: any = await pool.query(
     `SELECT c.*,
       SUM(cc.status IN ('pending','retry_scheduled')) AS pending_calls,
@@ -52,28 +80,15 @@ campaignsV2Router.get('/campaigns', async (req, res) => {
 });
 
 campaignsV2Router.post('/campaigns', async (req, res) => {
-  const {
-    name,
-    assistantId,
-    phoneNumberId,
-    maxConcurrent = 1,
-    maxAttempts = 5,
-    scheduledAt = null,
-  } = req.body || {};
-
+  const { name, assistantId, phoneNumberId, maxConcurrent = 1, maxAttempts = 5, scheduledAt = null } = req.body || {};
   if (!name || !assistantId) return res.status(400).json({ error: 'name e assistantId são obrigatórios' });
+
   const [result]: any = await pool.execute(
     `INSERT INTO campaigns
       (name,status,assistant_id,phone_number_id,max_concurrent,max_attempts,scheduled_at)
      VALUES (?, 'draft', ?, ?, ?, ?, ?)`,
-    [
-      String(name).trim(),
-      String(assistantId).trim(),
-      phoneNumberId ? String(phoneNumberId).trim() : null,
-      Math.max(1, Number(maxConcurrent)),
-      Math.max(1, Number(maxAttempts)),
-      scheduledAt ? new Date(scheduledAt) : null,
-    ],
+    [String(name).trim(), String(assistantId).trim(), phoneNumberId ? String(phoneNumberId).trim() : null,
+      Math.max(1, Number(maxConcurrent)), Math.max(1, Number(maxAttempts)), scheduledAt ? new Date(scheduledAt) : null],
   );
   const [rows]: any = await pool.execute('SELECT * FROM campaigns WHERE id = ?', [result.insertId]);
   return res.status(201).json(rows[0]);
@@ -129,16 +144,8 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
     return res.status(404).json({ error: 'Campanha não encontrada' });
   }
 
-  const rows: Record<string, string>[] = [];
   try {
-    await new Promise<void>((resolve, reject) => {
-      fs.createReadStream(req.file!.path)
-        .pipe(parse({ columns: true, trim: true, skip_empty_lines: true, bom: true }))
-        .on('data', (row) => rows.push(row))
-        .on('error', reject)
-        .on('end', resolve);
-    });
-
+    const rows = await readImportedRows(req.file);
     const connection = await pool.getConnection();
     let inserted = 0;
     let ignored = 0;
@@ -146,7 +153,7 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
       await connection.beginTransaction();
       for (const row of rows) {
         const phoneRaw = row.telefone || row.phone || row.numero || row.celular || row.fone;
-        const cpf = String(row.cpf || row.CPF || '').replace(/\D/g, '').padStart(11, '0');
+        const cpf = String(row.cpf || '').replace(/\D/g, '').padStart(11, '0');
         const customerNumber = phoneRaw ? normalizePhone(String(phoneRaw)) : null;
         if (!customerNumber || cpf.length !== 11) {
           ignored += 1;
@@ -155,7 +162,7 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
         await connection.execute(
           `INSERT INTO campaign_calls (campaign_id, customer_number, cpf, status, metadata)
            VALUES (?, ?, ?, 'pending', ?)`,
-          [campaignId, customerNumber, cpf, JSON.stringify({ source: 'csv_import', name: row.nome || row.name || null })],
+          [campaignId, customerNumber, cpf, JSON.stringify({ source: 'file_import', name: row.nome || row.name || null })],
         );
         inserted += 1;
       }
