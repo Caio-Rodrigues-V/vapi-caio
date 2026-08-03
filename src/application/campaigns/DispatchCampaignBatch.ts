@@ -1,19 +1,27 @@
 import { randomUUID } from 'crypto';
 import { CampaignCallRepository, CampaignRepository } from '../../core/campaigns/CampaignRepository';
 import { DialerProvider } from '../../core/dialer/DialerProvider';
+import { RetryPolicy } from './RetryPolicy';
 
 export class DispatchCampaignBatch {
   constructor(
     private readonly campaigns: CampaignRepository,
     private readonly calls: CampaignCallRepository,
     private readonly dialer: DialerProvider,
+    private readonly retryPolicy: RetryPolicy,
   ) {}
 
-  async execute(campaignId: number): Promise<{ reserved: number; dispatched: number; failed: number }> {
+  async execute(
+    campaignId: number,
+    capacity?: number,
+  ): Promise<{ reserved: number; dispatched: number; failed: number }> {
     const campaign = await this.campaigns.findById(campaignId);
     if (!campaign || campaign.status !== 'running') return { reserved: 0, dispatched: 0, failed: 0 };
 
-    const batch = await this.calls.reserveBatch(campaign.id, campaign.maxConcurrent, randomUUID());
+    const limit = Math.max(0, Math.min(capacity ?? campaign.maxConcurrent, campaign.maxConcurrent));
+    if (limit === 0) return { reserved: 0, dispatched: 0, failed: 0 };
+
+    const batch = await this.calls.reserveBatch(campaign.id, limit, randomUUID());
     let dispatched = 0;
     let failed = 0;
 
@@ -31,7 +39,7 @@ export class DispatchCampaignBatch {
         const message = error instanceof Error ? error.message : String(error);
         const exhausted = call.attempts + 1 >= campaign.maxAttempts;
         if (exhausted) await this.calls.updateStatus(call.id, 'failed', message);
-        else await this.calls.scheduleRetry(call.id, new Date(Date.now() + 60_000), message);
+        else await this.calls.scheduleRetry(call.id, this.retryPolicy.nextAttempt(call.attempts), message);
         failed += 1;
       }
     }
