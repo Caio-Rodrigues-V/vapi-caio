@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
 import { BarChart3, FileText, Pause, PhoneCall, Play, Plus, RefreshCw, UploadCloud } from 'lucide-react';
+import { prepareImportFile } from './lib/importFile';
 import './index.css';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -88,12 +89,17 @@ function Campaigns() {
 
   async function importFile(id: number, file?: File) {
     if (!file) return;
-    const form = new FormData();
-    form.append('file', file);
-    const result = await apiFetch(`/campaigns/${id}/import`, { method: 'POST', body: form });
-    window.alert(`Inseridos: ${result.inserted} | Ignorados: ${result.ignored}`);
-    await load();
-    if (selectedId === id) await loadCalls(id);
+    try {
+      const preparedFile = await prepareImportFile(file);
+      const form = new FormData();
+      form.append('file', preparedFile);
+      const result = await apiFetch(`/campaigns/${id}/import`, { method: 'POST', body: form });
+      window.alert(`Inseridos: ${result.inserted} | Ignorados: ${result.ignored}`);
+      await load();
+      if (selectedId === id) await loadCalls(id);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Erro ao importar arquivo');
+    }
   }
 
   useEffect(() => { void load(); }, []);
