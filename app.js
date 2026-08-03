@@ -8,7 +8,7 @@ const backendEntry = path.join(__dirname, 'dist', 'server.js');
 
 if (!fs.existsSync(backendEntry)) {
   throw new Error(
-    'Backend compilado não encontrado em dist/server.js. Execute "npm ci", "npm ci --prefix frontend" e "npm run build" antes de iniciar a aplicação.',
+    'Backend compilado não encontrado em dist/server.js. Gere e publique os artefatos de build antes de iniciar a aplicação.',
   );
 }
 
@@ -44,11 +44,9 @@ if (fs.existsSync(frontendIndex)) {
   });
 }
 
-if (require.main === module) {
-  const port = Number(process.env.PORT || 3000);
-  app.listen(port, () => {
-    console.log(`Servidor iniciado na porta ${port}`);
-  });
-}
+const port = process.env.PORT || 3000;
+const server = app.listen(port, () => {
+  console.log(`Servidor iniciado na porta ${port}`);
+});
 
-module.exports = app;
+module.exports = server;
