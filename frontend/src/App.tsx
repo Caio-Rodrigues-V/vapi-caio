@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
 import { BarChart3, FileText, Pause, PhoneCall, Play, Plus, RefreshCw, UploadCloud } from 'lucide-react';
 import { prepareImportFile } from './lib/importFile';
