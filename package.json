@@ -14,6 +14,7 @@
     "worker": "tsx src/worker.ts",
     "worker:campaigns": "tsx src/workers/campaignDispatcher.ts",
     "db:setup": "tsx src/setupDb.ts",
+    "test": "tsx --test tests/**/*.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && npm --prefix frontend run build -- --emptyOutDir=false"
   },
   "keywords": ["vapi", "dialer", "typescript", "mysql"],
