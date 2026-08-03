@@ -72,7 +72,9 @@ export class MySqlCampaignCallRepository implements CampaignCallRepository {
       [input.campaignId,input.customerNumber,input.cpf ?? null,JSON.stringify(input.metadata ?? {})]
     );
     const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM campaign_calls WHERE id = ?', [result.insertId]);
-    return mapCall(rows[0]);
+    const row = rows[0];
+    if (!row) throw new Error('Chamada criada, mas não encontrada.');
+    return mapCall(row);
   }
 
   async reserveBatch(campaignId: number, limit: number, lockId: string): Promise<CampaignCall[]> {
@@ -112,7 +114,7 @@ export class MySqlCampaignCallRepository implements CampaignCallRepository {
   async mergeMetadata(id: number, metadata: Record<string, unknown>): Promise<void> {
     const entries = Object.entries(metadata);
     if (!entries.length) return;
-    const args: unknown[] = [];
+    const args: any[] = [];
     const expressions = entries.map(([key, value]) => {
       args.push(`$.${key}`, JSON.stringify(value));
       return '?, CAST(? AS JSON)';
