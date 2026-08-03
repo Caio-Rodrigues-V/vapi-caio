@@ -4,11 +4,18 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 
-require('tsx/cjs');
-const appModule = require('./src/server.ts');
-const migrationsModule = require('./src/api/routes/adminMigrations.ts');
-const webhookModule = require('./src/api/routes/vapiWebhook.ts');
-const campaignsModule = require('./src/api/routes/campaignsV2.ts');
+const backendEntry = path.join(__dirname, 'dist', 'server.js');
+
+if (!fs.existsSync(backendEntry)) {
+  throw new Error(
+    'Backend compilado não encontrado em dist/server.js. Execute "npm ci", "npm ci --prefix frontend" e "npm run build" antes de iniciar a aplicação.',
+  );
+}
+
+const appModule = require('./dist/server.js');
+const migrationsModule = require('./dist/api/routes/adminMigrations.js');
+const webhookModule = require('./dist/api/routes/vapiWebhook.js');
+const campaignsModule = require('./dist/api/routes/campaignsV2.js');
 
 const app = appModule.default || appModule;
 const adminMigrationsRouter = migrationsModule.adminMigrationsRouter;
