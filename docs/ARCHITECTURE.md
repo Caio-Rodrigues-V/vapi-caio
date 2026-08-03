@@ -1,108 +1,69 @@
-# Arquitetura — Call Platform
+# Call Platform — Arquitetura alvo
 
-## Objetivo
+## Decisão
 
-Evoluir o Vapi Call Center para uma plataforma modular, aproveitando regras operacionais já validadas no WAVOIP sem acoplar o produto ao canal WhatsApp.
+O sistema seguirá como **monólito modular com processos separados**:
 
-## Princípio central
+- API HTTP/Passenger;
+- dispatcher via Cron;
+- watchdog no ciclo do dispatcher;
+- MySQL como fonte de verdade e fila transacional;
+- providers externos desacoplados por contratos.
 
-A regra de negócio não conhece o canal de discagem. Campanhas, contatos, fila, retry, watchdog, DDM, acordos, auditoria e relatórios dependem de contratos. O canal telefônico é implementado por um provider.
+## Fluxo
 
 ```text
-API / Dashboard
-      ↓
-Application Services
-      ↓
-Core
-├── Campaigns
-├── Queue
-├── Scheduling
-├── Debt
-├── Agreements
-├── Auditing
-└── Reporting
-      ↓
-Ports
-├── DialerProvider
-├── DebtProvider
-├── NotificationProvider
-└── Repositories
-      ↓
-Adapters
-├── VapiPhoneProvider
-├── DdmProvider
-├── MySQL repositories
-└── Webhook handlers
+Frontend -> API -> Application Services -> Repositories -> MySQL
+Vapi -> Webhook -> Event Handler -> MySQL
+Cron -> Campaign Dispatcher -> DialerProvider -> Vapi
 ```
 
-## Estrutura alvo
+## Módulos
 
 ```text
 src/
-├── api/
-│   ├── controllers/
-│   ├── middlewares/
-│   └── routes/
-├── application/
-│   ├── campaigns/
-│   ├── calls/
-│   ├── imports/
-│   └── agreements/
-├── core/
-│   ├── campaigns/
-│   ├── calls/
-│   ├── queue/
-│   └── shared/
-├── providers/
-│   ├── dialer/
-│   ├── debt/
-│   └── notifications/
-├── infrastructure/
-│   ├── database/
-│   ├── repositories/
-│   ├── queue/
-│   └── logging/
-├── workers/
-└── config/
+├── api/                 # controllers, routes e middlewares
+├── application/         # casos de uso
+├── core/                # contratos e modelos de domínio
+├── infrastructure/      # MySQL, migrations e logging
+├── providers/           # Vapi, DDM, OpenAI e storage
+├── workers/             # dispatcher e futuros event processors
+└── config/              # leitura e validação do ambiente
 ```
 
-## Componentes aproveitados conceitualmente do WAVOIP
+## Regras portadas do WAVOIP
 
-- campanhas e chamadas por campanha;
-- limite de concorrência;
-- watchdog para chamadas travadas;
-- retry e cooldown;
-- importação com progresso;
-- consulta DDM com rate limit;
-- formalização de acordos;
-- gravação, transcrição, duração e status;
-- autenticação das APIs;
-- métricas e exportações.
+- campanhas independentes das chamadas;
+- capacidade por campanha e capacidade global;
+- reserva concorrente de lote;
+- retry exponencial com jitter;
+- watchdog para chamadas sem atualização;
+- recuperação de locks antigos;
+- provider de discagem independente do canal;
+- provider DDM independente da fila;
+- migrations versionadas.
 
-## Componentes exclusivos por canal
+## Regras de segurança
 
-### Vapi telefônico
-
-- `phoneNumberId`;
-- chamada PSTN para E.164;
-- capacidade por número telefônico;
-- eventos da Vapi.
-
-### WAVOIP
-
-- login e dispositivos Wavoip;
-- SIP trunk por dispositivo;
-- disponibilidade e cooldown de linha;
-- round-robin entre dispositivos WhatsApp.
+- nenhum segredo no Git;
+- endpoint de migration protegido por token administrativo;
+- webhooks idempotentes;
+- mudanças destrutivas de banco exigem migration explícita;
+- a API não executa lotes longos dentro da requisição.
 
 ## Estratégia de migração
 
-1. Adicionar contratos e modelos sem alterar o fluxo atual.
-2. Consolidar schema e migrations.
-3. Encapsular a chamada Vapi em `DialerProvider`.
-4. Migrar fila e campanhas para application services.
-5. Migrar webhook, DDM e acordos.
-6. Migrar rotas e dashboard.
-7. Remover implementações antigas somente após testes.
+A estrutura nova entra de forma aditiva. O worker e as tabelas antigas continuam disponíveis até que:
 
-Cada etapa deve entrar por PR pequeno e reversível.
+1. migrations sejam aplicadas no ambiente de desenvolvimento;
+2. campanha de teste conclua ponta a ponta;
+3. webhook novo atualize `campaign_calls` corretamente;
+4. dashboard novo leia o schema consolidado;
+5. o fluxo antigo seja removido em PR separado.
+
+## Pontos ainda dependentes de contrato externo
+
+- endpoint, método HTTP, autenticação e formato real da consulta DDM;
+- endpoint e payload da formalização de acordo;
+- seleção definitiva de `assistantId` e `phoneNumberId` por campanha;
+- segredo/assinatura efetivamente enviado pela Vapi no webhook.
