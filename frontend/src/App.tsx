@@ -52,6 +52,12 @@ type CallRow = {
   updated_at?: string | null;
 };
 
+type VapiConfig = {
+  operation: string;
+  assistant: { id: string; name: string };
+  phoneNumber: { id: string; number: string };
+};
+
 function StatusBadge({ status }: { status: string }) {
   return <span className="rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-200">{status}</span>;
 }
@@ -161,20 +167,59 @@ function Campaigns() {
 
 function CreateCampaign({ onClose, onCreated }: { onClose: () => void; onCreated: () => Promise<void> }) {
   const [saving, setSaving] = useState(false);
+  const [loadingConfig, setLoadingConfig] = useState(true);
+  const [configError, setConfigError] = useState('');
+  const [vapiConfig, setVapiConfig] = useState<VapiConfig | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void apiFetch('/vapi/config')
+      .then((result) => {
+        if (active) setVapiConfig(result as VapiConfig);
+      })
+      .catch((error) => {
+        if (active) setConfigError(error instanceof Error ? error.message : 'Erro ao carregar configuração Vapi');
+      })
+      .finally(() => {
+        if (active) setLoadingConfig(false);
+      });
+    return () => { active = false; };
+  }, []);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!vapiConfig) return;
     const form = new FormData(event.currentTarget);
     setSaving(true);
     try {
       await apiFetch('/campaigns', { method: 'POST', body: JSON.stringify({
-        name: form.get('name'), assistantId: form.get('assistantId'), phoneNumberId: form.get('phoneNumberId'),
-        maxConcurrent: Number(form.get('maxConcurrent') || 1), maxAttempts: Number(form.get('maxAttempts') || 5),
+        name: form.get('name'),
+        assistantId: vapiConfig.assistant.id,
+        phoneNumberId: vapiConfig.phoneNumber.id,
+        maxConcurrent: Number(form.get('maxConcurrent') || 1),
+        maxAttempts: Number(form.get('maxAttempts') || 5),
       }) });
       await onCreated(); onClose();
     } catch (error) { window.alert(error instanceof Error ? error.message : 'Erro ao criar campanha'); }
     finally { setSaving(false); }
   }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"><form onSubmit={submit} className="w-full max-w-lg space-y-4 rounded-xl border border-dark-border bg-dark-surface p-6"><h3 className="text-xl font-bold text-white">Nova campanha</h3>{[['name','Nome'],['assistantId','Assistant ID'],['phoneNumberId','Phone Number ID'],['maxConcurrent','Concorrência'],['maxAttempts','Máximo de tentativas']].map(([name,label]) => <label key={name} className="block text-sm text-slate-300">{label}<input name={name} required={name === 'name' || name === 'assistantId'} defaultValue={name === 'maxConcurrent' ? '1' : name === 'maxAttempts' ? '5' : ''} type={name.startsWith('max') ? 'number' : 'text'} className="mt-1 w-full rounded-md border border-dark-border bg-slate-900 px-3 py-2 text-white" /></label>)}<div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-md border border-dark-border px-4 py-2 text-slate-300">Cancelar</button><button disabled={saving} className="rounded-md bg-primary px-4 py-2 text-white">{saving ? 'Salvando...' : 'Criar'}</button></div></form></div>;
+
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"><form onSubmit={submit} className="w-full max-w-lg space-y-4 rounded-xl border border-dark-border bg-dark-surface p-6">
+    <h3 className="text-xl font-bold text-white">Nova campanha</h3>
+    <label className="block text-sm text-slate-300">Nome<input name="name" required className="mt-1 w-full rounded-md border border-dark-border bg-slate-900 px-3 py-2 text-white" /></label>
+    <div className="rounded-lg border border-dark-border bg-slate-900/60 p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Operação Vapi</p>
+      {loadingConfig && <p className="mt-2 text-sm text-slate-300">Carregando configuração UVA...</p>}
+      {configError && <p className="mt-2 text-sm text-red-400">{configError}</p>}
+      {vapiConfig && <div className="mt-3 space-y-3">
+        <div><p className="text-xs text-slate-400">Assistant</p><p className="font-medium text-white">{vapiConfig.assistant.name}</p></div>
+        <div><p className="text-xs text-slate-400">Número de saída</p><p className="font-medium text-white">{vapiConfig.phoneNumber.number}</p></div>
+      </div>}
+    </div>
+    <label className="block text-sm text-slate-300">Concorrência<input name="maxConcurrent" required defaultValue="1" min="1" type="number" className="mt-1 w-full rounded-md border border-dark-border bg-slate-900 px-3 py-2 text-white" /></label>
+    <label className="block text-sm text-slate-300">Máximo de tentativas<input name="maxAttempts" required defaultValue="5" min="1" type="number" className="mt-1 w-full rounded-md border border-dark-border bg-slate-900 px-3 py-2 text-white" /></label>
+    <div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-md border border-dark-border px-4 py-2 text-slate-300">Cancelar</button><button disabled={saving || loadingConfig || !vapiConfig} className="rounded-md bg-primary px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50">{saving ? 'Salvando...' : 'Criar'}</button></div>
+  </form></div>;
 }
 
 function Settings() {
