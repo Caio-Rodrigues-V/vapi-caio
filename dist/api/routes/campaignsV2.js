@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.campaignsV2Router = void 0;
+const axios_1 = __importDefault(require("axios"));
 const express_1 = require("express");
 const multer_1 = __importDefault(require("multer"));
 const fs_1 = __importDefault(require("fs"));
@@ -35,6 +36,43 @@ function configuredValue(value, fallbackName) {
     return fallback;
 }
 exports.campaignsV2Router.use(requireAdmin);
+exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
+    try {
+        const apiKey = configuredValue(undefined, 'VAPI_API_KEY');
+        const assistantId = configuredValue(undefined, 'VAPI_ASSISTANT_ID_UVA');
+        const phoneNumberId = configuredValue(undefined, 'VAPI_PHONE_NUMBER_ID');
+        const client = axios_1.default.create({
+            baseURL: 'https://api.vapi.ai',
+            timeout: 10_000,
+            headers: { Authorization: `Bearer ${apiKey}` },
+        });
+        const [assistantResponse, phoneResponse] = await Promise.all([
+            client.get(`/assistant/${assistantId}`),
+            client.get(`/phone-number/${phoneNumberId}`),
+        ]);
+        return res.json({
+            operation: 'uva',
+            assistant: {
+                id: assistantId,
+                name: String(assistantResponse.data?.name || 'Assistant UVA'),
+            },
+            phoneNumber: {
+                id: phoneNumberId,
+                number: String(phoneResponse.data?.number ||
+                    phoneResponse.data?.phoneNumber ||
+                    phoneResponse.data?.name ||
+                    'Número Vapi configurado'),
+            },
+        });
+    }
+    catch (error) {
+        const message = axios_1.default.isAxiosError(error)
+            ? String(error.response?.data?.message || error.response?.data?.error || error.message)
+            : error instanceof Error ? error.message : 'Erro desconhecido';
+        const status = message.includes('não configurada') ? 503 : 502;
+        return res.status(status).json({ error: `Não foi possível carregar a configuração UVA: ${message}` });
+    }
+});
 exports.campaignsV2Router.get('/campaigns', async (req, res) => {
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 25)));
