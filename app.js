@@ -6,6 +6,7 @@ const express = require('express');
 
 const backendEntry = path.join(__dirname, 'dist', 'server.js');
 const campaignWorkerEntry = path.join(__dirname, 'dist', 'workers', 'campaignDispatcher.js');
+const vapiSyncEntry = path.join(__dirname, 'dist', 'workers', 'vapiCallSynchronizer.js');
 
 if (!fs.existsSync(backendEntry)) {
   throw new Error(
@@ -13,9 +14,9 @@ if (!fs.existsSync(backendEntry)) {
   );
 }
 
-if (!fs.existsSync(campaignWorkerEntry)) {
+if (!fs.existsSync(campaignWorkerEntry) || !fs.existsSync(vapiSyncEntry)) {
   throw new Error(
-    'Dispatcher compilado não encontrado em dist/workers/campaignDispatcher.js. Gere e publique os artefatos de build.',
+    'Workers compilados não encontrados em dist/workers. Gere e publique os artefatos de build.',
   );
 }
 
@@ -24,53 +25,72 @@ const migrationsModule = require('./dist/api/routes/adminMigrations.js');
 const webhookModule = require('./dist/api/routes/vapiWebhook.js');
 const campaignsModule = require('./dist/api/routes/campaignsV2.js');
 const campaignWorkerModule = require('./dist/workers/campaignDispatcher.js');
+const vapiSyncModule = require('./dist/workers/vapiCallSynchronizer.js');
 
 const app = appModule.default || appModule;
 const adminMigrationsRouter = migrationsModule.adminMigrationsRouter;
 const vapiWebhookRouter = webhookModule.default || webhookModule;
 const campaignsV2Router = campaignsModule.campaignsV2Router;
 const runCampaignDispatcher = campaignWorkerModule.runCampaignDispatcher;
+const runVapiCallSynchronizer = vapiSyncModule.runVapiCallSynchronizer;
 
 app.use('/api/admin', adminMigrationsRouter);
 app.use('/api/v2', vapiWebhookRouter);
 app.use('/api/v2', campaignsV2Router);
 
 let dispatcherRunning = false;
+let synchronizerRunning = false;
 
-app.post('/api/worker/run', async (req, res) => {
+function hasWorkerAccess(req) {
   const configuredToken = process.env.WORKER_TRIGGER_TOKEN;
   const providedToken = req.header('x-worker-token');
+  return Boolean(configuredToken && providedToken === configuredToken);
+}
 
-  if (!configuredToken || providedToken !== configuredToken) {
+app.post('/api/worker/run', async (req, res) => {
+  if (!hasWorkerAccess(req)) {
     return res.status(401).json({ error: 'Não autorizado' });
   }
 
   if (dispatcherRunning) {
-    return res.status(409).json({
-      ok: false,
-      error: 'O dispatcher já está em execução.',
-    });
+    return res.status(409).json({ ok: false, error: 'O dispatcher já está em execução.' });
   }
 
   dispatcherRunning = true;
-
   try {
     const result = await runCampaignDispatcher();
     console.log(JSON.stringify(result));
-    return res.json({
-      ok: true,
-      message: 'Dispatcher de campanhas executado.',
-      result,
-    });
+    return res.json({ ok: true, message: 'Dispatcher de campanhas executado.', result });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('Erro ao executar dispatcher de campanhas:', error);
-    return res.status(500).json({
-      ok: false,
-      error: message,
-    });
+    return res.status(500).json({ ok: false, error: message });
   } finally {
     dispatcherRunning = false;
+  }
+});
+
+app.post('/api/worker/sync-vapi', async (req, res) => {
+  if (!hasWorkerAccess(req)) {
+    return res.status(401).json({ error: 'Não autorizado' });
+  }
+
+  if (synchronizerRunning) {
+    return res.status(409).json({ ok: false, error: 'A sincronização da Vapi já está em execução.' });
+  }
+
+  synchronizerRunning = true;
+  try {
+    const limit = Number(req.body?.limit || req.query?.limit || 100);
+    const result = await runVapiCallSynchronizer(limit);
+    console.log(JSON.stringify({ worker: 'vapi-call-synchronizer', ...result }));
+    return res.json({ ok: true, message: 'Chamadas sincronizadas com a Vapi.', result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Erro ao sincronizar chamadas da Vapi:', error);
+    return res.status(500).json({ ok: false, error: message });
+  } finally {
+    synchronizerRunning = false;
   }
 });
 
