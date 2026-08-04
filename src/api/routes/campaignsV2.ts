@@ -185,8 +185,84 @@ campaignsV2Router.patch('/campaigns/:id/status', async (req, res) => {
   return res.json({ ok: true, id, status });
 });
 
+campaignsV2Router.delete('/campaigns/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Campanha inválida' });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [campaignRows]: any = await connection.execute(
+      'SELECT id, name, status FROM campaigns WHERE id = ? FOR UPDATE',
+      [id],
+    );
+    const campaign = campaignRows[0];
+    if (!campaign) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Campanha não encontrada' });
+    }
+
+    const [activeRows]: any = await connection.execute(
+      `SELECT COUNT(*) AS total
+       FROM campaign_calls
+       WHERE campaign_id = ?
+         AND status IN ('reserved','queued','in_progress','answered')`,
+      [id],
+    );
+    const activeCalls = Number(activeRows[0]?.total || 0);
+
+    if (campaign.status === 'running' || activeCalls > 0) {
+      await connection.rollback();
+      return res.status(409).json({
+        error: 'Pause a campanha e aguarde o encerramento das chamadas ativas antes de excluir.',
+      });
+    }
+
+    const [callRows]: any = await connection.execute(
+      'SELECT id FROM campaign_calls WHERE campaign_id = ?',
+      [id],
+    );
+    const callIds = callRows.map((row: any) => Number(row.id)).filter(Number.isInteger);
+
+    if (callIds.length > 0) {
+      const placeholders = callIds.map(() => '?').join(',');
+      await connection.query(
+        `DELETE FROM call_results WHERE campaign_call_id IN (${placeholders})`,
+        callIds,
+      );
+    }
+
+    const [callsResult]: any = await connection.execute(
+      'DELETE FROM campaign_calls WHERE campaign_id = ?',
+      [id],
+    );
+    await connection.execute('DELETE FROM campaigns WHERE id = ?', [id]);
+    await connection.commit();
+
+    return res.json({
+      ok: true,
+      id,
+      name: campaign.name,
+      deletedCalls: Number(callsResult.affectedRows || 0),
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('[campaigns] delete error:', error);
+    return res.status(500).json({ error: 'Erro ao excluir campanha' });
+  } finally {
+    connection.release();
+  }
+});
+
 campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
   const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Campanha inválida' });
+  }
+
   const page = Math.max(1, Number(req.query.page || 1));
   const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
   const offset = (page - 1) * limit;
