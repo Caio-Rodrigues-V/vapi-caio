@@ -25,6 +25,15 @@ function normalizedRow(row: Record<string, unknown>): Record<string, string> {
   );
 }
 
+function configuredValue(value: unknown, fallbackName: string): string {
+  const provided = String(value ?? '').trim();
+  if (provided) return provided;
+
+  const fallback = String(process.env[fallbackName] ?? '').trim();
+  if (!fallback) throw new Error(`${fallbackName} não configurada.`);
+  return fallback;
+}
+
 campaignsV2Router.use(requireAdmin);
 
 campaignsV2Router.get('/campaigns', async (req, res) => {
@@ -58,18 +67,47 @@ campaignsV2Router.get('/campaigns', async (req, res) => {
 });
 
 campaignsV2Router.post('/campaigns', async (req, res) => {
-  const { name, assistantId, phoneNumberId, maxConcurrent = 1, maxAttempts = 5, scheduledAt = null } = req.body || {};
-  if (!name || !assistantId) return res.status(400).json({ error: 'name e assistantId são obrigatórios' });
+  try {
+    const {
+      name,
+      assistantId,
+      phoneNumberId,
+      maxConcurrent = 1,
+      maxAttempts = 5,
+      scheduledAt = null,
+    } = req.body || {};
 
-  const [result]: any = await pool.execute(
-    `INSERT INTO campaigns
-      (name,status,assistant_id,phone_number_id,max_concurrent,max_attempts,scheduled_at)
-     VALUES (?, 'draft', ?, ?, ?, ?, ?)`,
-    [String(name).trim(), String(assistantId).trim(), phoneNumberId ? String(phoneNumberId).trim() : null,
-      Math.max(1, Number(maxConcurrent)), Math.max(1, Number(maxAttempts)), scheduledAt ? new Date(scheduledAt) : null],
-  );
-  const [rows]: any = await pool.execute('SELECT * FROM campaigns WHERE id = ?', [result.insertId]);
-  return res.status(201).json(rows[0]);
+    if (!String(name || '').trim()) {
+      return res.status(400).json({ error: 'name é obrigatório' });
+    }
+
+    const resolvedAssistantId = configuredValue(assistantId, 'VAPI_ASSISTANT_ID_UVA');
+    const resolvedPhoneNumberId = configuredValue(phoneNumberId, 'VAPI_PHONE_NUMBER_ID');
+
+    const [result]: any = await pool.execute(
+      `INSERT INTO campaigns
+        (name,status,assistant_id,phone_number_id,max_concurrent,max_attempts,scheduled_at)
+       VALUES (?, 'draft', ?, ?, ?, ?, ?)`,
+      [
+        String(name).trim(),
+        resolvedAssistantId,
+        resolvedPhoneNumberId,
+        Math.max(1, Number(maxConcurrent)),
+        Math.max(1, Number(maxAttempts)),
+        scheduledAt ? new Date(scheduledAt) : null,
+      ],
+    );
+
+    const [rows]: any = await pool.execute('SELECT * FROM campaigns WHERE id = ?', [result.insertId]);
+    return res.status(201).json(rows[0]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erro desconhecido';
+    if (message.includes('não configurada')) {
+      return res.status(503).json({ error: message });
+    }
+    console.error('[campaigns] create error:', error);
+    return res.status(500).json({ error: 'Erro ao criar campanha' });
+  }
 });
 
 campaignsV2Router.patch('/campaigns/:id/status', async (req, res) => {
