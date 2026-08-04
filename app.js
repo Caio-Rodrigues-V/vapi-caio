@@ -21,17 +21,20 @@ if (!fs.existsSync(campaignWorkerEntry)) {
 
 const appModule = require('./dist/server.js');
 const migrationsModule = require('./dist/api/routes/adminMigrations.js');
+const webhookSimulationModule = require('./dist/api/routes/adminWebhookSimulation.js');
 const webhookModule = require('./dist/api/routes/vapiWebhook.js');
 const campaignsModule = require('./dist/api/routes/campaignsV2.js');
 const campaignWorkerModule = require('./dist/workers/campaignDispatcher.js');
 
 const app = appModule.default || appModule;
 const adminMigrationsRouter = migrationsModule.adminMigrationsRouter;
+const adminWebhookSimulationRouter = webhookSimulationModule.adminWebhookSimulationRouter;
 const vapiWebhookRouter = webhookModule.default || webhookModule;
 const campaignsV2Router = campaignsModule.campaignsV2Router;
 const runCampaignDispatcher = campaignWorkerModule.runCampaignDispatcher;
 
 app.use('/api/admin', adminMigrationsRouter);
+app.use('/api/admin', adminWebhookSimulationRouter);
 app.use('/api/v2', vapiWebhookRouter);
 app.use('/api/v2', campaignsV2Router);
 
