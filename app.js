@@ -3,8 +3,10 @@
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
+const { execFile } = require('child_process');
 
 const backendEntry = path.join(__dirname, 'dist', 'server.js');
+const campaignWorkerEntry = path.join(__dirname, 'dist', 'workers', 'campaignDispatcher.js');
 
 if (!fs.existsSync(backendEntry)) {
   throw new Error(
@@ -25,6 +27,59 @@ const campaignsV2Router = campaignsModule.campaignsV2Router;
 app.use('/api/admin', adminMigrationsRouter);
 app.use('/api/v2', vapiWebhookRouter);
 app.use('/api/v2', campaignsV2Router);
+
+app.post('/api/worker/run', (req, res) => {
+  const configuredToken = process.env.WORKER_TRIGGER_TOKEN;
+  const providedToken = req.header('x-worker-token');
+
+  if (!configuredToken || providedToken !== configuredToken) {
+    return res.status(401).json({ error: 'Não autorizado' });
+  }
+
+  if (!fs.existsSync(campaignWorkerEntry)) {
+    return res.status(503).json({
+      error: 'Dispatcher compilado não encontrado.',
+      expectedPath: campaignWorkerEntry,
+    });
+  }
+
+  execFile(
+    process.execPath,
+    [campaignWorkerEntry],
+    {
+      cwd: __dirname,
+      env: process.env,
+      timeout: 120000,
+      maxBuffer: 1024 * 1024,
+    },
+    (error, stdout, stderr) => {
+      const output = String(stdout || '').trim();
+      const errorOutput = String(stderr || '').trim();
+
+      if (error) {
+        console.error('Erro ao executar dispatcher de campanhas:', error);
+        if (errorOutput) console.error(errorOutput);
+
+        return res.status(500).json({
+          ok: false,
+          error: error.message,
+          stdout: output || null,
+          stderr: errorOutput || null,
+        });
+      }
+
+      if (output) console.log(output);
+      if (errorOutput) console.error(errorOutput);
+
+      return res.json({
+        ok: true,
+        message: 'Dispatcher de campanhas executado.',
+        stdout: output || null,
+        stderr: errorOutput || null,
+      });
+    },
+  );
+});
 
 const frontendDist = path.join(__dirname, 'frontend', 'dist');
 const frontendIndex = path.join(frontendDist, 'index.html');
