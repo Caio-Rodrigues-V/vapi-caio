@@ -7,12 +7,13 @@ import { parse } from 'csv-parse';
 import pool from './db';
 import { classificarLigacao } from './services/llmClassifier';
 import { normalizePhone } from './utils/phoneValidator';
-
+import { adminVapiHealthRouter } from './api/routes/adminVapiHealth';
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
+app.use('/api/admin', adminVapiHealthRouter);
 
 const PORT = Number(process.env.PORT || 3000);
 const upload = multer({
