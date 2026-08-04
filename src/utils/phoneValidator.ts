@@ -10,16 +10,26 @@ const VALID_DDDS = new Set([
   91, 92, 93, 94, 95, 96, 97, 98, 99,
 ]);
 
-function expandScientificNotation(value: string): string {
+function expandScientificNotation(value: string): string | null {
   const normalized = value.trim().replace(',', '.');
 
   if (!/^[+-]?\d+(?:\.\d+)?e[+-]?\d+$/i.test(normalized)) {
     return value;
   }
 
+  const [mantissa = ''] = normalized.toLowerCase().split('e');
+  const significantDigits = mantissa.replace(/^[+-]/, '').replace('.', '').replace(/^0+/, '');
+
+  // Um telefone brasileiro com DDI possui 12 ou 13 dígitos. Quando o Excel
+  // reduz a mantissa (ex.: 5.52198E+12), os dígitos finais já foram perdidos.
+  // Nessa situação é mais seguro rejeitar a linha do que ligar para outro número.
+  if (significantDigits.length < 12) {
+    return null;
+  }
+
   const numericValue = Number(normalized);
   if (!Number.isFinite(numericValue) || !Number.isSafeInteger(numericValue)) {
-    return value;
+    return null;
   }
 
   return numericValue.toFixed(0);
@@ -27,11 +37,13 @@ function expandScientificNotation(value: string): string {
 
 /**
  * Normaliza um telefone brasileiro para E.164 (+55...).
- * Aceita formatos locais, com código do país e valores em notação científica
- * gerados por planilhas do Excel.
+ * Aceita formatos locais, com código do país e notação científica somente
+ * quando todos os dígitos necessários foram preservados pela planilha.
  */
 export function normalizePhone(phone: string): string | null {
   const expanded = expandScientificNotation(String(phone));
+  if (!expanded) return null;
+
   let digits = expanded.replace(/\D/g, '');
 
   if (digits.startsWith('00')) {
