@@ -9,6 +9,7 @@ import {
   Play,
   Plus,
   RefreshCw,
+  Trash2,
   UploadCloud,
 } from 'lucide-react';
 import { prepareImportFile } from './lib/importFile';
@@ -100,6 +101,7 @@ function StatusBadge({ status }: { status: string }) {
 function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [calls, setCalls] = useState<CallRow[]>([]);
@@ -112,14 +114,24 @@ function Campaigns() {
 
     try {
       const result = await apiFetch(`/campaigns?limit=100&_=${Date.now()}`);
-      setCampaigns(Array.isArray(result.data) ? result.data : []);
+      const nextCampaigns = Array.isArray(result.data) ? result.data : [];
+      setCampaigns(nextCampaigns);
       setLastUpdatedAt(new Date());
 
       if (selectedId) {
-        const callsResult = await apiFetch(
-          `/campaigns/${selectedId}/calls?limit=100&_=${Date.now()}`,
+        const stillExists = nextCampaigns.some(
+          (campaign: Campaign) => campaign.id === selectedId,
         );
-        setCalls(Array.isArray(callsResult.data) ? callsResult.data : []);
+
+        if (stillExists) {
+          const callsResult = await apiFetch(
+            `/campaigns/${selectedId}/calls?limit=100&_=${Date.now()}`,
+          );
+          setCalls(Array.isArray(callsResult.data) ? callsResult.data : []);
+        } else {
+          setSelectedId(null);
+          setCalls([]);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar campanhas');
@@ -135,11 +147,44 @@ function Campaigns() {
   }
 
   async function changeStatus(id: number, status: string) {
-    await apiFetch(`/campaigns/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    });
-    await load();
+    try {
+      await apiFetch(`/campaigns/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      await load();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Erro ao alterar campanha');
+    }
+  }
+
+  async function deleteCampaign(campaign: Campaign) {
+    const activeCalls = Number(campaign.active_calls || 0);
+    if (campaign.status === 'running' || activeCalls > 0) {
+      window.alert(
+        'Pause a campanha e aguarde o encerramento das chamadas ativas antes de excluir.',
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Excluir definitivamente a campanha "${campaign.name}" e todos os contatos/resultados vinculados?`,
+    );
+    if (!confirmed) return;
+
+    setDeletingId(campaign.id);
+    try {
+      await apiFetch(`/campaigns/${campaign.id}`, { method: 'DELETE' });
+      if (selectedId === campaign.id) {
+        setSelectedId(null);
+        setCalls([]);
+      }
+      await load();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Erro ao excluir campanha');
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   async function importFile(id: number, file?: File) {
@@ -191,16 +236,15 @@ function Campaigns() {
   }, [campaigns, selectedId]);
 
   const totals = useMemo(
-    () =>
-      campaigns.reduce(
-        (acc, item) => ({
-          campaigns: acc.campaigns + 1,
-          calls: acc.calls + Number(item.total_calls || 0),
-          active: acc.active + Number(item.active_calls || 0),
-          completed: acc.completed + Number(item.completed_calls || 0),
-        }),
-        { campaigns: 0, calls: 0, active: 0, completed: 0 },
-      ),
+    () => campaigns.reduce(
+      (acc, item) => ({
+        campaigns: acc.campaigns + 1,
+        calls: acc.calls + Number(item.total_calls || 0),
+        active: acc.active + Number(item.active_calls || 0),
+        completed: acc.completed + Number(item.completed_calls || 0),
+      }),
+      { campaigns: 0, calls: 0, active: 0, completed: 0 },
+    ),
     [campaigns],
   );
 
@@ -209,9 +253,7 @@ function Campaigns() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-white">Campanhas</h2>
-          <p className="text-sm text-slate-400">
-            Operação de chamadas telefônicas via Vapi
-          </p>
+          <p className="text-sm text-slate-400">Operação de chamadas telefônicas via Vapi</p>
           {lastUpdatedAt && (
             <p className="mt-1 text-xs text-slate-500">
               Atualizado em {lastUpdatedAt.toLocaleTimeString('pt-BR')}
@@ -226,10 +268,7 @@ function Campaigns() {
             onClick={() => void load()}
             className="rounded-md border border-dark-border bg-dark-surface px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw
-              size={16}
-              className={`mr-2 inline ${loading ? 'animate-spin' : ''}`}
-            />
+            <RefreshCw size={16} className={`mr-2 inline ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'Atualizando...' : 'Atualizar'}
           </button>
 
@@ -251,10 +290,7 @@ function Campaigns() {
           ['Ativas', totals.active],
           ['Concluídas', totals.completed],
         ].map(([label, value]) => (
-          <div
-            key={String(label)}
-            className="rounded-xl border border-dark-border bg-dark-surface p-5"
-          >
+          <div key={String(label)} className="rounded-xl border border-dark-border bg-dark-surface p-5">
             <p className="text-xs uppercase text-slate-400">{label}</p>
             <p className="mt-2 text-3xl font-bold text-white">{value}</p>
           </div>
@@ -267,74 +303,83 @@ function Campaigns() {
         <table className="w-full text-left">
           <thead className="bg-slate-800 text-xs uppercase text-slate-400">
             <tr>
-              {['Campanha', 'Status', 'Fila', 'Ativas', 'Concluídas', 'Falhas', 'Ações'].map(
-                (header) => (
-                  <th key={header} className="px-4 py-3">
-                    {header}
-                  </th>
-                ),
-              )}
+              {['Campanha', 'Status', 'Fila', 'Ativas', 'Concluídas', 'Falhas', 'Ações'].map((header) => (
+                <th key={header} className="px-4 py-3">{header}</th>
+              ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-dark-border">
-            {campaigns.map((campaign) => (
-              <tr key={campaign.id} className="text-sm text-slate-300">
-                <td className="px-4 py-4">
-                  <button
-                    type="button"
-                    className="font-medium text-white hover:text-primary"
-                    onClick={() => void loadCalls(campaign.id)}
-                  >
-                    {campaign.name}
-                  </button>
-                </td>
-                <td className="px-4 py-4">
-                  <StatusBadge status={campaign.status} />
-                </td>
-                <td className="px-4 py-4">{Number(campaign.pending_calls || 0)}</td>
-                <td className="px-4 py-4">{Number(campaign.active_calls || 0)}</td>
-                <td className="px-4 py-4">{Number(campaign.completed_calls || 0)}</td>
-                <td className="px-4 py-4">{Number(campaign.failed_calls || 0)}</td>
-                <td className="px-4 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    {campaign.status !== 'running' ? (
-                      <button
-                        type="button"
-                        title="Iniciar"
-                        onClick={() => void changeStatus(campaign.id, 'running')}
-                        className="rounded bg-emerald-950 p-2 text-emerald-300"
-                      >
-                        <Play size={15} />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        title="Pausar"
-                        onClick={() => void changeStatus(campaign.id, 'paused')}
-                        className="rounded bg-amber-950 p-2 text-amber-300"
-                      >
-                        <Pause size={15} />
-                      </button>
-                    )}
+            {campaigns.map((campaign) => {
+              const deleteBlocked = campaign.status === 'running'
+                || Number(campaign.active_calls || 0) > 0;
 
-                    <label
-                      title="Importar CSV/XLSX"
-                      className="cursor-pointer rounded bg-slate-800 p-2 text-slate-200"
+              return (
+                <tr key={campaign.id} className="text-sm text-slate-300">
+                  <td className="px-4 py-4">
+                    <button
+                      type="button"
+                      className="font-medium text-white hover:text-primary"
+                      onClick={() => void loadCalls(campaign.id)}
                     >
-                      <UploadCloud size={15} />
-                      <input
-                        className="hidden"
-                        type="file"
-                        accept=".csv,.xlsx,.xls"
-                        onChange={(event) =>
-                          void importFile(campaign.id, event.target.files?.[0])
-                        }
-                      />
-                    </label>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                      {campaign.name}
+                    </button>
+                  </td>
+                  <td className="px-4 py-4"><StatusBadge status={campaign.status} /></td>
+                  <td className="px-4 py-4">{Number(campaign.pending_calls || 0)}</td>
+                  <td className="px-4 py-4">{Number(campaign.active_calls || 0)}</td>
+                  <td className="px-4 py-4">{Number(campaign.completed_calls || 0)}</td>
+                  <td className="px-4 py-4">{Number(campaign.failed_calls || 0)}</td>
+                  <td className="px-4 py-4">
+                    <div className="flex flex-wrap gap-2">
+                      {campaign.status !== 'running' ? (
+                        <button
+                          type="button"
+                          title="Iniciar"
+                          onClick={() => void changeStatus(campaign.id, 'running')}
+                          className="rounded bg-emerald-950 p-2 text-emerald-300"
+                        >
+                          <Play size={15} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          title="Pausar"
+                          onClick={() => void changeStatus(campaign.id, 'paused')}
+                          className="rounded bg-amber-950 p-2 text-amber-300"
+                        >
+                          <Pause size={15} />
+                        </button>
+                      )}
+
+                      <label
+                        title="Importar CSV/XLSX"
+                        className="cursor-pointer rounded bg-slate-800 p-2 text-slate-200"
+                      >
+                        <UploadCloud size={15} />
+                        <input
+                          className="hidden"
+                          type="file"
+                          accept=".csv,.xlsx,.xls"
+                          onChange={(event) => void importFile(campaign.id, event.target.files?.[0])}
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        title={deleteBlocked
+                          ? 'Pause a campanha e aguarde as chamadas ativas'
+                          : 'Excluir campanha'}
+                        disabled={deleteBlocked || deletingId === campaign.id}
+                        onClick={() => void deleteCampaign(campaign)}
+                        className="rounded bg-red-950 p-2 text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
 
             {!campaigns.length && (
               <tr>
@@ -356,13 +401,9 @@ function Campaigns() {
             <table className="w-full text-left text-sm">
               <thead className="text-xs uppercase text-slate-400">
                 <tr>
-                  {['Telefone', 'CPF', 'Status', 'Tentativas', 'Decisão', 'Atualização'].map(
-                    (header) => (
-                      <th key={header} className="px-3 py-2">
-                        {header}
-                      </th>
-                    ),
-                  )}
+                  {['Telefone', 'CPF', 'Status', 'Tentativas', 'Decisão', 'Atualização'].map((header) => (
+                    <th key={header} className="px-3 py-2">{header}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-dark-border">
@@ -370,15 +411,11 @@ function Campaigns() {
                   <tr key={call.id} className="text-slate-300">
                     <td className="px-3 py-3">{call.customer_number}</td>
                     <td className="px-3 py-3">{call.cpf || '-'}</td>
-                    <td className="px-3 py-3">
-                      <StatusBadge status={call.status} />
-                    </td>
+                    <td className="px-3 py-3"><StatusBadge status={call.status} /></td>
                     <td className="px-3 py-3">{call.attempts}</td>
                     <td className="px-3 py-3">{call.decision || '-'}</td>
                     <td className="px-3 py-3">
-                      {call.updated_at
-                        ? new Date(call.updated_at).toLocaleString('pt-BR')
-                        : '-'}
+                      {call.updated_at ? new Date(call.updated_at).toLocaleString('pt-BR') : '-'}
                     </td>
                   </tr>
                 ))}
@@ -389,10 +426,7 @@ function Campaigns() {
       )}
 
       {showCreate && (
-        <CreateCampaign
-          onClose={() => setShowCreate(false)}
-          onCreated={() => load()}
-        />
+        <CreateCampaign onClose={() => setShowCreate(false)} onCreated={() => load()} />
       )}
     </div>
   );
@@ -419,9 +453,7 @@ function CreateCampaign({
       })
       .catch((err) => {
         if (active) {
-          setConfigError(
-            err instanceof Error ? err.message : 'Erro ao carregar configuração Vapi',
-          );
+          setConfigError(err instanceof Error ? err.message : 'Erro ao carregar configuração Vapi');
         }
       })
       .finally(() => {
@@ -479,12 +511,8 @@ function CreateCampaign({
         </label>
 
         <div className="rounded-lg border border-dark-border bg-slate-900/60 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Operação Vapi
-          </p>
-          {loadingConfig && (
-            <p className="mt-2 text-sm text-slate-300">Carregando configuração UVA...</p>
-          )}
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Operação Vapi</p>
+          {loadingConfig && <p className="mt-2 text-sm text-slate-300">Carregando configuração UVA...</p>}
           {configError && <p className="mt-2 text-sm text-red-400">{configError}</p>}
           {vapiConfig && (
             <div className="mt-3 space-y-3">
@@ -494,9 +522,7 @@ function CreateCampaign({
               </div>
               <div>
                 <p className="text-xs text-slate-400">Número de saída</p>
-                <p className="font-medium text-white">
-                  {vapiConfig.phoneNumber.number}
-                </p>
+                <p className="font-medium text-white">{vapiConfig.phoneNumber.number}</p>
               </div>
             </div>
           )}
@@ -593,9 +619,7 @@ function Sidebar() {
             key={path}
             to={path}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
-              location.pathname === path
-                ? 'bg-primary/10 text-primary'
-                : 'hover:bg-slate-800'
+              location.pathname === path ? 'bg-primary/10 text-primary' : 'hover:bg-slate-800'
             }`}
           >
             <Icon size={20} />
