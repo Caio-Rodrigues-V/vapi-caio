@@ -115,7 +115,7 @@ export class MySqlCampaignCallRepository implements CampaignCallRepository {
     const entries = Object.entries(metadata);
     if (!entries.length) return;
 
-    const args: unknown[] = [];
+    const args: Array<string | number> = [];
     const expressions = entries.map(([key, value]) => {
       args.push(`$.${key}`, JSON.stringify(value));
       return "?, JSON_EXTRACT(?, '$')";
