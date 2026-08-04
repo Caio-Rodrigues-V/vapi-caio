@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { Router } from 'express';
 import multer from 'multer';
 import fs from 'fs';
@@ -35,6 +36,49 @@ function configuredValue(value: unknown, fallbackName: string): string {
 }
 
 campaignsV2Router.use(requireAdmin);
+
+campaignsV2Router.get('/vapi/config', async (_req, res) => {
+  try {
+    const apiKey = configuredValue(undefined, 'VAPI_API_KEY');
+    const assistantId = configuredValue(undefined, 'VAPI_ASSISTANT_ID_UVA');
+    const phoneNumberId = configuredValue(undefined, 'VAPI_PHONE_NUMBER_ID');
+
+    const client = axios.create({
+      baseURL: 'https://api.vapi.ai',
+      timeout: 10_000,
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    const [assistantResponse, phoneResponse] = await Promise.all([
+      client.get(`/assistant/${assistantId}`),
+      client.get(`/phone-number/${phoneNumberId}`),
+    ]);
+
+    return res.json({
+      operation: 'uva',
+      assistant: {
+        id: assistantId,
+        name: String(assistantResponse.data?.name || 'Assistant UVA'),
+      },
+      phoneNumber: {
+        id: phoneNumberId,
+        number: String(
+          phoneResponse.data?.number ||
+          phoneResponse.data?.phoneNumber ||
+          phoneResponse.data?.name ||
+          'Número Vapi configurado',
+        ),
+      },
+    });
+  } catch (error) {
+    const message = axios.isAxiosError(error)
+      ? String(error.response?.data?.message || error.response?.data?.error || error.message)
+      : error instanceof Error ? error.message : 'Erro desconhecido';
+
+    const status = message.includes('não configurada') ? 503 : 502;
+    return res.status(status).json({ error: `Não foi possível carregar a configuração UVA: ${message}` });
+  }
+});
 
 campaignsV2Router.get('/campaigns', async (req, res) => {
   const page = Math.max(1, Number(req.query.page || 1));
