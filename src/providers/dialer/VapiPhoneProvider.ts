@@ -32,12 +32,28 @@ export class VapiPhoneProvider implements DialerProvider {
       throw new Error('phoneNumberId é obrigatório para chamadas telefônicas.');
     }
 
-    const response = await this.client.post('/call/phone', {
+    const customer: Record<string, string> = {
+      number: input.customerNumber,
+    };
+
+    if (input.customerName?.trim()) {
+      customer.name = input.customerName.trim();
+    }
+
+    const payload: Record<string, unknown> = {
       assistantId: input.assistantId,
       phoneNumberId: input.phoneNumberId,
-      customer: { number: input.customerNumber },
+      customer,
       metadata: input.metadata,
-    });
+    };
+
+    if (input.variableValues && Object.keys(input.variableValues).length > 0) {
+      payload.assistantOverrides = {
+        variableValues: input.variableValues,
+      };
+    }
+
+    const response = await this.client.post('/call/phone', payload);
 
     const providerCallId = String(response.data?.id || '');
     if (!providerCallId) {
