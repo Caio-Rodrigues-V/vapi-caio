@@ -4,10 +4,28 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 
-require('tsx/cjs');
-const appModule = require('./src/server.ts');
+const backendEntry = path.join(__dirname, 'dist', 'server.js');
+
+if (!fs.existsSync(backendEntry)) {
+  throw new Error(
+    'Backend compilado não encontrado em dist/server.js. Gere e publique os artefatos de build antes de iniciar a aplicação.',
+  );
+}
+
+const appModule = require('./dist/server.js');
+const migrationsModule = require('./dist/api/routes/adminMigrations.js');
+const webhookModule = require('./dist/api/routes/vapiWebhook.js');
+const campaignsModule = require('./dist/api/routes/campaignsV2.js');
 
 const app = appModule.default || appModule;
+const adminMigrationsRouter = migrationsModule.adminMigrationsRouter;
+const vapiWebhookRouter = webhookModule.default || webhookModule;
+const campaignsV2Router = campaignsModule.campaignsV2Router;
+
+app.use('/api/admin', adminMigrationsRouter);
+app.use('/api/v2', vapiWebhookRouter);
+app.use('/api/v2', campaignsV2Router);
+
 const frontendDist = path.join(__dirname, 'frontend', 'dist');
 const frontendIndex = path.join(frontendDist, 'index.html');
 
@@ -26,11 +44,9 @@ if (fs.existsSync(frontendIndex)) {
   });
 }
 
-if (require.main === module) {
-  const port = Number(process.env.PORT || 3000);
-  app.listen(port, () => {
-    console.log(`Servidor iniciado na porta ${port}`);
-  });
-}
+const port = process.env.PORT || 3000;
+const server = app.listen(port, () => {
+  console.log(`Servidor iniciado na porta ${port}`);
+});
 
-module.exports = app;
+module.exports = server;
