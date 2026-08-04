@@ -229,16 +229,16 @@ app.post('/api/worker/start', (req: Request, res: Response) => {
 
   execFile(
     process.execPath,
-    [tsxBinary, 'src/worker.ts'],
+    [tsxBinary, 'src/workers/campaignDispatcher.ts'],
     { cwd: process.cwd() },
     (error: Error | null, stdout: string, stderr: string) => {
-      if (error) console.error('Erro no worker manual:', error);
+      if (error) console.error('Erro no dispatcher de campanhas:', error);
       if (stdout) console.log(stdout);
       if (stderr) console.error(stderr);
     }
   );
 
-  return res.status(202).json({ message: 'Worker acionado.' });
+  return res.status(202).json({ message: 'Dispatcher de campanhas acionado.' });
 });
 
 if (require.main === module) {
