@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import pool from '../db';
 import { AssistantResolver } from '../application/campaigns/AssistantResolver';
 import { RetryPolicy } from '../application/campaigns/RetryPolicy';
 import { RunCampaignDispatcher } from '../application/campaigns/RunCampaignDispatcher';
@@ -61,7 +62,16 @@ async function main(): Promise<void> {
   console.log(JSON.stringify({ worker: 'campaign-dispatcher', operation: 'uva', ...result }));
 }
 
-main().catch((error) => {
-  console.error('[campaign-dispatcher] fatal:', error);
-  process.exitCode = 1;
-});
+void main()
+  .catch((error) => {
+    console.error('[campaign-dispatcher] fatal:', error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    try {
+      await pool.end();
+    } catch (error) {
+      console.error('[campaign-dispatcher] erro ao encerrar pool:', error);
+      process.exitCode = 1;
+    }
+  });
