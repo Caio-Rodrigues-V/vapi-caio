@@ -43,8 +43,9 @@ function detectDelimiter(filePath: string): ',' | ';' | '\t' {
     { delimiter: ';' as const, count: (firstLine.match(/;/g) || []).length },
     { delimiter: '\t' as const, count: (firstLine.match(/\t/g) || []).length },
   ].sort((a, b) => b.count - a.count);
+  const selected = candidates[0];
 
-  return candidates[0].count > 0 ? candidates[0].delimiter : ',';
+  return selected && selected.count > 0 ? selected.delimiter : ',';
 }
 
 campaignsV2Router.use(requireAdmin);
