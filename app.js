@@ -30,10 +30,12 @@ const frontendDist = path.join(__dirname, 'frontend', 'dist');
 const frontendIndex = path.join(frontendDist, 'index.html');
 
 if (fs.existsSync(frontendIndex)) {
-  app.use(express.static(frontendDist, {
-    index: false,
-    maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
-  }));
+  app.use(
+    express.static(frontendDist, {
+      index: false,
+      maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
+    }),
+  );
 
   app.use((req, res, next) => {
     if (req.method !== 'GET' || req.path.startsWith('/api/')) {
@@ -44,9 +46,11 @@ if (fs.existsSync(frontendIndex)) {
   });
 }
 
-const port = process.env.PORT || 3000;
-const server = app.listen(port, () => {
-  console.log(`Servidor iniciado na porta ${port}`);
-});
+if (require.main === module) {
+  const port = Number(process.env.PORT || 3000);
+  app.listen(port, () => {
+    console.log(`Servidor iniciado na porta ${port}`);
+  });
+}
 
-module.exports = server;
+module.exports = app;
