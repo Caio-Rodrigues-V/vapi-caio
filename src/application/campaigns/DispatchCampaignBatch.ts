@@ -17,6 +17,23 @@ export type DispatchCampaignBatchResult = {
   retries: number;
 };
 
+function asText(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+}
+
+function formatCurrency(value: unknown): string {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '';
+
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(number);
+}
+
 export class DispatchCampaignBatch {
   constructor(
     private readonly campaigns: CampaignRepository,
@@ -42,6 +59,7 @@ export class DispatchCampaignBatch {
       try {
         let assistantId = campaign.assistantId;
         let debtMetadata: Record<string, unknown> = {};
+        let customerName = asText(call.metadata?.name);
 
         if (this.debts) {
           if (!call.cpf) {
@@ -59,6 +77,7 @@ export class DispatchCampaignBatch {
           }
 
           assistantId = this.assistantResolver?.resolve() || campaign.assistantId;
+          customerName = asText(debt.debtorName) || customerName;
           debtMetadata = {
             debtCheckedAt: new Date().toISOString(),
             hasDebt: true,
@@ -74,10 +93,25 @@ export class DispatchCampaignBatch {
           await this.calls.mergeMetadata(call.id, debtMetadata);
         }
 
+        const variableValues: Record<string, string | number | boolean> = {
+          instituicao: asText(debtMetadata.institution),
+          Valorcpf: asText(call.cpf),
+          ValorFinalAVista: formatCurrency(debtMetadata.cashAmount),
+          ValorNominal: formatCurrency(debtMetadata.nominalAmount),
+          PrimeiroVencimento: asText(debtMetadata.firstDueDate),
+          calculationId: asText(debtMetadata.calculationId),
+        };
+
+        const sanitizedVariableValues = Object.fromEntries(
+          Object.entries(variableValues).filter(([, value]) => value !== ''),
+        );
+
         const providerResult = await this.dialer.startCall({
           customerNumber: call.customerNumber,
+          customerName: customerName || undefined,
           assistantId,
           phoneNumberId: campaign.phoneNumberId ?? undefined,
+          variableValues: sanitizedVariableValues,
           metadata: {
             ...call.metadata,
             ...debtMetadata,
