@@ -35,6 +35,18 @@ function configuredValue(value: unknown, fallbackName: string): string {
   return fallback;
 }
 
+function detectDelimiter(filePath: string): ',' | ';' | '\t' {
+  const sample = fs.readFileSync(filePath, 'utf8').slice(0, 8192);
+  const firstLine = sample.split(/\r?\n/, 1)[0] || '';
+  const candidates = [
+    { delimiter: ',' as const, count: (firstLine.match(/,/g) || []).length },
+    { delimiter: ';' as const, count: (firstLine.match(/;/g) || []).length },
+    { delimiter: '\t' as const, count: (firstLine.match(/\t/g) || []).length },
+  ].sort((a, b) => b.count - a.count);
+
+  return candidates[0].count > 0 ? candidates[0].delimiter : ',';
+}
+
 campaignsV2Router.use(requireAdmin);
 
 campaignsV2Router.get('/vapi/config', async (_req, res) => {
@@ -205,10 +217,19 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
   }
 
   const rows: Record<string, string>[] = [];
+  const delimiter = detectDelimiter(req.file.path);
+
   try {
     await new Promise<void>((resolve, reject) => {
       fs.createReadStream(req.file!.path)
-        .pipe(parse({ columns: true, trim: true, skip_empty_lines: true, bom: true }))
+        .pipe(parse({
+          columns: true,
+          delimiter,
+          trim: true,
+          skip_empty_lines: true,
+          bom: true,
+          relax_column_count: true,
+        }))
         .on('data', (row) => rows.push(normalizedRow(row)))
         .on('error', reject)
         .on('end', resolve);
@@ -216,17 +237,35 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
 
     const connection = await pool.getConnection();
     let inserted = 0;
-    let ignored = 0;
+    const errors: Array<{ line: number; reason: string; cpf?: string; telefone?: string }> = [];
+
     try {
       await connection.beginTransaction();
-      for (const row of rows) {
+      for (const [index, row] of rows.entries()) {
+        const line = index + 2;
         const phoneRaw = row.telefone || row.phone || row.numero || row.celular || row.fone;
-        const cpf = String(row.cpf || '').replace(/\D/g, '').padStart(11, '0');
+        const cpfRaw = row.cpf || row.documento || row.document;
+        const cpfDigits = String(cpfRaw || '').replace(/\D/g, '');
+        const cpf = cpfDigits.padStart(11, '0');
         const customerNumber = phoneRaw ? normalizePhone(String(phoneRaw)) : null;
-        if (!customerNumber || cpf.length !== 11) {
-          ignored += 1;
+
+        if (!cpfRaw) {
+          errors.push({ line, reason: 'CPF ausente', telefone: phoneRaw });
           continue;
         }
+        if (cpf.length !== 11) {
+          errors.push({ line, reason: 'CPF deve possuir 11 dígitos', cpf: cpfDigits, telefone: phoneRaw });
+          continue;
+        }
+        if (!phoneRaw) {
+          errors.push({ line, reason: 'Telefone ausente', cpf });
+          continue;
+        }
+        if (!customerNumber) {
+          errors.push({ line, reason: 'Telefone brasileiro inválido', cpf, telefone: String(phoneRaw) });
+          continue;
+        }
+
         await connection.execute(
           `INSERT INTO campaign_calls (campaign_id, customer_number, cpf, status, metadata)
            VALUES (?, ?, ?, 'pending', ?)`,
@@ -242,7 +281,19 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
       connection.release();
     }
 
-    return res.status(201).json({ campaignId, totalRows: rows.length, inserted, ignored });
+    return res.status(201).json({
+      campaignId,
+      delimiter: delimiter === '\t' ? 'tab' : delimiter,
+      totalRows: rows.length,
+      inserted,
+      ignored: errors.length,
+      errors: errors.slice(0, 50),
+    });
+  } catch (error) {
+    console.error('[campaigns] import error:', error);
+    return res.status(400).json({
+      error: error instanceof Error ? `Arquivo inválido: ${error.message}` : 'Arquivo inválido',
+    });
   } finally {
     fs.rmSync(req.file.path, { force: true });
   }
