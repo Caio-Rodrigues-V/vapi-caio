@@ -178,15 +178,15 @@ app.post('/api/worker/start', (req, res) => {
     }
     const { execFile } = require('child_process');
     const tsxBinary = require.resolve('tsx/cli');
-    execFile(process.execPath, [tsxBinary, 'src/worker.ts'], { cwd: process.cwd() }, (error, stdout, stderr) => {
+    execFile(process.execPath, [tsxBinary, 'src/workers/campaignDispatcher.ts'], { cwd: process.cwd() }, (error, stdout, stderr) => {
         if (error)
-            console.error('Erro no worker manual:', error);
+            console.error('Erro no dispatcher de campanhas:', error);
         if (stdout)
             console.log(stdout);
         if (stderr)
             console.error(stderr);
     });
-    return res.status(202).json({ message: 'Worker acionado.' });
+    return res.status(202).json({ message: 'Dispatcher de campanhas acionado.' });
 });
 if (require.main === module) {
     app.listen(PORT, () => {
