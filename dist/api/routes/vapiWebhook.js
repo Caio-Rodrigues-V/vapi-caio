@@ -2,12 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const ProcessVapiWebhook_1 = require("../../application/webhooks/ProcessVapiWebhook");
+const ProcessVapiToolCalls_1 = require("../../application/vapi/ProcessVapiToolCalls");
 const MySqlWebhookRepository_1 = require("../../infrastructure/mysql/MySqlWebhookRepository");
 const router = (0, express_1.Router)();
 const processor = new ProcessVapiWebhook_1.ProcessVapiWebhook(new MySqlWebhookRepository_1.MySqlWebhookRepository());
 router.post('/vapi/webhook', async (req, res) => {
     try {
-        const result = await processor.execute(req.body || {});
+        const payload = (req.body || {});
+        const message = payload.message && typeof payload.message === 'object'
+            ? payload.message
+            : payload;
+        const type = String(message.type || '').toLowerCase();
+        if (type === 'tool-calls') {
+            return res.status(200).json((0, ProcessVapiToolCalls_1.processVapiToolCalls)(payload));
+        }
+        const result = await processor.execute(payload);
         return res.status(200).json({ received: true, ...result });
     }
     catch (error) {
