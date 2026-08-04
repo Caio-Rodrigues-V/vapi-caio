@@ -2,9 +2,11 @@ export type DialerChannel = 'phone' | 'whatsapp';
 
 export type StartCallInput = {
   customerNumber: string;
+  customerName?: string;
   assistantId: string;
   phoneNumberId?: string;
-  metadata: Record<string, string | number | boolean | null>;
+  variableValues?: Record<string, string | number | boolean>;
+  metadata: Record<string, unknown>;
 };
 
 export type StartCallResult = {
