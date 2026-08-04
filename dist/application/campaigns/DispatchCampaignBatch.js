@@ -3,6 +3,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DispatchCampaignBatch = void 0;
 const crypto_1 = require("crypto");
 const DebtProvider_1 = require("../../core/debt/DebtProvider");
+function asText(value) {
+    if (value === null || value === undefined)
+        return '';
+    return String(value).trim();
+}
+function formatCurrency(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number))
+        return '';
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(number);
+}
 class DispatchCampaignBatch {
     campaigns;
     calls;
@@ -32,6 +48,7 @@ class DispatchCampaignBatch {
             try {
                 let assistantId = campaign.assistantId;
                 let debtMetadata = {};
+                let customerName = asText(call.metadata?.name);
                 if (this.debts) {
                     if (!call.cpf) {
                         await this.calls.updateStatus(call.id, 'skipped', 'cpf_missing');
@@ -46,6 +63,7 @@ class DispatchCampaignBatch {
                         continue;
                     }
                     assistantId = this.assistantResolver?.resolve() || campaign.assistantId;
+                    customerName = asText(debt.debtorName) || customerName;
                     debtMetadata = {
                         debtCheckedAt: new Date().toISOString(),
                         hasDebt: true,
@@ -60,10 +78,21 @@ class DispatchCampaignBatch {
                     };
                     await this.calls.mergeMetadata(call.id, debtMetadata);
                 }
+                const variableValues = {
+                    instituicao: asText(debtMetadata.institution),
+                    Valorcpf: asText(call.cpf),
+                    ValorFinalAVista: formatCurrency(debtMetadata.cashAmount),
+                    ValorNominal: formatCurrency(debtMetadata.nominalAmount),
+                    PrimeiroVencimento: asText(debtMetadata.firstDueDate),
+                    calculationId: asText(debtMetadata.calculationId),
+                };
+                const sanitizedVariableValues = Object.fromEntries(Object.entries(variableValues).filter(([, value]) => value !== ''));
                 const providerResult = await this.dialer.startCall({
                     customerNumber: call.customerNumber,
+                    customerName: customerName || undefined,
                     assistantId,
                     phoneNumberId: campaign.phoneNumberId ?? undefined,
+                    variableValues: sanitizedVariableValues,
                     metadata: {
                         ...call.metadata,
                         ...debtMetadata,
