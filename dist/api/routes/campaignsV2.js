@@ -35,6 +35,17 @@ function configuredValue(value, fallbackName) {
         throw new Error(`${fallbackName} não configurada.`);
     return fallback;
 }
+function detectDelimiter(filePath) {
+    const sample = fs_1.default.readFileSync(filePath, 'utf8').slice(0, 8192);
+    const firstLine = sample.split(/\r?\n/, 1)[0] || '';
+    const candidates = [
+        { delimiter: ',', count: (firstLine.match(/,/g) || []).length },
+        { delimiter: ';', count: (firstLine.match(/;/g) || []).length },
+        { delimiter: '\t', count: (firstLine.match(/\t/g) || []).length },
+    ].sort((a, b) => b.count - a.count);
+    const selected = candidates[0];
+    return selected && selected.count > 0 ? selected.delimiter : ',';
+}
 exports.campaignsV2Router.use(requireAdmin);
 exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
     try {
@@ -167,25 +178,48 @@ exports.campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), a
         return res.status(404).json({ error: 'Campanha não encontrada' });
     }
     const rows = [];
+    const delimiter = detectDelimiter(req.file.path);
     try {
         await new Promise((resolve, reject) => {
             fs_1.default.createReadStream(req.file.path)
-                .pipe((0, csv_parse_1.parse)({ columns: true, trim: true, skip_empty_lines: true, bom: true }))
+                .pipe((0, csv_parse_1.parse)({
+                columns: true,
+                delimiter,
+                trim: true,
+                skip_empty_lines: true,
+                bom: true,
+                relax_column_count: true,
+            }))
                 .on('data', (row) => rows.push(normalizedRow(row)))
                 .on('error', reject)
                 .on('end', resolve);
         });
         const connection = await db_1.default.getConnection();
         let inserted = 0;
-        let ignored = 0;
+        const errors = [];
         try {
             await connection.beginTransaction();
-            for (const row of rows) {
+            for (const [index, row] of rows.entries()) {
+                const line = index + 2;
                 const phoneRaw = row.telefone || row.phone || row.numero || row.celular || row.fone;
-                const cpf = String(row.cpf || '').replace(/\D/g, '').padStart(11, '0');
+                const cpfRaw = row.cpf || row.documento || row.document;
+                const cpfDigits = String(cpfRaw || '').replace(/\D/g, '');
+                const cpf = cpfDigits.padStart(11, '0');
                 const customerNumber = phoneRaw ? (0, phoneValidator_1.normalizePhone)(String(phoneRaw)) : null;
-                if (!customerNumber || cpf.length !== 11) {
-                    ignored += 1;
+                if (!cpfRaw) {
+                    errors.push({ line, reason: 'CPF ausente', telefone: phoneRaw });
+                    continue;
+                }
+                if (cpf.length !== 11) {
+                    errors.push({ line, reason: 'CPF deve possuir 11 dígitos', cpf: cpfDigits, telefone: phoneRaw });
+                    continue;
+                }
+                if (!phoneRaw) {
+                    errors.push({ line, reason: 'Telefone ausente', cpf });
+                    continue;
+                }
+                if (!customerNumber) {
+                    errors.push({ line, reason: 'Telefone brasileiro inválido', cpf, telefone: String(phoneRaw) });
                     continue;
                 }
                 await connection.execute(`INSERT INTO campaign_calls (campaign_id, customer_number, cpf, status, metadata)
@@ -201,7 +235,20 @@ exports.campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), a
         finally {
             connection.release();
         }
-        return res.status(201).json({ campaignId, totalRows: rows.length, inserted, ignored });
+        return res.status(201).json({
+            campaignId,
+            delimiter: delimiter === '\t' ? 'tab' : delimiter,
+            totalRows: rows.length,
+            inserted,
+            ignored: errors.length,
+            errors: errors.slice(0, 50),
+        });
+    }
+    catch (error) {
+        console.error('[campaigns] import error:', error);
+        return res.status(400).json({
+            error: error instanceof Error ? `Arquivo inválido: ${error.message}` : 'Arquivo inválido',
+        });
     }
     finally {
         fs_1.default.rmSync(req.file.path, { force: true });
