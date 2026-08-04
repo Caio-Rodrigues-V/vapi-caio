@@ -95,15 +95,16 @@ adminVapiHealthRouter.get('/vapi/health', async (req, res) => {
       checkResource(`/assistant/${assistantId}`, assistantId),
     ]);
 
+    const unauthorized = phoneNumber.status === 401 || assistant.status === 401;
     const ok = phoneNumber.ok && assistant.ok;
 
-    return res.status(ok ? 200 : 502).json({
+    return res.status(ok ? 200 : unauthorized ? 401 : 502).json({
       ok,
       provider: 'vapi',
       operation: 'uva',
       checks: {
         apiKey: {
-          ok: true,
+          ok: !unauthorized,
           configured: true,
         },
         phoneNumber,
@@ -111,11 +112,14 @@ adminVapiHealthRouter.get('/vapi/health', async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({
+    const message = error instanceof Error ? error.message : 'Erro desconhecido';
+    const configurationError = message.includes('não configurada');
+
+    return res.status(configurationError ? 503 : 500).json({
       ok: false,
       provider: 'vapi',
       operation: 'uva',
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      error: message,
     });
   }
 });
