@@ -114,11 +114,13 @@ export class MySqlCampaignCallRepository implements CampaignCallRepository {
   async mergeMetadata(id: number, metadata: Record<string, unknown>): Promise<void> {
     const entries = Object.entries(metadata);
     if (!entries.length) return;
-    const args: any[] = [];
+
+    const args: unknown[] = [];
     const expressions = entries.map(([key, value]) => {
       args.push(`$.${key}`, JSON.stringify(value));
-      return '?, CAST(? AS JSON)';
+      return "?, JSON_EXTRACT(?, '$')";
     });
+
     args.push(id);
     await pool.execute(
       `UPDATE campaign_calls
