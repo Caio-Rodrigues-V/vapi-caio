@@ -3,23 +3,17 @@ import test from 'node:test';
 import { AssistantResolver } from '../src/application/campaigns/AssistantResolver';
 import { RetryPolicy } from '../src/application/campaigns/RetryPolicy';
 
-test('AssistantResolver seleciona agente Cruzeiro por instituição', () => {
-  const resolver = new AssistantResolver({
-    defaultAssistantId: 'default',
-    cruzeiroAssistantId: 'cruzeiro',
-    ddmAssistantId: 'ddm',
-  });
+test('AssistantResolver retorna o assistant configurado para UVA', () => {
+  const resolver = new AssistantResolver({ uvaAssistantId: 'assistant-uva' });
 
-  assert.equal(resolver.resolve('Universidade Cruzeiro do Sul'), 'cruzeiro');
-  assert.equal(resolver.resolve('Carteira DDM'), 'ddm');
-  assert.equal(resolver.resolve(null), 'ddm');
+  assert.equal(resolver.resolve(), 'assistant-uva');
 });
 
-test('AssistantResolver usa fallback quando agente específico não existe', () => {
-  const resolver = new AssistantResolver({ defaultAssistantId: 'default' });
-
-  assert.equal(resolver.resolve('Cruzeiro'), 'default');
-  assert.equal(resolver.resolve('DDM'), 'default');
+test('AssistantResolver exige o assistant UVA', () => {
+  assert.throws(
+    () => new AssistantResolver({ uvaAssistantId: '' }),
+    /VAPI_ASSISTANT_ID_UVA não configurado/,
+  );
 });
 
 test('RetryPolicy aplica backoff exponencial e respeita o limite', () => {

@@ -11,10 +11,16 @@ function envInt(name, fallback) {
     const value = Number(process.env[name]);
     return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
 }
+function requiredEnv(name) {
+    const value = process.env[name]?.trim();
+    if (!value)
+        throw new Error(`${name} não configurado.`);
+    return value;
+}
 async function main() {
     const campaigns = new MySqlCampaignRepository_1.MySqlCampaignRepository();
     const calls = new MySqlCampaignRepository_1.MySqlCampaignCallRepository();
-    const dialer = new VapiPhoneProvider_1.VapiPhoneProvider(process.env.VAPI_API_KEY || '');
+    const dialer = new VapiPhoneProvider_1.VapiPhoneProvider(requiredEnv('VAPI_API_KEY'));
     const debts = new DdmDebtProvider_1.DdmDebtProvider({
         token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
         baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
@@ -22,15 +28,14 @@ async function main() {
         maxRetries: envInt('DDM_MAX_RETRIES', 3),
     });
     const assistantResolver = new AssistantResolver_1.AssistantResolver({
-        defaultAssistantId: process.env.VAPI_ASSISTANT_ID || '',
-        cruzeiroAssistantId: process.env.VAPI_ASSISTANT_ID_CRUZEIRO,
-        ddmAssistantId: process.env.VAPI_ASSISTANT_ID_DDM,
+        uvaAssistantId: requiredEnv('VAPI_ASSISTANT_ID_UVA'),
     });
     const retryPolicy = new RetryPolicy_1.RetryPolicy({
         baseDelayMs: envInt('WORKER_RETRY_BASE_MS', 60_000),
         maxDelayMs: envInt('WORKER_RETRY_MAX_MS', 3_600_000),
         jitterRatio: Number(process.env.WORKER_RETRY_JITTER_RATIO || 0.2),
     });
+    requiredEnv('VAPI_PHONE_NUMBER_ID');
     const dispatcher = new RunCampaignDispatcher_1.RunCampaignDispatcher(campaigns, calls, dialer, retryPolicy, {
         globalMaxConcurrent: envInt('GLOBAL_MAX_CONCURRENT', 10),
         campaignScanLimit: envInt('WORKER_CAMPAIGN_SCAN_LIMIT', 20),
@@ -39,7 +44,7 @@ async function main() {
         defaultMaxAttempts: envInt('WORKER_MAX_TRIES', 5),
     }, debts, assistantResolver);
     const result = await dispatcher.execute();
-    console.log(JSON.stringify({ worker: 'campaign-dispatcher', ...result }));
+    console.log(JSON.stringify({ worker: 'campaign-dispatcher', operation: 'uva', ...result }));
 }
 main().catch((error) => {
     console.error('[campaign-dispatcher] fatal:', error);

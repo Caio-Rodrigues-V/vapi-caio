@@ -14,10 +14,16 @@ function envInt(name: string, fallback: number): number {
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
 }
 
+function requiredEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`${name} não configurado.`);
+  return value;
+}
+
 async function main(): Promise<void> {
   const campaigns = new MySqlCampaignRepository();
   const calls = new MySqlCampaignCallRepository();
-  const dialer = new VapiPhoneProvider(process.env.VAPI_API_KEY || '');
+  const dialer = new VapiPhoneProvider(requiredEnv('VAPI_API_KEY'));
   const debts = new DdmDebtProvider({
     token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
     baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
@@ -25,15 +31,15 @@ async function main(): Promise<void> {
     maxRetries: envInt('DDM_MAX_RETRIES', 3),
   });
   const assistantResolver = new AssistantResolver({
-    defaultAssistantId: process.env.VAPI_ASSISTANT_ID || '',
-    cruzeiroAssistantId: process.env.VAPI_ASSISTANT_ID_CRUZEIRO,
-    ddmAssistantId: process.env.VAPI_ASSISTANT_ID_DDM,
+    uvaAssistantId: requiredEnv('VAPI_ASSISTANT_ID_UVA'),
   });
   const retryPolicy = new RetryPolicy({
     baseDelayMs: envInt('WORKER_RETRY_BASE_MS', 60_000),
     maxDelayMs: envInt('WORKER_RETRY_MAX_MS', 3_600_000),
     jitterRatio: Number(process.env.WORKER_RETRY_JITTER_RATIO || 0.2),
   });
+
+  requiredEnv('VAPI_PHONE_NUMBER_ID');
 
   const dispatcher = new RunCampaignDispatcher(
     campaigns,
@@ -52,7 +58,7 @@ async function main(): Promise<void> {
   );
 
   const result = await dispatcher.execute();
-  console.log(JSON.stringify({ worker: 'campaign-dispatcher', ...result }));
+  console.log(JSON.stringify({ worker: 'campaign-dispatcher', operation: 'uva', ...result }));
 }
 
 main().catch((error) => {

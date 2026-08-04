@@ -25,6 +25,15 @@ function requireAdmin(req, res, next) {
 function normalizedRow(row) {
     return Object.fromEntries(Object.entries(row).map(([key, value]) => [String(key).trim().toLowerCase(), String(value ?? '').trim()]));
 }
+function configuredValue(value, fallbackName) {
+    const provided = String(value ?? '').trim();
+    if (provided)
+        return provided;
+    const fallback = String(process.env[fallbackName] ?? '').trim();
+    if (!fallback)
+        throw new Error(`${fallbackName} não configurada.`);
+    return fallback;
+}
 exports.campaignsV2Router.use(requireAdmin);
 exports.campaignsV2Router.get('/campaigns', async (req, res) => {
     const page = Math.max(1, Number(req.query.page || 1));
@@ -51,15 +60,34 @@ exports.campaignsV2Router.get('/campaigns', async (req, res) => {
     return res.json({ page, limit, total: Number(countRows[0]?.total || 0), data: rows });
 });
 exports.campaignsV2Router.post('/campaigns', async (req, res) => {
-    const { name, assistantId, phoneNumberId, maxConcurrent = 1, maxAttempts = 5, scheduledAt = null } = req.body || {};
-    if (!name || !assistantId)
-        return res.status(400).json({ error: 'name e assistantId são obrigatórios' });
-    const [result] = await db_1.default.execute(`INSERT INTO campaigns
-      (name,status,assistant_id,phone_number_id,max_concurrent,max_attempts,scheduled_at)
-     VALUES (?, 'draft', ?, ?, ?, ?, ?)`, [String(name).trim(), String(assistantId).trim(), phoneNumberId ? String(phoneNumberId).trim() : null,
-        Math.max(1, Number(maxConcurrent)), Math.max(1, Number(maxAttempts)), scheduledAt ? new Date(scheduledAt) : null]);
-    const [rows] = await db_1.default.execute('SELECT * FROM campaigns WHERE id = ?', [result.insertId]);
-    return res.status(201).json(rows[0]);
+    try {
+        const { name, assistantId, phoneNumberId, maxConcurrent = 1, maxAttempts = 5, scheduledAt = null, } = req.body || {};
+        if (!String(name || '').trim()) {
+            return res.status(400).json({ error: 'name é obrigatório' });
+        }
+        const resolvedAssistantId = configuredValue(assistantId, 'VAPI_ASSISTANT_ID_UVA');
+        const resolvedPhoneNumberId = configuredValue(phoneNumberId, 'VAPI_PHONE_NUMBER_ID');
+        const [result] = await db_1.default.execute(`INSERT INTO campaigns
+        (name,status,assistant_id,phone_number_id,max_concurrent,max_attempts,scheduled_at)
+       VALUES (?, 'draft', ?, ?, ?, ?, ?)`, [
+            String(name).trim(),
+            resolvedAssistantId,
+            resolvedPhoneNumberId,
+            Math.max(1, Number(maxConcurrent)),
+            Math.max(1, Number(maxAttempts)),
+            scheduledAt ? new Date(scheduledAt) : null,
+        ]);
+        const [rows] = await db_1.default.execute('SELECT * FROM campaigns WHERE id = ?', [result.insertId]);
+        return res.status(201).json(rows[0]);
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro desconhecido';
+        if (message.includes('não configurada')) {
+            return res.status(503).json({ error: message });
+        }
+        console.error('[campaigns] create error:', error);
+        return res.status(500).json({ error: 'Erro ao criar campanha' });
+    }
 });
 exports.campaignsV2Router.patch('/campaigns/:id/status', async (req, res) => {
     const id = Number(req.params.id);

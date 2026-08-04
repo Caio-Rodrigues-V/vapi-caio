@@ -1,0 +1,23 @@
+# Dependências
+node_modules/
+frontend/node_modules/
+
+# Ambiente
+.env
+.env.*
+!.env.example
+
+# Uploads temporários
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operacional / editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Observação: dist/ e frontend/dist/ permanecem versionados porque o cPanel
+# não possui terminal para executar o build durante o deploy.

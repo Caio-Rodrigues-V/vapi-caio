@@ -5,16 +5,12 @@ class AssistantResolver {
     options;
     constructor(options) {
         this.options = options;
-        if (!options.defaultAssistantId) {
-            throw new Error('VAPI_ASSISTANT_ID não configurado.');
+        if (!options.uvaAssistantId) {
+            throw new Error('VAPI_ASSISTANT_ID_UVA não configurado.');
         }
     }
-    resolve(institution) {
-        const normalized = String(institution || '').toLowerCase();
-        if (normalized.includes('cruzeiro')) {
-            return this.options.cruzeiroAssistantId || this.options.defaultAssistantId;
-        }
-        return this.options.ddmAssistantId || this.options.defaultAssistantId;
+    resolve() {
+        return this.options.uvaAssistantId;
     }
 }
 exports.AssistantResolver = AssistantResolver;

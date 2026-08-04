@@ -58,7 +58,7 @@ export class DispatchCampaignBatch {
             continue;
           }
 
-          assistantId = this.assistantResolver?.resolve(debt.institution) || campaign.assistantId;
+          assistantId = this.assistantResolver?.resolve() || campaign.assistantId;
           debtMetadata = {
             debtCheckedAt: new Date().toISOString(),
             hasDebt: true,
