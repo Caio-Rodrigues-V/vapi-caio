@@ -10,6 +10,19 @@ import {
 import { DdmDebtProvider } from '../providers/debt/DdmDebtProvider';
 import { VapiPhoneProvider } from '../providers/dialer/VapiPhoneProvider';
 
+export type CampaignDispatcherResult = {
+  worker: 'campaign-dispatcher';
+  operation: 'uva';
+  recoveredLocks: number;
+  recoveredCalls: number;
+  campaignsScanned: number;
+  reserved: number;
+  dispatched: number;
+  skipped: number;
+  retries: number;
+  failed: number;
+};
+
 function envInt(name: string, fallback: number): number {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
@@ -21,7 +34,7 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-async function main(): Promise<void> {
+export async function runCampaignDispatcher(): Promise<CampaignDispatcherResult> {
   const campaigns = new MySqlCampaignRepository();
   const calls = new MySqlCampaignCallRepository();
   const dialer = new VapiPhoneProvider(requiredEnv('VAPI_API_KEY'));
@@ -59,19 +72,26 @@ async function main(): Promise<void> {
   );
 
   const result = await dispatcher.execute();
-  console.log(JSON.stringify({ worker: 'campaign-dispatcher', operation: 'uva', ...result }));
+  return { worker: 'campaign-dispatcher', operation: 'uva', ...result };
 }
 
-void main()
-  .catch((error) => {
+async function runStandalone(): Promise<void> {
+  try {
+    const result = await runCampaignDispatcher();
+    console.log(JSON.stringify(result));
+  } catch (error) {
     console.error('[campaign-dispatcher] fatal:', error);
     process.exitCode = 1;
-  })
-  .finally(async () => {
+  } finally {
     try {
       await pool.end();
     } catch (error) {
       console.error('[campaign-dispatcher] erro ao encerrar pool:', error);
       process.exitCode = 1;
     }
-  });
+  }
+}
+
+if (require.main === module) {
+  void runStandalone();
+}
