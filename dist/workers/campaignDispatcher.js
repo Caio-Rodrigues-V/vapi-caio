@@ -1,6 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
+const db_1 = __importDefault(require("../db"));
 const AssistantResolver_1 = require("../application/campaigns/AssistantResolver");
 const RetryPolicy_1 = require("../application/campaigns/RetryPolicy");
 const RunCampaignDispatcher_1 = require("../application/campaigns/RunCampaignDispatcher");
@@ -46,8 +50,18 @@ async function main() {
     const result = await dispatcher.execute();
     console.log(JSON.stringify({ worker: 'campaign-dispatcher', operation: 'uva', ...result }));
 }
-main().catch((error) => {
+void main()
+    .catch((error) => {
     console.error('[campaign-dispatcher] fatal:', error);
     process.exitCode = 1;
+})
+    .finally(async () => {
+    try {
+        await db_1.default.end();
+    }
+    catch (error) {
+        console.error('[campaign-dispatcher] erro ao encerrar pool:', error);
+        process.exitCode = 1;
+    }
 });
 //# sourceMappingURL=campaignDispatcher.js.map
