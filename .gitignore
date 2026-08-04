@@ -1,0 +1,18 @@
+# Dependências
+node_modules/
+frontend/node_modules/
+
+# Build
+dist/
+frontend/dist/
+
+# Ambiente
+.env
+
+# Uploads
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+node_modules
