@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.runCampaignDispatcher = runCampaignDispatcher;
 require("dotenv/config");
 const db_1 = __importDefault(require("../db"));
 const AssistantResolver_1 = require("../application/campaigns/AssistantResolver");
@@ -21,7 +22,7 @@ function requiredEnv(name) {
         throw new Error(`${name} não configurado.`);
     return value;
 }
-async function main() {
+async function runCampaignDispatcher() {
     const campaigns = new MySqlCampaignRepository_1.MySqlCampaignRepository();
     const calls = new MySqlCampaignRepository_1.MySqlCampaignCallRepository();
     const dialer = new VapiPhoneProvider_1.VapiPhoneProvider(requiredEnv('VAPI_API_KEY'));
@@ -48,20 +49,28 @@ async function main() {
         defaultMaxAttempts: envInt('WORKER_MAX_TRIES', 5),
     }, debts, assistantResolver);
     const result = await dispatcher.execute();
-    console.log(JSON.stringify({ worker: 'campaign-dispatcher', operation: 'uva', ...result }));
+    return { worker: 'campaign-dispatcher', operation: 'uva', ...result };
 }
-void main()
-    .catch((error) => {
-    console.error('[campaign-dispatcher] fatal:', error);
-    process.exitCode = 1;
-})
-    .finally(async () => {
+async function runStandalone() {
     try {
-        await db_1.default.end();
+        const result = await runCampaignDispatcher();
+        console.log(JSON.stringify(result));
     }
     catch (error) {
-        console.error('[campaign-dispatcher] erro ao encerrar pool:', error);
+        console.error('[campaign-dispatcher] fatal:', error);
         process.exitCode = 1;
     }
-});
+    finally {
+        try {
+            await db_1.default.end();
+        }
+        catch (error) {
+            console.error('[campaign-dispatcher] erro ao encerrar pool:', error);
+            process.exitCode = 1;
+        }
+    }
+}
+if (require.main === module) {
+    void runStandalone();
+}
 //# sourceMappingURL=campaignDispatcher.js.map
