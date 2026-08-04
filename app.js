@@ -46,11 +46,9 @@ if (fs.existsSync(frontendIndex)) {
   });
 }
 
-if (require.main === module) {
-  const port = Number(process.env.PORT || 3000);
-  app.listen(port, () => {
-    console.log(`Servidor iniciado na porta ${port}`);
-  });
-}
+const port = Number(process.env.PORT || 3000);
+const server = app.listen(port, () => {
+  console.log(`Servidor iniciado na porta ${port}`);
+});
 
-module.exports = app;
+module.exports = server;
