@@ -113,7 +113,7 @@ class MySqlCampaignCallRepository {
         const args = [];
         const expressions = entries.map(([key, value]) => {
             args.push(`$.${key}`, JSON.stringify(value));
-            return '?, CAST(? AS JSON)';
+            return "?, JSON_EXTRACT(?, '$')";
         });
         args.push(id);
         await db_1.default.execute(`UPDATE campaign_calls
