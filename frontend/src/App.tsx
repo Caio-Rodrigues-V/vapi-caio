@@ -58,6 +58,13 @@ type VapiConfig = {
   phoneNumber: { id: string; number: string };
 };
 
+type ImportError = {
+  line: number;
+  reason: string;
+  cpf?: string;
+  telefone?: string;
+};
+
 function StatusBadge({ status }: { status: string }) {
   return <span className="rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-200">{status}</span>;
 }
@@ -101,7 +108,11 @@ function Campaigns() {
       const form = new FormData();
       form.append('file', preparedFile);
       const result = await apiFetch(`/campaigns/${id}/import`, { method: 'POST', body: form });
-      window.alert(`Inseridos: ${result.inserted} | Ignorados: ${result.ignored}`);
+      const errors = Array.isArray(result.errors) ? result.errors as ImportError[] : [];
+      const details = errors.length
+        ? `\n\nMotivos:\n${errors.slice(0, 10).map((item) => `Linha ${item.line}: ${item.reason}`).join('\n')}`
+        : '';
+      window.alert(`Inseridos: ${result.inserted} | Ignorados: ${result.ignored}${details}`);
       await load();
       if (selectedId === id) await loadCalls(id);
     } catch (error) {
