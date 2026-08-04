@@ -66,7 +66,14 @@ const spokenDigits: Record<string, string> = {
   nove: '9',
 };
 
+function digitsOnly(value: unknown): string {
+  return String(value ?? '').replace(/\D/g, '');
+}
+
 function extractCpfPrefix(parameters: Record<string, unknown>): string {
+  const directPrefix = digitsOnly(parameters.cpf_prefixo3);
+  if (directPrefix.length >= 3) return directPrefix.slice(0, 3);
+
   const raw = String(
     parameters.rawTranscript ??
     parameters.transcript ??
@@ -103,12 +110,21 @@ function handleToolCall(call: ToolCall): ToolResult {
   switch (call.name) {
     case 'capturar_cpf': {
       const cpfPrefixo3 = extractCpfPrefix(call.parameters);
+      const cpfEsperado = digitsOnly(call.parameters.cpf_esperado);
+      const esperadoValido = cpfEsperado.length === 11;
+      const reconhecido = cpfPrefixo3.length === 3;
+      const confere = reconhecido && esperadoValido
+        ? cpfPrefixo3 === cpfEsperado.slice(0, 3)
+        : false;
+
       return {
         name: call.name,
         toolCallId: call.id,
         result: JSON.stringify({
           cpf_prefixo3: cpfPrefixo3,
-          reconhecido: cpfPrefixo3.length === 3,
+          reconhecido,
+          cpf_esperado_valido: esperadoValido,
+          confere,
         }),
       };
     }
