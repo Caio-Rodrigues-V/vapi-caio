@@ -120,11 +120,22 @@ class NotificationSender {
             try {
                 console.log(`[NotificationSender] Enviando acordo para o n8n: ${n8nUrl}`);
                 const response = await axios_1.default.post(n8nUrl, {
-                    ...input,
+                    cpf: input.cpf,
+                    nome: input.nome,
                     email: targetEmail,
                     phone: targetPhone,
-                    originalEmail: input.email,
-                    originalPhone: input.phone,
+                    original_email: input.email,
+                    original_phone: input.phone,
+                    instituicao: input.instituicao,
+                    valor: input.valor,
+                    forma_pagamento: input.formaPagamento,
+                    link_boleto: input.linkBoleto,
+                    link_pix: input.linkPix,
+                    linha_dig: input.linhaDigitavel,
+                    vencimento: input.vencimento,
+                    nr_acordo: input.numeroAcordo,
+                    vapi_call_id: input.vapiCallId,
+                    pagamento_pronto: input.pagamentoPronto,
                 }, { timeout: 10000 });
                 if (response.status >= 200 && response.status < 300) {
                     n8nSent = true;
