@@ -33,12 +33,14 @@ class VapiPhoneProvider {
             customer.name = input.customerName.trim();
         }
         const overrides = {};
+        /*
         if (input.firstMessage?.trim()) {
-            overrides.firstMessage = input.firstMessage.trim();
-            overrides.firstMessageMode = 'assistant-speaks-first';
-            overrides.silenceTimeoutSeconds = 12;
-            overrides.maxDurationSeconds = 600;
+          overrides.firstMessage = input.firstMessage.trim();
+          overrides.firstMessageMode = 'assistant-speaks-first';
+          overrides.silenceTimeoutSeconds = 12;
+          overrides.maxDurationSeconds = 600;
         }
+        */
         if (input.variableValues && Object.keys(input.variableValues).length > 0) {
             overrides.variableValues = input.variableValues;
         }
