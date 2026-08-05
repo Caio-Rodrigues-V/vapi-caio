@@ -13,11 +13,17 @@ const db_1 = __importDefault(require("./db"));
 const llmClassifier_1 = require("./services/llmClassifier");
 const phoneValidator_1 = require("./utils/phoneValidator");
 const adminVapiHealth_1 = require("./api/routes/adminVapiHealth");
+const adminMigrations_1 = require("./api/routes/adminMigrations");
+const vapiWebhook_1 = __importDefault(require("./api/routes/vapiWebhook"));
+const campaignsV2_1 = require("./api/routes/campaignsV2");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json({ limit: '2mb' }));
 app.use('/api/admin', adminVapiHealth_1.adminVapiHealthRouter);
+app.use('/api/admin', adminMigrations_1.adminMigrationsRouter);
+app.use('/api/v2', vapiWebhook_1.default);
+app.use('/api/v2', campaignsV2_1.campaignsV2Router);
 const PORT = Number(process.env.PORT || 3000);
 const upload = (0, multer_1.default)({
     dest: 'uploads/',

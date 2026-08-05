@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = __importDefault(require("./db"));
+const runMigrations_1 = require("./infrastructure/database/runMigrations");
 async function setupDb() {
     console.log('Starting Database Setup...');
     const connection = await db_1.default.getConnection();
@@ -79,6 +80,15 @@ async function setupDb() {
       )
     `);
         console.log('Tabela auditoria_chamadas verificada/criada.');
+        console.log('Running pending SQL migrations for campaign tables...');
+        try {
+            const migrationResults = await (0, runMigrations_1.runPendingMigrations)();
+            console.log('Migrations output:', migrationResults);
+        }
+        catch (migError) {
+            console.error('Error running pending SQL migrations:', migError);
+            throw migError;
+        }
         console.log('Database Setup complete!');
     }
     finally {

@@ -1,4 +1,5 @@
 import pool from './db';
+import { runPendingMigrations } from './infrastructure/database/runMigrations';
 
 async function setupDb() {
   console.log('Starting Database Setup...');
@@ -84,6 +85,15 @@ async function setupDb() {
       )
     `);
     console.log('Tabela auditoria_chamadas verificada/criada.');
+
+    console.log('Running pending SQL migrations for campaign tables...');
+    try {
+      const migrationResults = await runPendingMigrations();
+      console.log('Migrations output:', migrationResults);
+    } catch (migError) {
+      console.error('Error running pending SQL migrations:', migError);
+      throw migError;
+    }
 
     console.log('Database Setup complete!');
   } finally {

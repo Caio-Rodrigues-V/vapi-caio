@@ -8,12 +8,18 @@ import pool from './db';
 import { classificarLigacao } from './services/llmClassifier';
 import { normalizePhone } from './utils/phoneValidator';
 import { adminVapiHealthRouter } from './api/routes/adminVapiHealth';
+import { adminMigrationsRouter } from './api/routes/adminMigrations';
+import vapiWebhookRouter from './api/routes/vapiWebhook';
+import { campaignsV2Router } from './api/routes/campaignsV2';
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 app.use('/api/admin', adminVapiHealthRouter);
+app.use('/api/admin', adminMigrationsRouter);
+app.use('/api/v2', vapiWebhookRouter);
+app.use('/api/v2', campaignsV2Router);
 
 const PORT = Number(process.env.PORT || 3000);
 const upload = multer({
