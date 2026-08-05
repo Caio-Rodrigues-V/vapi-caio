@@ -50,9 +50,11 @@ class VapiPhoneProvider {
             customer,
             metadata: input.metadata,
         };
+        /*
         if (Object.keys(overrides).length > 0) {
-            payload.assistantOverrides = overrides;
+          payload.assistantOverrides = overrides;
         }
+        */
         const response = await this.client.post('/call/phone', payload);
         const providerCallId = String(response.data?.id || '');
         if (!providerCallId) {
