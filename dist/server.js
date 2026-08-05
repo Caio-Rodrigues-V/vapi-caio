@@ -16,6 +16,7 @@ const adminVapiHealth_1 = require("./api/routes/adminVapiHealth");
 const adminMigrations_1 = require("./api/routes/adminMigrations");
 const vapiWebhook_1 = __importDefault(require("./api/routes/vapiWebhook"));
 const campaignsV2_1 = require("./api/routes/campaignsV2");
+const runMigrations_1 = require("./infrastructure/database/runMigrations");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
@@ -195,8 +196,19 @@ app.post('/api/worker/start', (req, res) => {
     return res.status(202).json({ message: 'Dispatcher de campanhas acionado.' });
 });
 if (require.main === module) {
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
+    (0, runMigrations_1.runPendingMigrations)()
+        .then((results) => {
+        console.log('Database migrations processed on startup:', results);
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
+    })
+        .catch((err) => {
+        console.error('Failed to run migrations on startup:', err);
+        // Still listen so the server doesn't crash completely, allowing admin route access
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
     });
 }
 exports.default = app;

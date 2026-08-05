@@ -11,6 +11,7 @@ import { adminVapiHealthRouter } from './api/routes/adminVapiHealth';
 import { adminMigrationsRouter } from './api/routes/adminMigrations';
 import vapiWebhookRouter from './api/routes/vapiWebhook';
 import { campaignsV2Router } from './api/routes/campaignsV2';
+import { runPendingMigrations } from './infrastructure/database/runMigrations';
 dotenv.config();
 
 const app = express();
@@ -248,9 +249,20 @@ app.post('/api/worker/start', (req: Request, res: Response) => {
 });
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
+  runPendingMigrations()
+    .then((results) => {
+      console.log('Database migrations processed on startup:', results);
+      app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+      });
+    })
+    .catch((err) => {
+      console.error('Failed to run migrations on startup:', err);
+      // Still listen so the server doesn't crash completely, allowing admin route access
+      app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+      });
+    });
 }
 
 export default app;
