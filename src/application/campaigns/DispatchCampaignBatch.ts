@@ -122,6 +122,11 @@ export class DispatchCampaignBatch {
         });
         await this.calls.attachProviderCall(call.id, providerResult.providerCallId);
         result.dispatched += 1;
+
+        const delayMs = Number(process.env.WORKER_DELAY_BETWEEN_CALLS_MS || 0);
+        if (delayMs > 0 && result.dispatched < batch.length) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         const permanent = error instanceof DebtProviderPermanentError;
