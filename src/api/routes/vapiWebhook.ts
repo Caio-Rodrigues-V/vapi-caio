@@ -27,7 +27,8 @@ router.post('/vapi/webhook', async (req, res) => {
       return res.status(200).json(processVapiToolCalls(payload));
     }
 
-    if (type === 'assistant-request') {
+    if (type !== 'end-of-call-report') {
+      await processor.execute(payload);
       return res.status(200).json({});
     }
 
