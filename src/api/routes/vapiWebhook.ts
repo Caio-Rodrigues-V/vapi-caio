@@ -2,9 +2,18 @@ import { Router } from 'express';
 import { ProcessVapiWebhook } from '../../application/webhooks/ProcessVapiWebhook';
 import { processVapiToolCalls } from '../../application/vapi/ProcessVapiToolCalls';
 import { MySqlWebhookRepository } from '../../infrastructure/mysql/MySqlWebhookRepository';
+import { DdmDebtProvider } from '../../providers/debt/DdmDebtProvider';
 
 const router = Router();
-const processor = new ProcessVapiWebhook(new MySqlWebhookRepository());
+
+const debts = new DdmDebtProvider({
+  token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
+  baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
+  timeoutMs: Number(process.env.DDM_TIMEOUT_MS || 7000),
+  maxRetries: Number(process.env.DDM_MAX_RETRIES || 3),
+});
+
+const processor = new ProcessVapiWebhook(new MySqlWebhookRepository(), debts);
 
 router.post('/vapi/webhook', async (req, res) => {
   try {

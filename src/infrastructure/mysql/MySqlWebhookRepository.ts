@@ -34,6 +34,21 @@ export class MySqlWebhookRepository implements WebhookRepository {
     return rows[0] ? Number(rows[0].id) : null;
   }
 
+  async findCampaignCall(id: number): Promise<any> {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      'SELECT id, campaign_id, customer_number, cpf, status, metadata FROM campaign_calls WHERE id = ? LIMIT 1',
+      [id],
+    );
+    if (!rows[0]) return null;
+    return {
+      id: Number(rows[0].id),
+      campaignId: Number(rows[0].campaign_id),
+      customerNumber: String(rows[0].customer_number),
+      cpf: rows[0].cpf ? String(rows[0].cpf) : null,
+      metadata: typeof rows[0].metadata === 'string' ? JSON.parse(rows[0].metadata || '{}') : (rows[0].metadata || {}),
+    };
+  }
+
   async markCallStatus(
     providerCallId: string,
     status: 'queued' | 'in_progress' | 'answered' | 'completed' | 'failed',

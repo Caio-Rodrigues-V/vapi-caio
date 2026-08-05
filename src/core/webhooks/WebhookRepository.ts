@@ -21,6 +21,7 @@ export type CallResultInput = {
 export interface WebhookRepository {
   registerEvent(input: WebhookEventInput): Promise<boolean>;
   findCampaignCallId(providerCallId: string, metadataCampaignCallId?: number): Promise<number | null>;
+  findCampaignCall(id: number): Promise<any>;
   markCallStatus(providerCallId: string, status: 'queued' | 'in_progress' | 'answered' | 'completed' | 'failed'): Promise<void>;
   saveCallResult(input: CallResultInput): Promise<void>;
   scheduleCallbackFromCall(campaignCallId: number, scheduledAt: Date): Promise<number>;

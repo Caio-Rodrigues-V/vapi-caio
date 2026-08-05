@@ -28,6 +28,18 @@ class MySqlWebhookRepository {
         const [rows] = await db_1.default.execute('SELECT id FROM campaign_calls WHERE provider_call_id = ? LIMIT 1', [providerCallId]);
         return rows[0] ? Number(rows[0].id) : null;
     }
+    async findCampaignCall(id) {
+        const [rows] = await db_1.default.execute('SELECT id, campaign_id, customer_number, cpf, status, metadata FROM campaign_calls WHERE id = ? LIMIT 1', [id]);
+        if (!rows[0])
+            return null;
+        return {
+            id: Number(rows[0].id),
+            campaignId: Number(rows[0].campaign_id),
+            customerNumber: String(rows[0].customer_number),
+            cpf: rows[0].cpf ? String(rows[0].cpf) : null,
+            metadata: typeof rows[0].metadata === 'string' ? JSON.parse(rows[0].metadata || '{}') : (rows[0].metadata || {}),
+        };
+    }
     async markCallStatus(providerCallId, status) {
         await db_1.default.execute('UPDATE campaign_calls SET status = ?, locked_at = NULL WHERE provider_call_id = ?', [status, providerCallId]);
     }

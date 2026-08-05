@@ -4,8 +4,15 @@ const express_1 = require("express");
 const ProcessVapiWebhook_1 = require("../../application/webhooks/ProcessVapiWebhook");
 const ProcessVapiToolCalls_1 = require("../../application/vapi/ProcessVapiToolCalls");
 const MySqlWebhookRepository_1 = require("../../infrastructure/mysql/MySqlWebhookRepository");
+const DdmDebtProvider_1 = require("../../providers/debt/DdmDebtProvider");
 const router = (0, express_1.Router)();
-const processor = new ProcessVapiWebhook_1.ProcessVapiWebhook(new MySqlWebhookRepository_1.MySqlWebhookRepository());
+const debts = new DdmDebtProvider_1.DdmDebtProvider({
+    token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
+    baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
+    timeoutMs: Number(process.env.DDM_TIMEOUT_MS || 7000),
+    maxRetries: Number(process.env.DDM_MAX_RETRIES || 3),
+});
+const processor = new ProcessVapiWebhook_1.ProcessVapiWebhook(new MySqlWebhookRepository_1.MySqlWebhookRepository(), debts);
 router.post('/vapi/webhook', async (req, res) => {
     try {
         const payload = (req.body || {});

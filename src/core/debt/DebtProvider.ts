@@ -13,8 +13,19 @@ export type DebtLookupResult = {
   nominalAmount?: number | null;
   cashAmount?: number | null;
   firstDueDate?: string | null;
+  email?: string | null;
   installments: DebtInstallment[];
   raw: Record<string, unknown>;
+};
+
+export type FormalizeAgreementResult = {
+  linkBoleto: string | null;
+  linkPix: string | null;
+  linhaDigitavel: string | null;
+  vencimento: string | null;
+  numeroAcordo: string | null;
+  valor: number | null;
+  raw: any;
 };
 
 export class DebtProviderTemporaryError extends Error {
@@ -27,4 +38,5 @@ export class DebtProviderPermanentError extends Error {
 
 export interface DebtProvider {
   lookup(cpf: string): Promise<DebtLookupResult>;
+  formalize(debtorId: string, client: string, installments?: number): Promise<FormalizeAgreementResult>;
 }

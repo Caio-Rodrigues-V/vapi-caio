@@ -178,6 +178,7 @@ export class DdmDebtProvider implements DebtProvider {
 
     const cashAmount = installments[0]?.amount ?? null;
     const institution = findFirst(calculation, ['Cliente', 'Instituicao', 'instituicao']).replace(/\bNOVO\b/gi, '').trim() || null;
+    const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
 
     return {
       cpf,
@@ -189,8 +190,46 @@ export class DdmDebtProvider implements DebtProvider {
       cashAmount,
       firstDueDate: findFirst(calculation, ['PrimeiroVencto', 'PrimeiroVencimento', 'DtVenc', 'Vencimento']) ||
         installments[0]?.dueDate || null,
+      email,
       installments,
       raw: calculation,
+    };
+  }
+
+  async formalize(debtorId: string, client: string, installments = 1): Promise<any> {
+    const data = await this.getWithRetry<any>('/calc/efetiva_acordo.php', {
+      tk: this.token,
+      idDev: debtorId,
+      cli: client,
+      Parc: String(installments),
+    });
+
+    const findFirstKey = (obj: any, keys: string[]): string => {
+      if (!obj || typeof obj !== 'object') return '';
+      const normalizedKeys = keys.map(k => k.toLowerCase().replace(/[^a-z0-9]/g, ''));
+      for (const [k, v] of Object.entries(obj)) {
+        if (normalizedKeys.includes(k.toLowerCase().replace(/[^a-z0-9]/g, '')) && v) {
+          return String(v).trim();
+        }
+      }
+      return '';
+    };
+
+    const linkBoleto = findFirstKey(data, ['linkboleto', 'boletourl', 'urlboleto', 'boleto', 'link_boleto', 'url_boleto']);
+    const linkPix = findFirstKey(data, ['linkpix', 'pixurl', 'urlpix', 'qrcodepix', 'qrcode', 'pix', 'link_pix', 'url_pix']);
+    const linhaDig = findFirstKey(data, ['linhaboleto', 'linhadigitavel', 'linhadig', 'digitalline', 'digitableline', 'linha_digitavel', 'linha']);
+    const vencimento = findFirstKey(data, ['vencimento', 'datavencto', 'vencto', 'due_date', 'venc', 'data_vencimento']);
+    const nrAcordo = findFirstKey(data, ['nracordo', 'nr_acordo', 'acordo', 'agreement_number', 'numero_acordo', 'idacordo']);
+    const valorRaw = findFirstKey(data, ['valor', 'valortotal', 'valor_total', 'valoracordo', 'valor_acordo', 'amount', 'valorfinal', 'valordocumento', 'valor_documento', 'val_total', 'total', 'valor_final']);
+
+    return {
+      linkBoleto: linkBoleto || null,
+      linkPix: linkPix || null,
+      linhaDigitavel: linhaDig || null,
+      vencimento: vencimento || null,
+      numeroAcordo: nrAcordo || null,
+      valor: parseMoney(valorRaw),
+      raw: data,
     };
   }
 }

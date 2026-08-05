@@ -1,5 +1,7 @@
 import { classificarLigacao } from '../../services/llmClassifier';
 import { WebhookRepository } from '../../core/webhooks/WebhookRepository';
+import { DebtProvider } from '../../core/debt/DebtProvider';
+import { NotificationSender } from '../../providers/notifications/NotificationSender';
 
 function asRecord(value: unknown): Record<string, any> {
   return value && typeof value === 'object' ? value as Record<string, any> : {};
@@ -20,7 +22,10 @@ function mapStatus(type: string, message: Record<string, any>): 'queued' | 'in_p
 }
 
 export class ProcessVapiWebhook {
-  constructor(private readonly repository: WebhookRepository) {}
+  constructor(
+    private readonly repository: WebhookRepository,
+    private readonly debts?: DebtProvider,
+  ) {}
 
   async execute(payload: Record<string, unknown>): Promise<{ duplicate: boolean; processed: boolean }> {
     const message = asRecord(payload.message ?? payload);
@@ -86,6 +91,46 @@ export class ProcessVapiWebhook {
 
       if (decision === 'schedule' && scheduledAt && !Number.isNaN(scheduledAt.getTime())) {
         await this.repository.scheduleCallbackFromCall(campaignCallId, scheduledAt);
+      }
+
+      if (decision === 'formalize' && this.debts) {
+        try {
+          console.log(`[ProcessVapiWebhook] Iniciando formalização DDM para campaignCallId: ${campaignCallId}`);
+          const callDetails = await this.repository.findCampaignCall(campaignCallId);
+          if (callDetails) {
+            const debtorId = callDetails.metadata?.calculationId;
+            const cpf = callDetails.cpf;
+            if (debtorId && cpf) {
+              const institutionName = String(callDetails.metadata?.institution || '');
+              const client = institutionName.toLowerCase().includes('cruzeiro') ? 'cruzeiro' : 'ddm';
+
+              console.log(`[ProcessVapiWebhook] Chamando efetiva_acordo.php p/ debtorId: ${debtorId}, cli: ${client}`);
+              const agreement = await this.debts.formalize(debtorId, client);
+
+              const sender = new NotificationSender();
+              await sender.send({
+                cpf,
+                nome: callDetails.metadata?.debtorName || callDetails.metadata?.name || 'Cliente',
+                email: callDetails.metadata?.email || null,
+                phone: callDetails.customerNumber || null,
+                instituicao: institutionName || 'DDM Credores',
+                valor: agreement.valor ? agreement.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (callDetails.metadata?.cashAmount?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'),
+                formaPagamento: 'À vista',
+                linkBoleto: agreement.linkBoleto,
+                linkPix: agreement.linkPix,
+                linhaDigitavel: agreement.linhaDigitavel,
+                vencimento: agreement.vencimento,
+                numeroAcordo: agreement.numeroAcordo,
+                vapiCallId: providerCallId,
+                pagamentoPronto: Boolean(agreement.linkBoleto || agreement.linkPix || agreement.linhaDigitavel),
+              });
+            } else {
+              console.warn('[ProcessVapiWebhook] calculationId ou CPF ausentes nos metadados. Não foi possível formalizar.');
+            }
+          }
+        } catch (formError: any) {
+          console.error('[ProcessVapiWebhook] Falha ao processar formalização/email:', formError.message);
+        }
       }
 
       await this.repository.markEventProcessed('vapi', eventId);

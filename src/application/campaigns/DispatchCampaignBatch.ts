@@ -87,6 +87,7 @@ export class DispatchCampaignBatch {
             nominalAmount: debt.nominalAmount ?? null,
             cashAmount: debt.cashAmount ?? null,
             firstDueDate: debt.firstDueDate ?? null,
+            email: debt.email ?? null,
             installments: debt.installments,
             assistantId,
           };
