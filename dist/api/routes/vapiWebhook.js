@@ -24,15 +24,26 @@ router.post('/vapi/webhook', async (req, res) => {
             return res.status(200).json((0, ProcessVapiToolCalls_1.processVapiToolCalls)(payload));
         }
         if (type !== 'end-of-call-report') {
-            await processor.execute(payload);
+            try {
+                await processor.execute(payload);
+            }
+            catch (err) {
+                console.error('[vapi-webhook] background processing error:', err);
+            }
             return res.status(200).json({});
         }
-        const result = await processor.execute(payload);
-        return res.status(200).json({ received: true, ...result });
+        try {
+            const result = await processor.execute(payload);
+            return res.status(200).json({ received: true, ...result });
+        }
+        catch (err) {
+            console.error('[vapi-webhook] report processing error:', err);
+            return res.status(200).json({ received: true, processed: false, error: String(err) });
+        }
     }
     catch (error) {
-        console.error('[vapi-webhook] processing error:', error);
-        return res.status(500).json({ received: true, processed: false });
+        console.error('[vapi-webhook] fatal processing error:', error);
+        return res.status(200).json({});
     }
 });
 exports.default = router;
