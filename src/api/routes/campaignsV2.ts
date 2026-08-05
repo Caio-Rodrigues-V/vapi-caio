@@ -328,7 +328,18 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
       await connection.beginTransaction();
       for (const [index, row] of rows.entries()) {
         const line = index + 2;
-        const cpfRaw = row.cpf || row.documento || row.document;
+        
+        // Find CPF/Document
+        let cpfRaw = row.cpf || row.cpfcgc_pes || row.cpfcgc || row.documento || row.document || row.doc;
+        if (!cpfRaw) {
+          // Fallback to substring match
+          const cpfKey = Object.keys(row).find(k => {
+            const l = k.toLowerCase();
+            return l.includes('cpf') || l.includes('cnpj') || l.includes('cgc') || l.includes('document') || l.includes('doc');
+          });
+          if (cpfKey) cpfRaw = row[cpfKey];
+        }
+
         const cpfDigits = String(cpfRaw || '').replace(/\D/g, '');
         const cpf = cpfDigits.padStart(11, '0');
 
@@ -341,11 +352,21 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
           continue;
         }
 
+        // Find Name
+        let nameRaw = row.nome || row.nome_dev || row.name;
+        if (!nameRaw) {
+          const nameKey = Object.keys(row).find(k => {
+            const l = k.toLowerCase();
+            return l.includes('nome') || l.includes('name');
+          });
+          if (nameKey) nameRaw = row[nameKey];
+        }
+        const debtorName = nameRaw ? String(nameRaw).trim() : null;
+
         // Detect all potential phone number fields in the row
         const possiblePhoneKeys = [
           'telefone', 'phone', 'numero', 'celular', 'fone',
-          'telefone1', 'telefone2', 'telefone3', 'telefone4',
-          'celular1', 'celular2', 'celular3', 'fone1', 'fone2'
+          'tel', 'contato', 'contact', 'telef'
         ];
         
         const uniquePhones = new Set<string>();
@@ -371,7 +392,7 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
           await connection.execute(
             `INSERT INTO campaign_calls (campaign_id, customer_number, cpf, status, metadata)
              VALUES (?, ?, ?, 'pending', ?)`,
-            [campaignId, customerNumber, cpf, JSON.stringify({ source: 'file_import', name: row.nome || row.name || null })],
+            [campaignId, customerNumber, cpf, JSON.stringify({ source: 'file_import', name: debtorName })],
           );
           inserted += 1;
         }
