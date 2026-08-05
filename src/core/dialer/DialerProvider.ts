@@ -5,6 +5,7 @@ export type StartCallInput = {
   customerName?: string;
   assistantId: string;
   phoneNumberId?: string;
+  firstMessage?: string;
   variableValues?: Record<string, string | number | boolean>;
   metadata: Record<string, unknown>;
 };

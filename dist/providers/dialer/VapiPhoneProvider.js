@@ -32,16 +32,23 @@ class VapiPhoneProvider {
         if (input.customerName?.trim()) {
             customer.name = input.customerName.trim();
         }
+        const overrides = {};
+        if (input.firstMessage?.trim()) {
+            overrides.firstMessage = input.firstMessage.trim();
+            overrides.silenceTimeoutSeconds = 12;
+            overrides.maxDurationSeconds = 600;
+        }
+        if (input.variableValues && Object.keys(input.variableValues).length > 0) {
+            overrides.variableValues = input.variableValues;
+        }
         const payload = {
             assistantId: input.assistantId,
             phoneNumberId: input.phoneNumberId,
             customer,
             metadata: input.metadata,
         };
-        if (input.variableValues && Object.keys(input.variableValues).length > 0) {
-            payload.assistantOverrides = {
-                variableValues: input.variableValues,
-            };
+        if (Object.keys(overrides).length > 0) {
+            payload.assistantOverrides = overrides;
         }
         const response = await this.client.post('/call/phone', payload);
         const providerCallId = String(response.data?.id || '');

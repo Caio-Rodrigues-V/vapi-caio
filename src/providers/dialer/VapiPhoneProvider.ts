@@ -40,6 +40,16 @@ export class VapiPhoneProvider implements DialerProvider {
       customer.name = input.customerName.trim();
     }
 
+    const overrides: Record<string, any> = {};
+    if (input.firstMessage?.trim()) {
+      overrides.firstMessage = input.firstMessage.trim();
+      overrides.silenceTimeoutSeconds = 12;
+      overrides.maxDurationSeconds = 600;
+    }
+    if (input.variableValues && Object.keys(input.variableValues).length > 0) {
+      overrides.variableValues = input.variableValues;
+    }
+
     const payload: Record<string, unknown> = {
       assistantId: input.assistantId,
       phoneNumberId: input.phoneNumberId,
@@ -47,10 +57,8 @@ export class VapiPhoneProvider implements DialerProvider {
       metadata: input.metadata,
     };
 
-    if (input.variableValues && Object.keys(input.variableValues).length > 0) {
-      payload.assistantOverrides = {
-        variableValues: input.variableValues,
-      };
+    if (Object.keys(overrides).length > 0) {
+      payload.assistantOverrides = overrides;
     }
 
     const response = await this.client.post('/call/phone', payload);
