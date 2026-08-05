@@ -56,13 +56,10 @@ export class VapiPhoneProvider implements DialerProvider {
     const payload: Record<string, unknown> = {
       assistantId: input.assistantId,
       phoneNumberId: input.phoneNumberId,
-      customer,
-      metadata: input.metadata,
+      customer: {
+        number: input.customerNumber,
+      },
     };
-
-    if (Object.keys(overrides).length > 0) {
-      payload.assistantOverrides = overrides;
-    }
 
     const response = await this.client.post('/call/phone', payload);
 
