@@ -57,31 +57,41 @@ exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
             timeout: 10_000,
             headers: { Authorization: `Bearer ${apiKey}` },
         });
-        const [assistantResponse, phoneResponse] = await Promise.all([
-            client.get(`/assistant/${assistantId}`),
-            client.get(`/phone-number/${phoneNumberId}`),
-        ]);
+        let assistantData;
+        try {
+            const resp = await client.get(`/assistant/${assistantId}`);
+            assistantData = resp.data;
+        }
+        catch (err) {
+            const errMsg = err.response?.data?.message || err.message;
+            return res.status(404).json({ error: `Assistente ID [${assistantId}] não encontrado na Vapi: ${errMsg}` });
+        }
+        let phoneData;
+        try {
+            const resp = await client.get(`/phone-number/${phoneNumberId}`);
+            phoneData = resp.data;
+        }
+        catch (err) {
+            const errMsg = err.response?.data?.message || err.message;
+            return res.status(404).json({ error: `Telefone ID [${phoneNumberId}] não encontrado na Vapi: ${errMsg}` });
+        }
         return res.json({
             operation: 'uva',
             assistant: {
                 id: assistantId,
-                name: String(assistantResponse.data?.name || 'Assistant UVA'),
+                name: String(assistantData?.name || 'Assistant UVA'),
             },
             phoneNumber: {
                 id: phoneNumberId,
-                number: String(phoneResponse.data?.number ||
-                    phoneResponse.data?.phoneNumber ||
-                    phoneResponse.data?.name ||
+                number: String(phoneData?.number ||
+                    phoneData?.phoneNumber ||
+                    phoneData?.name ||
                     'Número Vapi configurado'),
             },
         });
     }
     catch (error) {
-        const message = axios_1.default.isAxiosError(error)
-            ? String(error.response?.data?.message || error.response?.data?.error || error.message)
-            : error instanceof Error ? error.message : 'Erro desconhecido';
-        const status = message.includes('não configurada') ? 503 : 502;
-        return res.status(status).json({ error: `Não foi possível carregar a configuração UVA: ${message}` });
+        return res.status(500).json({ error: `Erro inesperado na configuração Vapi: ${error.message}` });
     }
 });
 exports.campaignsV2Router.get('/campaigns', async (req, res) => {
