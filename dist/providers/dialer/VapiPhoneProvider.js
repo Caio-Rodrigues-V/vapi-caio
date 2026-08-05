@@ -35,6 +35,7 @@ class VapiPhoneProvider {
         const overrides = {};
         if (input.firstMessage?.trim()) {
             overrides.firstMessage = input.firstMessage.trim();
+            overrides.firstMessageMode = 'assistant-speaks-first';
             overrides.silenceTimeoutSeconds = 12;
             overrides.maxDurationSeconds = 600;
         }
