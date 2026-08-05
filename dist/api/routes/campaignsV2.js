@@ -223,7 +223,7 @@ exports.campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
     const status = String(req.query.status || '').trim();
     const whereStatus = status ? 'AND cc.status = ?' : '';
     const params = status ? [id, status, limit, offset] : [id, limit, offset];
-    const [rows] = await db_1.default.query(`SELECT cc.*, cr.decision, cr.scheduled_callback_at, cr.created_at AS result_created_at
+    const [rows] = await db_1.default.query(`SELECT cc.*, cr.decision, cr.scheduled_callback_at, cr.ended_reason, cr.created_at AS result_created_at
      FROM campaign_calls cc
      LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
      WHERE cc.campaign_id = ? ${whereStatus}
@@ -264,30 +264,45 @@ exports.campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), a
             await connection.beginTransaction();
             for (const [index, row] of rows.entries()) {
                 const line = index + 2;
-                const phoneRaw = row.telefone || row.phone || row.numero || row.celular || row.fone;
                 const cpfRaw = row.cpf || row.documento || row.document;
                 const cpfDigits = String(cpfRaw || '').replace(/\D/g, '');
                 const cpf = cpfDigits.padStart(11, '0');
-                const customerNumber = phoneRaw ? (0, phoneValidator_1.normalizePhone)(String(phoneRaw)) : null;
                 if (!cpfRaw) {
-                    errors.push({ line, reason: 'CPF ausente', telefone: phoneRaw });
+                    errors.push({ line, reason: 'CPF ausente' });
                     continue;
                 }
                 if (cpf.length !== 11) {
-                    errors.push({ line, reason: 'CPF deve possuir 11 dígitos', cpf: cpfDigits, telefone: phoneRaw });
+                    errors.push({ line, reason: 'CPF deve possuir 11 dígitos', cpf: cpfDigits });
                     continue;
                 }
-                if (!phoneRaw) {
-                    errors.push({ line, reason: 'Telefone ausente', cpf });
+                // Detect all potential phone number fields in the row
+                const possiblePhoneKeys = [
+                    'telefone', 'phone', 'numero', 'celular', 'fone',
+                    'telefone1', 'telefone2', 'telefone3', 'telefone4',
+                    'celular1', 'celular2', 'celular3', 'fone1', 'fone2'
+                ];
+                const uniquePhones = new Set();
+                for (const key of Object.keys(row)) {
+                    const lowerKey = key.toLowerCase().trim();
+                    if (possiblePhoneKeys.some(k => lowerKey.includes(k))) {
+                        const rawVal = row[key];
+                        if (rawVal) {
+                            const normalized = (0, phoneValidator_1.normalizePhone)(String(rawVal));
+                            if (normalized) {
+                                uniquePhones.add(normalized);
+                            }
+                        }
+                    }
+                }
+                if (uniquePhones.size === 0) {
+                    errors.push({ line, reason: 'Nenhum telefone válido encontrado', cpf });
                     continue;
                 }
-                if (!customerNumber) {
-                    errors.push({ line, reason: 'Telefone brasileiro inválido', cpf, telefone: String(phoneRaw) });
-                    continue;
+                for (const customerNumber of uniquePhones) {
+                    await connection.execute(`INSERT INTO campaign_calls (campaign_id, customer_number, cpf, status, metadata)
+             VALUES (?, ?, ?, 'pending', ?)`, [campaignId, customerNumber, cpf, JSON.stringify({ source: 'file_import', name: row.nome || row.name || null })]);
+                    inserted += 1;
                 }
-                await connection.execute(`INSERT INTO campaign_calls (campaign_id, customer_number, cpf, status, metadata)
-           VALUES (?, ?, ?, 'pending', ?)`, [campaignId, customerNumber, cpf, JSON.stringify({ source: 'file_import', name: row.nome || row.name || null })]);
-                inserted += 1;
             }
             await connection.commit();
         }

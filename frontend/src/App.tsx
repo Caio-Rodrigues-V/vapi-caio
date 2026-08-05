@@ -19,6 +19,7 @@ import {
   Settings as SettingsIcon,
   ChevronRight,
   Filter,
+  Download,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -94,6 +95,7 @@ type CallRow = {
   cpf?: string | null;
   status: string;
   decision?: string | null;
+  ended_reason?: string | null;
   attempts: number;
   updated_at?: string | null;
 };
@@ -357,6 +359,36 @@ function Campaigns() {
     if (decisionFilter === 'pending') return calls.filter(c => !c.decision && c.status !== 'completed');
     return calls.filter(c => c.decision === decisionFilter);
   }, [calls, decisionFilter]);
+
+  const exportToCsv = () => {
+    if (!calls.length) return;
+
+    const headers = ['ID', 'Telefone', 'CPF', 'Status', 'Tentativas', 'Decisao', 'Motivo Encerramento', 'Ultima Atualizacao'];
+    const rows = filteredCalls.map((c) => [
+      c.id,
+      c.customer_number,
+      c.cpf || '',
+      c.status,
+      c.attempts,
+      c.decision || 'pendente',
+      c.ended_reason || '',
+      c.updated_at ? new Date(c.updated_at).toLocaleString('pt-BR') : '',
+    ]);
+
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map((row) => row.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(';')),
+    ].join('\n');
+
+    const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `campanha_${selectedId}_ligacoes.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Gráfico de Barras de desempenho das Campanhas
   const chartCampaignPerformance = useMemo(() => {
@@ -718,6 +750,17 @@ function Campaigns() {
                   {f.label}
                 </button>
               ))}
+
+              {calls.length > 0 && (
+                <button
+                  type="button"
+                  onClick={exportToCsv}
+                  className="rounded-lg px-3 py-1.5 text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1.5 ml-2 shadow-sm"
+                >
+                  <Download size={13} />
+                  Exportar CSV
+                </button>
+              )}
             </div>
           </div>
 
@@ -754,7 +797,8 @@ function Campaigns() {
                       )}
                       {call.decision === 'zero' && (
                         <span className="text-rose-400 flex items-center gap-1">
-                          <XCircle size={14} /> Recusado/Sem Acordo
+                          <XCircle size={14} />
+                          {call.ended_reason === 'voicemail' ? 'Caixa Postal' : 'Recusado/Sem Acordo'}
                         </span>
                       )}
                       {!call.decision && (
