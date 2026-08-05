@@ -20,6 +20,9 @@ import {
   ChevronRight,
   Filter,
   Download,
+  X,
+  Volume2,
+  MessageSquare,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -98,6 +101,10 @@ type CallRow = {
   ended_reason?: string | null;
   attempts: number;
   updated_at?: string | null;
+  transcript?: string | null;
+  recording_url?: string | null;
+  duration_seconds?: number | null;
+  last_error?: string | null;
 };
 
 type VapiConfig = {
@@ -179,6 +186,7 @@ function Campaigns() {
   const [showCreate, setShowCreate] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [decisionFilter, setDecisionFilter] = useState<string>('all');
+  const [selectedCall, setSelectedCall] = useState<CallRow | null>(null);
 
   async function load(options: { silent?: boolean } = {}) {
     if (!options.silent) setLoading(true);
@@ -775,7 +783,11 @@ function Campaigns() {
               </thead>
               <tbody className="divide-y divide-glass text-slate-300">
                 {filteredCalls.map((call) => (
-                  <tr key={call.id} className="hover:bg-slate-900/10">
+                  <tr
+                    key={call.id}
+                    onClick={() => setSelectedCall(call)}
+                    className="hover:bg-slate-900/20 cursor-pointer transition-all"
+                  >
                     <td className="px-6 py-3.5 font-medium">{call.customer_number}</td>
                     <td className="px-6 py-3.5 text-slate-400 font-mono">{call.cpf || '-'}</td>
                     <td className="px-6 py-3.5"><StatusBadge status={call.status} /></td>
@@ -828,6 +840,177 @@ function Campaigns() {
       {showCreate && (
         <CreateCampaign onClose={() => setShowCreate(false)} onCreated={() => load()} />
       )}
+
+      {/* Modal - Detalhes e Transcrição da Ligação */}
+      {selectedCall && (
+        <CallDetailsModal call={selectedCall} onClose={() => setSelectedCall(null)} />
+      )}
+    </div>
+  );
+}
+
+function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => void }) {
+  const bubbles = useMemo(() => {
+    if (!call.transcript) return [];
+    
+    const lines = call.transcript.split('\n');
+    const list: { speaker: string; text: string; isAssistant: boolean }[] = [];
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      
+      const match = trimmed.match(/^(assistant|user|bot|customer|system|júlia|devedor|cliente):\s*(.*)$/i);
+      if (match) {
+        const speaker = match[1].toLowerCase();
+        const text = match[2];
+        const isAssistant = ['assistant', 'bot', 'júlia', 'system'].includes(speaker);
+        list.push({
+          speaker: isAssistant ? 'Júlia (IA)' : 'Cliente',
+          text,
+          isAssistant,
+        });
+      } else {
+        list.push({
+          speaker: 'Conversa',
+          text: trimmed,
+          isAssistant: false,
+        });
+      }
+    }
+    return list;
+  }, [call.transcript]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fade-in">
+      <div className="w-full max-w-4xl rounded-2xl border border-glass bg-slate-900 shadow-2xl overflow-hidden animate-scale-up flex flex-col max-h-[85vh]">
+        
+        {/* Header */}
+        <div className="bg-slate-950/40 px-6 py-4 border-b border-glass flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <PhoneCall size={18} className="text-primary" />
+              Detalhes da Ligação #{call.id}
+            </h3>
+            <p className="text-xs text-slate-400">CPF: {call.cpf || '-'} | Telefone: {call.customer_number}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 min-h-0">
+          
+          {/* Left Column: Stats & Audio */}
+          <div className="space-y-5">
+            <div className="rounded-xl border border-glass bg-slate-950/40 p-4 space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Informações Gerais</h4>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-slate-500 block text-xs">Status da Fila</span>
+                  <span className="font-semibold text-white capitalize">{call.status}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-xs">Tentativas</span>
+                  <span className="font-semibold text-white">{call.attempts} / 5</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-xs">Duração</span>
+                  <span className="font-semibold text-white">
+                    {call.duration_seconds ? `${call.duration_seconds} segundos` : '-'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-xs">Acordo / Decisão</span>
+                  <span className="font-semibold">
+                    {call.decision === 'formalize' && <span className="text-emerald-400">Formalizado</span>}
+                    {call.decision === 'schedule' && <span className="text-amber-400">Reagendado</span>}
+                    {call.decision === 'zero' && (
+                      <span className="text-rose-400">
+                        {call.ended_reason === 'voicemail' ? 'Caixa Postal' : 'Recusado/Sem Acordo'}
+                      </span>
+                    )}
+                    {!call.decision && <span className="text-slate-400">Pendente</span>}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Audio Player Card */}
+            {call.recording_url ? (
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-semibold">
+                  <Volume2 size={14} /> Gravação do Áudio
+                </h4>
+                <audio src={call.recording_url} controls className="w-full mt-2 rounded-lg" />
+              </div>
+            ) : (
+              <div className="rounded-xl border border-glass bg-slate-950/20 p-4 text-center text-slate-500 text-sm">
+                Nenhum áudio de gravação disponível para esta chamada.
+              </div>
+            )}
+
+            {/* Last Error if exists */}
+            {call.last_error && (
+              <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 space-y-1">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-rose-400">Erro Registrado</h4>
+                <p className="text-xs text-slate-300 font-mono break-all">{call.last_error}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Transcript */}
+          <div className="rounded-xl border border-glass bg-slate-950/30 p-4 flex flex-col h-full min-h-0">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5 border-b border-glass pb-2 mb-3 font-semibold">
+              <MessageSquare size={14} /> Transcrição da Conversa
+            </h4>
+            
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0 max-h-[40vh] md:max-h-none">
+              {bubbles.length > 0 ? (
+                bubbles.map((bubble, i) => (
+                  <div
+                    key={i}
+                    className={`flex flex-col ${bubble.isAssistant ? 'items-end' : 'items-start'}`}
+                  >
+                    <span className="text-[10px] text-slate-500 mb-0.5 px-1">{bubble.speaker}</span>
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm ${
+                        bubble.isAssistant
+                          ? 'bg-primary text-white rounded-tr-none font-medium'
+                          : 'bg-slate-800 text-slate-200 rounded-tl-none border border-glass'
+                      }`}
+                    >
+                      {bubble.text}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full py-10 text-center text-slate-500 text-sm gap-2">
+                  <FileText size={24} />
+                  <span>Nenhuma transcrição de texto disponível.</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="bg-slate-950/40 px-6 py-4 border-t border-glass flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-glass bg-slate-800 px-5 py-2 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition-all"
+          >
+            Fechar Detalhes
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 }
