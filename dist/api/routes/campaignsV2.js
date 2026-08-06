@@ -79,6 +79,29 @@ exports.campaignsV2Router.get('/campaigns/diag-event-payload/:id', async (req, r
         return res.status(500).json({ error: err.message });
     }
 });
+exports.campaignsV2Router.get('/campaigns/diag-ddm-test', async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+    try {
+        const token = process.env.DDM_TOKEN_BUSCA;
+        const debtorId = String(req.query.debtorId || '366934');
+        const client = String(req.query.client || 'ddm');
+        const response = await axios_1.default.get(`https://ddmacordos.com/calc/efetiva_acordo.php`, {
+            params: {
+                tk: token,
+                idDev: debtorId,
+                cli: client,
+                Parc: '1'
+            }
+        });
+        return res.json({ status: response.status, data: response.data });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message, response: err.response?.data });
+    }
+});
 exports.campaignsV2Router.use(requireAdmin);
 exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, res) => {
     const { providerCallId } = req.params;
