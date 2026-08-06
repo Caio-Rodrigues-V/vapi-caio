@@ -103,6 +103,23 @@ campaignsV2Router.get('/campaigns/diag-ddm-test', async (req, res) => {
   }
 });
 
+campaignsV2Router.get('/campaigns/diag-ddm-locate', async (req, res) => {
+  const secret = req.query.secret;
+  if (secret !== 'ddm_diag_987') {
+    return res.status(401).json({ error: 'Não autorizado' });
+  }
+  try {
+    const token = process.env.DDM_TOKEN_BUSCA;
+    const cpf = String(req.query.cpf || '16418024729');
+    const response = await axios.get(`https://ddmacordos.com/calc/localiza_dev.php`, {
+      params: { tk: token, cpf }
+    });
+    return res.json({ status: response.status, data: response.data });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message, response: err.response?.data });
+  }
+});
+
 campaignsV2Router.use(requireAdmin);
 
 campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, res) => {
