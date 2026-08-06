@@ -28,17 +28,6 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-app.get('/api/diag-logs-public', async (_req: Request, res: Response) => {
-  try {
-    const [stats]: any = await pool.query('SELECT campaign_id, COUNT(DISTINCT cpf) AS unique_cpfs, COUNT(*) AS total_calls FROM campaign_calls GROUP BY campaign_id');
-    const [calls]: any = await pool.query('SELECT id, campaign_id, customer_number, cpf, status, provider_call_id, attempts, last_error, updated_at FROM campaign_calls ORDER BY id DESC LIMIT 5');
-    const [events]: any = await pool.query('SELECT id, provider, provider_call_id, event_type, received_at FROM webhook_events ORDER BY id DESC LIMIT 20');
-    return res.json({ stats, calls, events });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
 app.get('/api/health', (_req: Request, res: Response) => {
   return res.json({ status: 'ok' });
 });
