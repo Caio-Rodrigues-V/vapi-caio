@@ -56,7 +56,7 @@ exports.campaignsV2Router.get('/campaigns/diag-logs', async (req, res) => {
     }
     try {
         const [calls] = await db_1.default.query('SELECT cc.id, cc.campaign_id, cc.customer_number, cc.cpf, cc.status, cc.provider_call_id, cc.attempts, cc.last_error, cc.updated_at, cr.decision, cr.ended_reason, cr.transcript FROM campaign_calls cc LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id ORDER BY cc.id DESC LIMIT 10');
-        const [events] = await db_1.default.query('SELECT id, provider, provider_call_id, event_type, received_at FROM webhook_events ORDER BY id DESC LIMIT 50');
+        const [events] = await db_1.default.query('SELECT id, provider, provider_call_id, event_type, received_at, processing_error FROM webhook_events ORDER BY id DESC LIMIT 50');
         return res.json({ calls, events, env: { openai: !!process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'dummy_key' } });
     }
     catch (err) {
