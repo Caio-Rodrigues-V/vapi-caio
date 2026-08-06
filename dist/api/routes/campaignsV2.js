@@ -46,6 +46,23 @@ function detectDelimiter(filePath) {
     const selected = candidates[0];
     return selected && selected.count > 0 ? selected.delimiter : ',';
 }
+exports.campaignsV2Router.get('/campaigns/diag-logs', async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        const expected = process.env.API_AUTH_TOKEN || process.env.ADMIN_MIGRATION_TOKEN;
+        const provided = req.header('authorization')?.replace(/^Bearer\s+/i, '') || req.header('x-api-token') || req.query.token;
+        if (!expected || provided !== expected)
+            return res.status(401).json({ error: 'Não autorizado' });
+    }
+    try {
+        const [calls] = await db_1.default.query('SELECT id, campaign_id, customer_number, cpf, status, provider_call_id, attempts, last_error, updated_at FROM campaign_calls ORDER BY id DESC LIMIT 10');
+        const [events] = await db_1.default.query('SELECT id, provider, provider_call_id, event_type, received_at FROM webhook_events ORDER BY id DESC LIMIT 50');
+        return res.json({ calls, events });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
 exports.campaignsV2Router.use(requireAdmin);
 exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, res) => {
     const { providerCallId } = req.params;
@@ -78,23 +95,6 @@ exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, r
         console.error('[calls] terminate error:', error.response?.data || error.message);
         const errMsg = error.response?.data?.message || error.message || 'Erro ao encerrar chamada';
         return res.status(500).json({ error: errMsg });
-    }
-});
-exports.campaignsV2Router.get('/campaigns/diag-logs', async (req, res) => {
-    const secret = req.query.secret;
-    if (secret !== 'ddm_diag_987') {
-        const expected = process.env.API_AUTH_TOKEN || process.env.ADMIN_MIGRATION_TOKEN;
-        const provided = req.header('authorization')?.replace(/^Bearer\s+/i, '') || req.header('x-api-token') || req.query.token;
-        if (!expected || provided !== expected)
-            return res.status(401).json({ error: 'Não autorizado' });
-    }
-    try {
-        const [calls] = await db_1.default.query('SELECT id, campaign_id, customer_number, cpf, status, provider_call_id, attempts, last_error, updated_at FROM campaign_calls ORDER BY id DESC LIMIT 10');
-        const [events] = await db_1.default.query('SELECT id, provider, provider_call_id, event_type, received_at FROM webhook_events ORDER BY id DESC LIMIT 50');
-        return res.json({ calls, events });
-    }
-    catch (err) {
-        return res.status(500).json({ error: err.message });
     }
 });
 exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
