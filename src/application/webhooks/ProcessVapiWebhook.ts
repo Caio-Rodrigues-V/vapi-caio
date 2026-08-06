@@ -172,6 +172,7 @@ export class ProcessVapiWebhook {
           }
         } catch (formError: any) {
           console.error('[ProcessVapiWebhook] Falha ao processar formalização/email:', formError.message);
+          throw formError;
         }
       }
 

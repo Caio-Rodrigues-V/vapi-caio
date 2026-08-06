@@ -171,6 +171,7 @@ class ProcessVapiWebhook {
                 }
                 catch (formError) {
                     console.error('[ProcessVapiWebhook] Falha ao processar formalização/email:', formError.message);
+                    throw formError;
                 }
             }
             await this.repository.markEventProcessed('vapi', eventId);
