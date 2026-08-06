@@ -24,12 +24,10 @@ router.post('/vapi/webhook', async (req, res) => {
             return res.status(200).json((0, ProcessVapiToolCalls_1.processVapiToolCalls)(payload));
         }
         if (type !== 'end-of-call-report') {
-            try {
-                await processor.execute(payload);
-            }
-            catch (err) {
+            // Process database writes in the background to prevent Vapi from timing out and silencing the voice agent
+            processor.execute(payload).catch((err) => {
                 console.error('[vapi-webhook] background processing error:', err);
-            }
+            });
             return res.status(200).json({});
         }
         try {
