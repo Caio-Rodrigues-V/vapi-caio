@@ -130,14 +130,13 @@ export class ProcessVapiWebhook {
           console.log(`[ProcessVapiWebhook] Iniciando formalização DDM para campaignCallId: ${campaignCallId}`);
           const callDetails = await this.repository.findCampaignCall(campaignCallId);
           if (callDetails) {
-            const debtorId = callDetails.metadata?.calculationId;
             const cpf = callDetails.cpf;
-            if (debtorId && cpf) {
+            if (cpf) {
               const institutionName = String(callDetails.metadata?.institution || '');
               const client = institutionName.toLowerCase().includes('cruzeiro') ? 'cruzeiro' : 'ddm';
 
-              console.log(`[ProcessVapiWebhook] Chamando efetiva_acordo.php p/ debtorId: ${debtorId}, cli: ${client}`);
-              const agreement = await this.debts.formalize(debtorId, client);
+              console.log(`[ProcessVapiWebhook] Chamando efetiva_acordo.php p/ CPF: ${cpf}, cli: ${client}`);
+              const agreement = await this.debts.formalize(cpf, client);
 
               const sender = new NotificationSender();
               await sender.send({
