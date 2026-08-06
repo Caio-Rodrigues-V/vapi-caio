@@ -219,10 +219,21 @@ export class DdmDebtProvider implements DebtProvider {
 
     const findFirstKey = (obj: any, keys: string[]): string => {
       if (!obj || typeof obj !== 'object') return '';
+      if (Array.isArray(obj)) {
+        for (const item of obj) {
+          const found = findFirstKey(item, keys);
+          if (found) return found;
+        }
+        return '';
+      }
       const normalizedKeys = keys.map(k => k.toLowerCase().replace(/[^a-z0-9]/g, ''));
       for (const [k, v] of Object.entries(obj)) {
         if (normalizedKeys.includes(k.toLowerCase().replace(/[^a-z0-9]/g, '')) && v) {
           return String(v).trim();
+        }
+        if (v && typeof v === 'object') {
+          const found = findFirstKey(v, keys);
+          if (found) return found;
         }
       }
       return '';
