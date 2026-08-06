@@ -28,6 +28,7 @@ async function runCampaignDispatcher() {
     const dialer = new VapiPhoneProvider_1.VapiPhoneProvider(requiredEnv('VAPI_API_KEY'));
     const debts = new DdmDebtProvider_1.DdmDebtProvider({
         token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
+        tokenCalcula: process.env.DDM_TOKEN || '',
         baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
         timeoutMs: envInt('DDM_TIMEOUT_MS', 7_000),
         maxRetries: envInt('DDM_MAX_RETRIES', 3),

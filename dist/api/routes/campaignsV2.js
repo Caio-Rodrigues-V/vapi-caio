@@ -85,7 +85,7 @@ exports.campaignsV2Router.get('/campaigns/diag-ddm-test', async (req, res) => {
         return res.status(401).json({ error: 'Não autorizado' });
     }
     try {
-        const token = process.env.DDM_TOKEN_BUSCA;
+        const token = process.env.DDM_TOKEN || process.env.DDM_TOKEN_BUSCA;
         const debtorId = String(req.query.debtorId || '366934');
         const client = String(req.query.client || 'ddm');
         const response = await axios_1.default.get(`https://ddmacordos.com/calc/efetiva_acordo.php`, {

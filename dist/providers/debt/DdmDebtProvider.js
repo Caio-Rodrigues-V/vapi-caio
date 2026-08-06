@@ -96,11 +96,13 @@ function consolidateCalculation(raw) {
 class DdmDebtProvider {
     client;
     token;
+    tokenCalcula;
     maxRetries;
     constructor(options) {
         if (!options.token)
             throw new Error('DDM_TOKEN_BUSCA não configurado.');
         this.token = options.token;
+        this.tokenCalcula = options.tokenCalcula || options.token || '';
         this.maxRetries = options.maxRetries ?? 3;
         this.client = axios_1.default.create({
             baseURL: (options.baseUrl || 'https://ddmacordos.com').replace(/\/$/, ''),
@@ -197,7 +199,7 @@ class DdmDebtProvider {
     }
     async formalize(debtorId, client, installments = 1) {
         const data = await this.getWithRetry('/calc/efetiva_acordo.php', {
-            tk: this.token,
+            tk: this.tokenCalcula,
             idDev: debtorId,
             cli: client,
             Parc: String(installments),

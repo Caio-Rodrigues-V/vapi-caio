@@ -8,6 +8,7 @@ const DdmDebtProvider_1 = require("../../providers/debt/DdmDebtProvider");
 const router = (0, express_1.Router)();
 const debts = new DdmDebtProvider_1.DdmDebtProvider({
     token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
+    tokenCalcula: process.env.DDM_TOKEN || '',
     baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
     timeoutMs: Number(process.env.DDM_TIMEOUT_MS || 7000),
     maxRetries: Number(process.env.DDM_MAX_RETRIES || 3),
