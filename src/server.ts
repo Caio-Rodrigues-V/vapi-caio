@@ -31,7 +31,7 @@ const upload = multer({
 app.get('/api/diag-logs-public', async (_req: Request, res: Response) => {
   try {
     const [calls]: any = await pool.query('SELECT id, campaign_id, customer_number, cpf, status, provider_call_id, attempts, last_error, updated_at FROM campaign_calls ORDER BY id DESC LIMIT 5');
-    const [events]: any = await pool.query('SELECT id, provider, provider_call_id, event_type, created_at FROM webhook_events ORDER BY id DESC LIMIT 20');
+    const [events]: any = await pool.query('SELECT id, provider, provider_call_id, event_type, received_at FROM webhook_events ORDER BY id DESC LIMIT 20');
     return res.json({ calls, events });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
