@@ -65,6 +65,20 @@ campaignsV2Router.get('/campaigns/diag-logs', async (req, res) => {
   }
 });
 
+campaignsV2Router.get('/campaigns/diag-event-payload/:id', async (req, res) => {
+  const secret = req.query.secret;
+  if (secret !== 'ddm_diag_987') {
+    return res.status(401).json({ error: 'Não autorizado' });
+  }
+  try {
+    const [rows]: any = await pool.query('SELECT payload FROM webhook_events WHERE id = ?', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Evento não encontrado' });
+    return res.json(JSON.parse(rows[0].payload || '{}'));
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 campaignsV2Router.use(requireAdmin);
 
 campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, res) => {
