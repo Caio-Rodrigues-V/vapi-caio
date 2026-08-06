@@ -9,6 +9,7 @@ export type DebtLookupResult = {
   hasDebt: boolean;
   institution?: string | null;
   debtorName?: string | null;
+  debtorId?: string | null;
   calculationId?: string | null;
   nominalAmount?: number | null;
   cashAmount?: number | null;

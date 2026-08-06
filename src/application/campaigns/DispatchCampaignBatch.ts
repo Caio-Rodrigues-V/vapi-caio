@@ -84,6 +84,7 @@ export class DispatchCampaignBatch {
             hasDebt: true,
             institution: debt.institution ?? null,
             debtorName: debt.debtorName ?? null,
+            debtorId: debt.debtorId ?? null,
             calculationId: debt.calculationId ?? null,
             nominalAmount: debt.nominalAmount ?? null,
             cashAmount: debt.cashAmount ?? null,

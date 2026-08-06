@@ -186,6 +186,7 @@ class DdmDebtProvider {
             hasDebt: hasInstallments && calculation.FechaAcordo !== false,
             institution,
             debtorName: findFirst(calculation, ['NomeDev', 'NomeDevedor', 'nome_devedor']) || null,
+            debtorId,
             calculationId: findFirst(calculation, ['idcalc', 'id_calc', 'idCalculo', 'calculoId']) || null,
             nominalAmount: parseMoney(findFirst(calculation, ['TotalNominal', 'ValorTotal', 'valor_total'])),
             cashAmount,

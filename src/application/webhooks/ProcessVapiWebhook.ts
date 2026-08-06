@@ -132,11 +132,22 @@ export class ProcessVapiWebhook {
           if (callDetails) {
             const cpf = callDetails.cpf;
             if (cpf) {
+              let debtorId = callDetails.metadata?.debtorId;
+              if (!debtorId) {
+                console.log(`[ProcessVapiWebhook] debtorId não encontrado no metadata. Buscando via localiza_dev para CPF: ${cpf}...`);
+                const lookupRes = await this.debts.lookup(cpf);
+                debtorId = lookupRes.debtorId;
+              }
+
+              if (!debtorId) {
+                throw new Error(`Não foi possível localizar o debtorId para o CPF ${cpf} na DDM.`);
+              }
+
               const institutionName = String(callDetails.metadata?.institution || '');
               const client = institutionName.toLowerCase().includes('cruzeiro') ? 'cruzeiro' : 'ddm';
 
-              console.log(`[ProcessVapiWebhook] Chamando efetiva_acordo.php p/ CPF: ${cpf}, cli: ${client}`);
-              const agreement = await this.debts.formalize(cpf, client);
+              console.log(`[ProcessVapiWebhook] Chamando efetiva_acordo.php p/ debtorId: ${debtorId}, cli: ${client}`);
+              const agreement = await this.debts.formalize(debtorId, client);
 
               const sender = new NotificationSender();
               await sender.send({
