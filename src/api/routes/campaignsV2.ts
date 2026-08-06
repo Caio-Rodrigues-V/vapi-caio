@@ -48,6 +48,16 @@ function detectDelimiter(filePath: string): ',' | ';' | '\t' {
   return selected && selected.count > 0 ? selected.delimiter : ',';
 }
 
+campaignsV2Router.get('/diag-logs', async (_req, res) => {
+  try {
+    const [calls]: any = await pool.query('SELECT id, campaign_id, customer_number, cpf, status, provider_call_id, attempts, last_error, updated_at FROM campaign_calls ORDER BY id DESC LIMIT 5');
+    const [events]: any = await pool.query('SELECT id, provider, provider_call_id, event_type, created_at FROM webhook_events ORDER BY id DESC LIMIT 20');
+    return res.json({ calls, events });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 campaignsV2Router.use(requireAdmin);
 
 campaignsV2Router.get('/vapi/config', async (_req, res) => {
