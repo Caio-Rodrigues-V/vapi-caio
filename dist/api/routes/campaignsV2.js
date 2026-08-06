@@ -250,6 +250,70 @@ exports.campaignsV2Router.delete('/campaigns/:id', async (req, res) => {
         connection.release();
     }
 });
+exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({ error: 'Campanha inválida' });
+    }
+    const status = String(req.query.status || '').trim();
+    const whereStatus = status ? 'AND cc.status = ?' : '';
+    const params = status ? [id, status] : [id];
+    try {
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename=relatorio-campanha-${id}.csv`);
+        res.write('\uFEFF'); // BOM for Portuguese Excel encoding compatibility
+        res.write('Telefone;CPF;Nome;Status;Tentativas;Decisão;Duração (s);Motivo do Fim;Última Atualização\n');
+        const [rows] = await db_1.default.query(`SELECT cc.customer_number, cc.cpf, cc.attempts, cc.status, cc.metadata,
+              cr.decision, cr.duration_seconds, cr.ended_reason, cc.updated_at
+       FROM campaign_calls cc
+       LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
+       WHERE cc.campaign_id = ? ${whereStatus}
+       ORDER BY cc.id DESC`, params);
+        for (const row of rows) {
+            const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+            const name = metadata.name || '';
+            let decisionText = 'Aguardando';
+            if (row.decision === 'formalize')
+                decisionText = 'Formalizado';
+            else if (row.decision === 'schedule')
+                decisionText = 'Reagendado';
+            else if (row.decision === 'zero') {
+                decisionText = row.ended_reason === 'voicemail' ? 'Caixa Postal' : 'Recusado/Sem Acordo';
+            }
+            let statusText = row.status;
+            if (row.status === 'pending')
+                statusText = 'Pendente';
+            else if (row.status === 'running' || row.status === 'in_progress' || row.status === 'queued' || row.status === 'answered')
+                statusText = 'Em Linha';
+            else if (row.status === 'completed')
+                statusText = 'Concluído';
+            else if (row.status === 'failed')
+                statusText = 'Falhou';
+            else if (row.status === 'skipped')
+                statusText = 'Pulado';
+            const line = [
+                row.customer_number,
+                row.cpf || '',
+                name,
+                statusText,
+                row.attempts,
+                decisionText,
+                row.duration_seconds !== null && row.duration_seconds !== undefined ? row.duration_seconds : '',
+                row.ended_reason || '',
+                row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : ''
+            ].map(val => {
+                const text = String(val).replace(/;/g, ' '); // Avoid breaking CSV formatting
+                return text;
+            }).join(';');
+            res.write(line + '\n');
+        }
+        res.end();
+    }
+    catch (error) {
+        console.error('[campaigns] export error:', error);
+        return res.status(500).json({ error: 'Erro ao exportar relatório' });
+    }
+});
 exports.campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {

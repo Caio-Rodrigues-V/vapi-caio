@@ -379,34 +379,34 @@ function Campaigns() {
     return calls.filter(c => c.decision === decisionFilter);
   }, [calls, decisionFilter]);
 
-  const exportToCsv = () => {
-    if (!calls.length) return;
+  const [exporting, setExporting] = useState(false);
 
-    const headers = ['ID', 'Telefone', 'CPF', 'Status', 'Tentativas', 'Decisao', 'Motivo Encerramento', 'Ultima Atualizacao'];
-    const rows = filteredCalls.map((c) => [
-      c.id,
-      c.customer_number,
-      c.cpf || '',
-      c.status,
-      c.attempts,
-      c.decision || 'pendente',
-      c.ended_reason || '',
-      c.updated_at ? new Date(c.updated_at).toLocaleString('pt-BR') : '',
-    ]);
-
-    const csvContent = [
-      headers.join(';'),
-      ...rows.map((row) => row.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(';')),
-    ].join('\n');
-
-    const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `campanha_${selectedId}_ligacoes.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const exportToCsv = async () => {
+    if (!selectedId) return;
+    setExporting(true);
+    try {
+      const statusParam = decisionFilter !== 'all' ? `&status=${decisionFilter}` : '';
+      const response = await fetch(apiUrl(`/campaigns/${selectedId}/export?${statusParam}`), {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+        }
+      });
+      if (!response.ok) throw new Error('Falha ao exportar relatório do servidor');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `relatorio_campanha_${selectedId}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Erro ao exportar CSV');
+    } finally {
+      setExporting(false);
+    }
   };
 
   // Gráfico de Barras de desempenho das Campanhas
@@ -782,11 +782,12 @@ function Campaigns() {
               {calls.length > 0 && (
                 <button
                   type="button"
+                  disabled={exporting}
                   onClick={exportToCsv}
-                  className="rounded-lg px-3 py-1.5 text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1.5 ml-2 shadow-sm"
+                  className="rounded-lg px-3 py-1.5 text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1.5 ml-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Download size={13} />
-                  Exportar CSV
+                  <Download size={13} className={exporting ? 'animate-spin' : ''} />
+                  {exporting ? 'Exportando...' : 'Exportar CSV'}
                 </button>
               )}
             </div>
