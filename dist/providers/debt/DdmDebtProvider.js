@@ -173,7 +173,7 @@ class DdmDebtProvider {
         const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
         return {
             cpf,
-            hasDebt: installments.length > 0 && Boolean(cashAmount),
+            hasDebt: installments.length > 0 && Boolean(cashAmount) && calculation.FechaAcordo !== false,
             institution,
             debtorName: findFirst(calculation, ['NomeDev', 'NomeDevedor', 'nome_devedor']) || null,
             calculationId: findFirst(calculation, ['idcalc', 'id_calc', 'idCalculo', 'calculoId']) || null,
