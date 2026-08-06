@@ -47,6 +47,39 @@ function detectDelimiter(filePath) {
     return selected && selected.count > 0 ? selected.delimiter : ',';
 }
 exports.campaignsV2Router.use(requireAdmin);
+exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, res) => {
+    const { providerCallId } = req.params;
+    if (!providerCallId)
+        return res.status(400).json({ error: 'ID da chamada é obrigatório' });
+    try {
+        const apiKey = configuredValue(undefined, 'VAPI_API_KEY');
+        if (!apiKey)
+            throw new Error('VAPI_API_KEY não configurada no servidor.');
+        // 1. Terminate call on Vapi
+        await axios_1.default.post(`https://api.vapi.ai/call/${providerCallId}/end`, {}, {
+            headers: { Authorization: `Bearer ${apiKey}` },
+            timeout: 10000,
+        });
+        // 2. Update status in campaign_calls
+        await db_1.default.query(`UPDATE campaign_calls
+       SET status = 'failed', last_error = 'manually_terminated'
+       WHERE provider_call_id = ?`, [providerCallId]);
+        // 3. Save call result
+        const [callRows] = await db_1.default.query(`SELECT id FROM campaign_calls WHERE provider_call_id = ? LIMIT 1`, [providerCallId]);
+        if (callRows.length > 0) {
+            const campaignCallId = callRows[0].id;
+            await db_1.default.query(`INSERT INTO call_results (campaign_call_id, provider_call_id, decision, duration_seconds, ended_reason, raw_payload)
+         VALUES (?, ?, 'zero', 0, 'manually_terminated', '{}')
+         ON DUPLICATE KEY UPDATE ended_reason = 'manually_terminated'`, [campaignCallId, providerCallId]);
+        }
+        return res.json({ ok: true, message: 'Chamada encerrada.' });
+    }
+    catch (error) {
+        console.error('[calls] terminate error:', error.response?.data || error.message);
+        const errMsg = error.response?.data?.message || error.message || 'Erro ao encerrar chamada';
+        return res.status(500).json({ error: errMsg });
+    }
+});
 exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
     try {
         const apiKey = configuredValue(undefined, 'VAPI_API_KEY');

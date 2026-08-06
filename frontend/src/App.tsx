@@ -23,6 +23,7 @@ import {
   X,
   Volume2,
   MessageSquare,
+  PhoneOff,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -97,6 +98,7 @@ type Campaign = {
 type CallRow = {
   id: number;
   campaign_id?: number;
+  provider_call_id?: string | null;
   customer_number: string;
   cpf?: string | null;
   status: string;
@@ -200,6 +202,23 @@ function Campaigns() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [decisionFilter, setDecisionFilter] = useState<string>('all');
   const [selectedCall, setSelectedCall] = useState<CallRow | null>(null);
+  const [terminatingCallId, setTerminatingCallId] = useState<string | null>(null);
+
+  async function terminateCall(providerCallId: string, event: React.MouseEvent) {
+    event.stopPropagation(); // Prevent opening modal
+    const confirmed = window.confirm('Deseja realmente desligar esta chamada ativa?');
+    if (!confirmed) return;
+
+    setTerminatingCallId(providerCallId);
+    try {
+      await apiFetch(`/calls/${providerCallId}/terminate`, { method: 'POST' });
+      await load({ silent: true });
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Erro ao encerrar chamada');
+    } finally {
+      setTerminatingCallId(null);
+    }
+  }
 
   async function load(options: { silent?: boolean } = {}) {
     if (!options.silent) setLoading(true);
@@ -808,7 +827,7 @@ function Campaigns() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-900/60 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-glass sticky top-0 backdrop-blur-md">
                 <tr>
-                  {['Telefone', 'CPF', 'Status', 'Tentativas', 'Acordo / Decisão', 'Última Atualização'].map((header) => (
+                  {['Telefone', 'CPF', 'Status', 'Tentativas', 'Acordo / Decisão', 'Última Atualização', 'Ações'].map((header) => (
                     <th key={header} className="px-6 py-3">{header}</th>
                   ))}
                 </tr>
@@ -862,12 +881,27 @@ function Campaigns() {
                     <td className="px-6 py-3.5 text-slate-400 text-xs">
                       {call.updated_at ? new Date(call.updated_at).toLocaleString('pt-BR') : '-'}
                     </td>
+                    <td className="px-6 py-3.5" onClick={(e) => e.stopPropagation()}>
+                      {['reserved', 'queued', 'in_progress', 'answered'].includes(call.status) && call.provider_call_id ? (
+                        <button
+                          type="button"
+                          title="Desligar chamada"
+                          disabled={!!terminatingCallId}
+                          onClick={(event) => void terminateCall(call.provider_call_id!, event)}
+                          className="btn-click rounded-lg bg-rose-500/10 hover:bg-rose-500/20 p-1.5 text-rose-400 border border-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <PhoneOff size={13} className={terminatingCallId === call.provider_call_id ? 'animate-pulse' : ''} />
+                        </button>
+                      ) : (
+                        <span className="text-slate-600 text-xs">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
 
                 {!filteredCalls.length && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-slate-500">
+                    <td colSpan={7} className="px-6 py-10 text-center text-slate-500">
                       Nenhum contato encontrado para o filtro selecionado.
                     </td>
                   </tr>
