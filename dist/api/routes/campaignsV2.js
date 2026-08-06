@@ -56,7 +56,7 @@ exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, r
         if (!apiKey)
             throw new Error('VAPI_API_KEY não configurada no servidor.');
         // 1. Terminate call on Vapi
-        await axios_1.default.post(`https://api.vapi.ai/call/${providerCallId}/end`, {}, {
+        await axios_1.default.delete(`https://api.vapi.ai/call/${providerCallId}`, {
             headers: { Authorization: `Bearer ${apiKey}` },
             timeout: 10000,
         });
