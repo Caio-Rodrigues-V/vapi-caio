@@ -78,13 +78,17 @@ class ProcessVapiWebhook {
                 customerMessages.push(transcript);
             // 1. Check if the call triggered the 'confirmar_acordo' tool call in the messages history
             const agreementConfirmedByTool = wasToolCalled(messages, 'confirmar_acordo');
-            const transcriptContainsAgreement = transcript.toLowerCase().includes('acordo formalizado') || transcript.toLowerCase().includes('acordo fechado');
+            const assistantSpokeAgreement = messages.some((m) => {
+                const role = String(m.role || '').toLowerCase();
+                const content = String(m.message || m.content || '').toLowerCase();
+                return (role === 'assistant' || role === 'ai') && (content.includes('acordo formalizado') || content.includes('acordo fechado'));
+            });
             const agendamentoTriggeredByTool = transcript.includes('#AGENDAMENTO');
             let decision = 'zero';
             let scheduledAt = null;
-            if (agreementConfirmedByTool || transcriptContainsAgreement) {
+            if (agreementConfirmedByTool || assistantSpokeAgreement) {
                 decision = 'formalize';
-                console.log(`[ProcessVapiWebhook] Acordo formalizado detectado (ferramenta ou texto de confirmacao) para a chamada ${providerCallId}`);
+                console.log(`[ProcessVapiWebhook] Acordo formalizado detectado (ferramenta ou fala da assistente) para a chamada ${providerCallId}`);
             }
             else if (agendamentoTriggeredByTool) {
                 decision = 'schedule';
