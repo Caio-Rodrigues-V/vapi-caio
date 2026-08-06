@@ -90,11 +90,13 @@ type Campaign = {
   completed_calls: number;
   failed_calls: number;
   skipped_calls: number;
+  total_leads: number;
   max_attempts?: number;
 };
 
 type CallRow = {
   id: number;
+  campaign_id?: number;
   customer_number: string;
   cpf?: string | null;
   status: string;
@@ -331,13 +333,14 @@ function Campaigns() {
     return campaigns.reduce(
       (acc, item) => ({
         campaigns: acc.campaigns + 1,
+        leads: acc.leads + Number(item.total_leads || 0),
         calls: acc.calls + Number(item.total_calls || 0),
         active: acc.active + Number(item.active_calls || 0),
         completed: acc.completed + Number(item.completed_calls || 0),
         pending: acc.pending + Number(item.pending_calls || 0),
         failed: acc.failed + Number(item.failed_calls || 0),
       }),
-      { campaigns: 0, calls: 0, active: 0, completed: 0, pending: 0, failed: 0 },
+      { campaigns: 0, leads: 0, calls: 0, active: 0, completed: 0, pending: 0, failed: 0 },
     );
   }, [campaigns]);
 
@@ -469,8 +472,9 @@ function Campaigns() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
-            label: 'Total de Contatos',
-            value: stats.calls,
+            label: 'Total de Leads (CPFs)',
+            value: stats.leads,
+            description: `${stats.calls.toLocaleString('pt-BR')} telefones`,
             icon: FileText,
             color: 'text-indigo-400',
             bg: 'from-indigo-500/10 to-indigo-500/2',
@@ -514,6 +518,9 @@ function Campaigns() {
                   </span>
                 )}
               </div>
+              {'description' in item && item.description && (
+                <p className="text-[11px] text-slate-400 font-medium">{item.description}</p>
+              )}
             </div>
             <div className={`p-3 rounded-xl bg-slate-900/40 border border-glass ${item.color}`}>
               <item.icon size={24} />
@@ -653,15 +660,19 @@ function Campaigns() {
                     key={campaign.id}
                     className={`hover:bg-slate-900/20 transition-all ${isSelected ? 'bg-primary/5 hover:bg-primary/10' : ''}`}
                   >
-                    <td className="px-6 py-4 font-semibold text-white">
-                      <button
-                        type="button"
-                        className="flex items-center gap-1.5 text-left font-semibold text-white hover:text-primary transition-all"
-                        onClick={() => void loadCalls(campaign.id)}
-                      >
-                        {campaign.name}
-                        <ChevronRight size={14} className={`text-slate-500 transition-transform ${isSelected ? 'rotate-90 text-primary' : ''}`} />
-                      </button>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <button
+                          onClick={() => void loadCalls(campaign.id)}
+                          className="flex items-center gap-1 font-bold text-white hover:text-primary transition-all text-left"
+                        >
+                          {campaign.name}
+                          <ChevronRight size={14} className={`text-slate-500 transition-transform ${isSelected ? 'rotate-90 text-primary' : ''}`} />
+                        </button>
+                        <p className="text-[10px] text-slate-400 mt-0.5 ml-0.5">
+                          {Number(campaign.total_leads || 0).toLocaleString('pt-BR')} CPFs • {Number(campaign.total_calls || 0).toLocaleString('pt-BR')} números
+                        </p>
+                      </div>
                     </td>
                     <td className="px-6 py-4"><StatusBadge status={campaign.status} /></td>
                     <td className="px-6 py-4 font-medium text-indigo-300">{Number(campaign.pending_calls || 0)}</td>
@@ -890,6 +901,21 @@ function Campaigns() {
 }
 
 function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => void }) {
+  const [cpfPhones, setCpfPhones] = useState<any[]>([]);
+  const [loadingPhones, setLoadingPhones] = useState(false);
+
+  useEffect(() => {
+    if (call.cpf && call.campaign_id) {
+      setLoadingPhones(true);
+      apiFetch(`/campaigns/${call.campaign_id}/calls/cpf/${call.cpf}`)
+        .then((res: any) => {
+          setCpfPhones(Array.isArray(res) ? res : []);
+        })
+        .catch((err) => console.error('Erro ao buscar telefones do CPF:', err))
+        .finally(() => setLoadingPhones(false));
+    }
+  }, [call.cpf, call.campaign_id]);
+
   const bubbles = useMemo(() => {
     if (!call.transcript) return [];
     
@@ -989,6 +1015,60 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Telefones deste CPF */}
+            <div className="rounded-xl border border-glass bg-slate-950/40 p-4 space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Telefones Cadastrados (CPF)</h4>
+              {loadingPhones ? (
+                <p className="text-xs text-slate-400 animate-pulse">Carregando telefones...</p>
+              ) : cpfPhones.length > 0 ? (
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                  {cpfPhones.map((item) => {
+                    const isCurrent = item.customer_number === call.customer_number;
+                    return (
+                      <div
+                        key={item.id}
+                        className={`flex items-center justify-between text-xs p-2 rounded-lg border ${
+                          isCurrent
+                            ? 'bg-primary/10 border-primary/40 text-primary font-bold'
+                            : 'bg-slate-900/40 border-glass text-slate-300'
+                        }`}
+                      >
+                        <span className="font-mono">{item.customer_number}</span>
+                        <div className="flex items-center gap-1.5">
+                          {item.attempts > 0 && (
+                            <span className="text-[10px] text-slate-400 bg-slate-950/60 px-1.5 py-0.5 rounded">
+                              {item.attempts} tent.
+                            </span>
+                          )}
+                          <span className={`capitalize px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                            item.status === 'completed'
+                              ? 'bg-emerald-500/10 text-emerald-400'
+                              : item.status === 'failed'
+                              ? 'bg-rose-500/10 text-rose-450'
+                              : item.status === 'skipped'
+                              ? 'bg-slate-800 text-slate-400'
+                              : 'bg-indigo-500/10 text-indigo-400'
+                          }`}>
+                            {item.status === 'skipped'
+                              ? 'Pulado'
+                              : item.status === 'completed'
+                              ? item.decision === 'formalize'
+                                ? 'Formalizado'
+                                : item.decision === 'schedule'
+                                ? 'Agendado'
+                                : 'S/ Acordo'
+                              : item.status}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">Nenhum outro telefone encontrado.</p>
+              )}
             </div>
 
             {/* Audio Player Card */}

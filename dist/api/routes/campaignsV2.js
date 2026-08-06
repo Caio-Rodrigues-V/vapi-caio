@@ -107,6 +107,7 @@ exports.campaignsV2Router.get('/campaigns', async (req, res) => {
       SUM(cc.status = 'completed') AS completed_calls,
       SUM(cc.status = 'failed') AS failed_calls,
       SUM(cc.status = 'skipped') AS skipped_calls,
+      COUNT(DISTINCT cc.cpf) AS total_leads,
       COUNT(cc.id) AS total_calls
      FROM campaigns c
      LEFT JOIN campaign_calls cc ON cc.campaign_id = c.id
@@ -302,6 +303,26 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
     catch (error) {
         console.error('[campaigns] export error:', error);
         return res.status(500).json({ error: 'Erro ao exportar relatório' });
+    }
+});
+exports.campaignsV2Router.get('/campaigns/:id/calls/cpf/:cpf', async (req, res) => {
+    const id = Number(req.params.id);
+    const cpf = String(req.params.cpf).trim();
+    if (!Number.isInteger(id) || id <= 0 || !cpf) {
+        return res.status(400).json({ error: 'Campanha e CPF são obrigatórios' });
+    }
+    try {
+        const [rows] = await db_1.default.query(`SELECT cc.id, cc.customer_number, cc.status, cc.attempts,
+              cr.decision, cr.ended_reason, cc.updated_at
+       FROM campaign_calls cc
+       LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
+       WHERE cc.campaign_id = ? AND cc.cpf = ?
+       ORDER BY cc.id ASC`, [id, cpf]);
+        return res.json(rows);
+    }
+    catch (error) {
+        console.error('[campaigns] list by cpf error:', error);
+        return res.status(500).json({ error: 'Erro ao buscar telefones do CPF' });
     }
 });
 exports.campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
