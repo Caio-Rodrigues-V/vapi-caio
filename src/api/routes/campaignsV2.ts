@@ -73,7 +73,8 @@ campaignsV2Router.get('/campaigns/diag-event-payload/:id', async (req, res) => {
   try {
     const [rows]: any = await pool.query('SELECT payload FROM webhook_events WHERE id = ?', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Evento não encontrado' });
-    return res.json(JSON.parse(rows[0].payload || '{}'));
+    const payload = typeof rows[0].payload === 'string' ? JSON.parse(rows[0].payload) : (rows[0].payload || {});
+    return res.json(payload);
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
