@@ -61,7 +61,7 @@ export async function runCampaignDispatcher(): Promise<CampaignDispatcherResult>
     dialer,
     retryPolicy,
     {
-      globalMaxConcurrent: envInt('GLOBAL_MAX_CONCURRENT', 10),
+      globalMaxConcurrent: envInt('GLOBAL_MAX_CONCURRENT', 100),
       campaignScanLimit: envInt('WORKER_CAMPAIGN_SCAN_LIMIT', 20),
       staleLockMinutes: envInt('WORKER_STALE_LOCK_MINUTES', 15),
       watchdogTimeoutMinutes: envInt('WORKER_WATCHDOG_TIMEOUT_MINUTES', 8),

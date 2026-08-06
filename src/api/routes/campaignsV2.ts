@@ -193,6 +193,41 @@ campaignsV2Router.patch('/campaigns/:id/status', async (req, res) => {
   return res.json({ ok: true, id, status });
 });
 
+campaignsV2Router.put('/campaigns/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Campanha inválida' });
+  }
+
+  const { name, maxConcurrent, maxAttempts } = req.body || {};
+
+  if (!String(name || '').trim()) {
+    return res.status(400).json({ error: 'O nome da campanha é obrigatório' });
+  }
+
+  try {
+    await pool.execute(
+      `UPDATE campaigns
+       SET name = ?,
+           max_concurrent = ?,
+           max_attempts = ?
+       WHERE id = ?`,
+      [
+        String(name).trim(),
+        Math.max(1, Number(maxConcurrent || 1)),
+        Math.max(1, Number(maxAttempts || 5)),
+        id,
+      ],
+    );
+
+    const [rows]: any = await pool.execute('SELECT * FROM campaigns WHERE id = ?', [id]);
+    return res.json(rows[0]);
+  } catch (error) {
+    console.error('[campaigns] update error:', error);
+    return res.status(500).json({ error: 'Erro ao atualizar campanha' });
+  }
+});
+
 campaignsV2Router.delete('/campaigns/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {

@@ -90,6 +90,7 @@ type Campaign = {
   completed_calls: number;
   failed_calls: number;
   skipped_calls: number;
+  max_attempts?: number;
 };
 
 type CallRow = {
@@ -193,6 +194,7 @@ function Campaigns() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [calls, setCalls] = useState<CallRow[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [decisionFilter, setDecisionFilter] = useState<string>('all');
   const [selectedCall, setSelectedCall] = useState<CallRow | null>(null);
@@ -703,6 +705,15 @@ function Campaigns() {
 
                         <button
                           type="button"
+                          title="Editar configurações"
+                          onClick={() => setEditingCampaign(campaign)}
+                          className="btn-click rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 p-2 text-indigo-400 border border-indigo-500/20"
+                        >
+                          <SettingsIcon size={15} />
+                        </button>
+
+                        <button
+                          type="button"
                           title={deleteBlocked
                             ? 'Pause a campanha e aguarde as chamadas ativas'
                             : 'Excluir campanha'}
@@ -858,6 +869,15 @@ function Campaigns() {
       {/* Modal - Criação de Campanhas Premium */}
       {showCreate && (
         <CreateCampaign onClose={() => setShowCreate(false)} onCreated={() => load()} />
+      )}
+
+      {/* Modal - Edição de Campanhas */}
+      {editingCampaign && (
+        <CreateCampaign
+          campaign={editingCampaign}
+          onClose={() => setEditingCampaign(null)}
+          onCreated={() => load()}
+        />
       )}
 
       {/* Modal - Detalhes e Transcrição da Ligação */}
@@ -1047,9 +1067,11 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
 function CreateCampaign({
   onClose,
   onCreated,
+  campaign,
 }: {
   onClose: () => void;
   onCreated: () => Promise<void>;
+  campaign?: Campaign;
 }) {
   const [saving, setSaving] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(true);
@@ -1085,21 +1107,34 @@ function CreateCampaign({
     setSaving(true);
 
     try {
-      await apiFetch('/campaigns', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: form.get('name'),
-          assistantId: vapiConfig.assistant.id,
-          phoneNumberId: vapiConfig.phoneNumber.id,
-          maxConcurrent: Number(form.get('maxConcurrent') || 1),
-          maxAttempts: Number(form.get('maxAttempts') || 5),
-        }),
-      });
+      if (campaign) {
+        // Edit Mode
+        await apiFetch(`/campaigns/${campaign.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: form.get('name'),
+            maxConcurrent: Number(form.get('maxConcurrent') || 1),
+            maxAttempts: Number(form.get('maxAttempts') || 5),
+          }),
+        });
+      } else {
+        // Create Mode
+        await apiFetch('/campaigns', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: form.get('name'),
+            assistantId: vapiConfig.assistant.id,
+            phoneNumberId: vapiConfig.phoneNumber.id,
+            maxConcurrent: Number(form.get('maxConcurrent') || 1),
+            maxAttempts: Number(form.get('maxAttempts') || 5),
+          }),
+        });
+      }
 
       await onCreated();
       onClose();
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Erro ao criar campanha');
+      window.alert(err instanceof Error ? err.message : 'Erro ao salvar campanha');
     } finally {
       setSaving(false);
     }
@@ -1111,13 +1146,16 @@ function CreateCampaign({
         onSubmit={submit}
         className="w-full max-w-lg space-y-4 rounded-2xl border border-glass bg-slate-900 p-6 shadow-2xl animate-scale-up"
       >
-        <h3 className="text-xl font-bold text-white border-b border-glass pb-3">Criar Nova Campanha</h3>
+        <h3 className="text-xl font-bold text-white border-b border-glass pb-3">
+          {campaign ? 'Editar Configurações da Campanha' : 'Criar Nova Campanha'}
+        </h3>
 
         <div className="space-y-1">
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Nome da Campanha</label>
           <input
             name="name"
             required
+            defaultValue={campaign?.name}
             placeholder="Ex: Cobrança UVA Vencidos Julho"
             className="mt-1 w-full rounded-xl border border-glass bg-slate-950 px-3.5 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all text-sm"
           />
@@ -1147,7 +1185,7 @@ function CreateCampaign({
             <input
               name="maxConcurrent"
               required
-              defaultValue="10"
+              defaultValue={campaign ? String(campaign.max_concurrent) : '10'}
               min="1"
               type="number"
               className="mt-1 w-full rounded-xl border border-glass bg-slate-950 px-3.5 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all text-sm"
@@ -1159,7 +1197,7 @@ function CreateCampaign({
             <input
               name="maxAttempts"
               required
-              defaultValue="5"
+              defaultValue={campaign ? String(campaign.max_attempts ?? 5) : '5'}
               min="1"
               type="number"
               className="mt-1 w-full rounded-xl border border-glass bg-slate-950 px-3.5 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all text-sm"
@@ -1179,7 +1217,7 @@ function CreateCampaign({
             disabled={saving || loadingConfig || !vapiConfig}
             className="rounded-xl bg-primary hover:bg-primary-hover px-5 py-2.5 text-white font-bold text-sm transition-all disabled:opacity-40"
           >
-            {saving ? 'Salvando...' : 'Iniciar Campanha'}
+            {saving ? 'Salvando...' : campaign ? 'Salvar Alterações' : 'Iniciar Campanha'}
           </button>
         </div>
       </form>
