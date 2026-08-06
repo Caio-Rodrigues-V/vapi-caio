@@ -57,7 +57,7 @@ campaignsV2Router.get('/campaigns/diag-logs', async (req, res) => {
   }
 
   try {
-    const [calls]: any = await pool.query('SELECT id, campaign_id, customer_number, cpf, status, provider_call_id, attempts, last_error, updated_at FROM campaign_calls ORDER BY id DESC LIMIT 10');
+    const [calls]: any = await pool.query('SELECT cc.id, cc.campaign_id, cc.customer_number, cc.cpf, cc.status, cc.provider_call_id, cc.attempts, cc.last_error, cc.updated_at, cr.decision, cr.ended_reason, cr.transcript FROM campaign_calls cc LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id ORDER BY cc.id DESC LIMIT 10');
     const [events]: any = await pool.query('SELECT id, provider, provider_call_id, event_type, received_at FROM webhook_events ORDER BY id DESC LIMIT 50');
     return res.json({ calls, events });
   } catch (err: any) {
