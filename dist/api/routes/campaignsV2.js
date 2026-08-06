@@ -80,7 +80,14 @@ exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, r
         return res.status(500).json({ error: errMsg });
     }
 });
-exports.campaignsV2Router.get('/campaigns/diag-logs', async (_req, res) => {
+exports.campaignsV2Router.get('/campaigns/diag-logs', async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        const expected = process.env.API_AUTH_TOKEN || process.env.ADMIN_MIGRATION_TOKEN;
+        const provided = req.header('authorization')?.replace(/^Bearer\s+/i, '') || req.header('x-api-token') || req.query.token;
+        if (!expected || provided !== expected)
+            return res.status(401).json({ error: 'Não autorizado' });
+    }
     try {
         const [calls] = await db_1.default.query('SELECT id, campaign_id, customer_number, cpf, status, provider_call_id, attempts, last_error, updated_at FROM campaign_calls ORDER BY id DESC LIMIT 10');
         const [events] = await db_1.default.query('SELECT id, provider, provider_call_id, event_type, received_at FROM webhook_events ORDER BY id DESC LIMIT 50');
