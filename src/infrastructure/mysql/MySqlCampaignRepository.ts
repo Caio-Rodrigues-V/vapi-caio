@@ -108,7 +108,7 @@ export class MySqlCampaignCallRepository implements CampaignCallRepository {
   }
 
   async attachProviderCall(id: number, providerCallId: string): Promise<void> {
-    await pool.execute(`UPDATE campaign_calls SET provider_call_id=?, status='queued' WHERE id=?`, [providerCallId, id]);
+    await pool.execute(`UPDATE campaign_calls SET provider_call_id=?, status='queued', attempts=attempts+1 WHERE id=?`, [providerCallId, id]);
   }
 
   async mergeMetadata(id: number, metadata: Record<string, unknown>): Promise<void> {

@@ -104,7 +104,7 @@ class MySqlCampaignCallRepository {
         return Number(rows[0]?.total ?? 0);
     }
     async attachProviderCall(id, providerCallId) {
-        await db_1.default.execute(`UPDATE campaign_calls SET provider_call_id=?, status='queued' WHERE id=?`, [providerCallId, id]);
+        await db_1.default.execute(`UPDATE campaign_calls SET provider_call_id=?, status='queued', attempts=attempts+1 WHERE id=?`, [providerCallId, id]);
     }
     async mergeMetadata(id, metadata) {
         const entries = Object.entries(metadata);
