@@ -145,12 +145,12 @@ export class DdmDebtProvider implements DebtProvider {
 
     const located = await this.getWithRetry<unknown[]>('/calc/localiza_dev.php', { tk: this.token, cpf });
     if (!Array.isArray(located) || !located.length) {
-      return { cpf, hasDebt: false, installments: [], raw: {} };
+      return { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'no_debt' };
     }
 
     const debtor = located[0] as Record<string, unknown>;
     const debtorId = String(debtor.iddev ?? '').trim();
-    if (!debtorId) return { cpf, hasDebt: false, installments: [], raw: debtor };
+    if (!debtorId) return { cpf, hasDebt: false, installments: [], raw: debtor, skipReason: 'no_debt' };
 
     const system = String(debtor.sistema ?? '').trim().toLowerCase();
     const client = system === 'cruzeirodosul' ? 'cruzeiro' : 'ddm';
@@ -180,9 +180,17 @@ export class DdmDebtProvider implements DebtProvider {
     const institution = findFirst(calculation, ['Cliente', 'Instituicao', 'instituicao']).replace(/\bNOVO\b/gi, '').trim() || null;
     const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
 
+    const hasInstallments = installments.length > 0 && Boolean(cashAmount);
+    let skipReason: 'no_debt' | 'already_has_agreement' | null = null;
+    if (!hasInstallments) {
+      skipReason = 'no_debt';
+    } else if (calculation.FechaAcordo === false) {
+      skipReason = 'already_has_agreement';
+    }
+
     return {
       cpf,
-      hasDebt: installments.length > 0 && Boolean(cashAmount) && calculation.FechaAcordo !== false,
+      hasDebt: hasInstallments && calculation.FechaAcordo !== false,
       institution,
       debtorName: findFirst(calculation, ['NomeDev', 'NomeDevedor', 'nome_devedor']) || null,
       calculationId: findFirst(calculation, ['idcalc', 'id_calc', 'idCalculo', 'calculoId']) || null,
@@ -193,6 +201,7 @@ export class DdmDebtProvider implements DebtProvider {
       email,
       installments,
       raw: calculation,
+      skipReason,
     };
   }
 

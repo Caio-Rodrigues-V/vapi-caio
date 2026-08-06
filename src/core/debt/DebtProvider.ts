@@ -16,6 +16,7 @@ export type DebtLookupResult = {
   email?: string | null;
   installments: DebtInstallment[];
   raw: Record<string, unknown>;
+  skipReason?: 'no_debt' | 'already_has_agreement' | null;
 };
 
 export type FormalizeAgreementResult = {

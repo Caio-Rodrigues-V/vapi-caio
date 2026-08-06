@@ -168,6 +168,15 @@ function StatusBadge({ status }: { status: string }) {
     );
   }
 
+  if (normalized === 'skipped') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-500/10 px-2.5 py-0.5 text-xs font-semibold text-slate-400 border border-slate-500/20">
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
+        Pulado
+      </span>
+    );
+  }
+
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-500/10 px-2.5 py-0.5 text-xs font-semibold text-slate-300 border border-slate-500/20">
       <span className="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
@@ -813,8 +822,18 @@ function Campaigns() {
                           {call.ended_reason === 'voicemail' ? 'Caixa Postal' : 'Recusado/Sem Acordo'}
                         </span>
                       )}
-                      {!call.decision && (
-                        <span className="text-slate-500 font-normal">Aguardando</span>
+                      {call.status === 'skipped' ? (
+                        <span className="text-slate-400 font-normal flex items-center gap-1">
+                          <X size={14} className="text-slate-500" />
+                          {call.last_error === 'already_has_agreement' && 'Já tem acordo ativo'}
+                          {call.last_error === 'no_debt' && 'Sem débito em aberto'}
+                          {call.last_error === 'cpf_missing' && 'CPF ausente'}
+                          {!['already_has_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
+                        </span>
+                      ) : (
+                        !call.decision && (
+                          <span className="text-slate-500 font-normal">Aguardando</span>
+                        )
                       )}
                     </td>
                     <td className="px-6 py-3.5 text-slate-400 text-xs">
@@ -913,7 +932,9 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <span className="text-slate-500 block text-xs">Status da Fila</span>
-                  <span className="font-semibold text-white capitalize">{call.status}</span>
+                  <span className="font-semibold text-white capitalize">
+                    {call.status === 'skipped' ? 'Pulado' : call.status}
+                  </span>
                 </div>
                 <div>
                   <span className="text-slate-500 block text-xs">Tentativas</span>
@@ -935,7 +956,15 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                         {call.ended_reason === 'voicemail' ? 'Caixa Postal' : 'Recusado/Sem Acordo'}
                       </span>
                     )}
-                    {!call.decision && <span className="text-slate-400">Pendente</span>}
+                    {call.status === 'skipped' && (
+                      <span className="text-slate-400">
+                        {call.last_error === 'already_has_agreement' && 'Já tem acordo ativo'}
+                        {call.last_error === 'no_debt' && 'Sem débito em aberto'}
+                        {call.last_error === 'cpf_missing' && 'CPF ausente'}
+                        {!['already_has_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
+                      </span>
+                    )}
+                    {!call.decision && call.status !== 'skipped' && <span className="text-slate-400">Pendente</span>}
                   </span>
                 </div>
               </div>

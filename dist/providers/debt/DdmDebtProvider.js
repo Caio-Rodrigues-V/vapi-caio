@@ -139,12 +139,12 @@ class DdmDebtProvider {
             throw new DebtProvider_1.DebtProviderPermanentError('CPF inválido para consulta DDM.');
         const located = await this.getWithRetry('/calc/localiza_dev.php', { tk: this.token, cpf });
         if (!Array.isArray(located) || !located.length) {
-            return { cpf, hasDebt: false, installments: [], raw: {} };
+            return { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'no_debt' };
         }
         const debtor = located[0];
         const debtorId = String(debtor.iddev ?? '').trim();
         if (!debtorId)
-            return { cpf, hasDebt: false, installments: [], raw: debtor };
+            return { cpf, hasDebt: false, installments: [], raw: debtor, skipReason: 'no_debt' };
         const system = String(debtor.sistema ?? '').trim().toLowerCase();
         const client = system === 'cruzeirodosul' ? 'cruzeiro' : 'ddm';
         const rawCalculation = await this.getWithRetry('/calc/', {
@@ -171,9 +171,17 @@ class DdmDebtProvider {
         const cashAmount = installments[0]?.amount ?? null;
         const institution = findFirst(calculation, ['Cliente', 'Instituicao', 'instituicao']).replace(/\bNOVO\b/gi, '').trim() || null;
         const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
+        const hasInstallments = installments.length > 0 && Boolean(cashAmount);
+        let skipReason = null;
+        if (!hasInstallments) {
+            skipReason = 'no_debt';
+        }
+        else if (calculation.FechaAcordo === false) {
+            skipReason = 'already_has_agreement';
+        }
         return {
             cpf,
-            hasDebt: installments.length > 0 && Boolean(cashAmount) && calculation.FechaAcordo !== false,
+            hasDebt: hasInstallments && calculation.FechaAcordo !== false,
             institution,
             debtorName: findFirst(calculation, ['NomeDev', 'NomeDevedor', 'nome_devedor']) || null,
             calculationId: findFirst(calculation, ['idcalc', 'id_calc', 'idCalculo', 'calculoId']) || null,
@@ -184,6 +192,7 @@ class DdmDebtProvider {
             email,
             installments,
             raw: calculation,
+            skipReason,
         };
     }
     async formalize(debtorId, client, installments = 1) {
