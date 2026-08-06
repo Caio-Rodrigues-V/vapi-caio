@@ -30,6 +30,16 @@ const upload = (0, multer_1.default)({
     dest: 'uploads/',
     limits: { fileSize: 10 * 1024 * 1024 },
 });
+app.get('/api/diag-logs-public', async (_req, res) => {
+    try {
+        const [calls] = await db_1.default.query('SELECT id, campaign_id, customer_number, cpf, status, provider_call_id, attempts, last_error, updated_at FROM campaign_calls ORDER BY id DESC LIMIT 5');
+        const [events] = await db_1.default.query('SELECT id, provider, provider_call_id, event_type, created_at FROM webhook_events ORDER BY id DESC LIMIT 20');
+        return res.json({ calls, events });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
 app.get('/api/health', (_req, res) => {
     return res.json({ status: 'ok' });
 });
