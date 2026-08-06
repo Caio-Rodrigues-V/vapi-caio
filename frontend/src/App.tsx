@@ -1190,6 +1190,9 @@ function CreateCampaign({
               type="number"
               className="mt-1 w-full rounded-xl border border-glass bg-slate-950 px-3.5 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all text-sm"
             />
+            <p className="text-[10px] text-slate-500 mt-1 leading-normal">
+              Recomendado: <b>30</b> chamadas simultâneas para evitar limites na Vapi e bloqueio de rotas SIP.
+            </p>
           </div>
 
           <div className="space-y-1">
