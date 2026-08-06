@@ -20,6 +20,15 @@ function mapStatus(type: string, message: Record<string, any>): 'queued' | 'in_p
   if (normalized === 'end-of-call-report') return 'completed';
   return null;
 }
+function wasToolCalled(messages: any[], toolName: string): boolean {
+  if (!Array.isArray(messages)) return false;
+  return messages.some((m: any) => {
+    if (m.role === 'tool_calls' && Array.isArray(m.toolCalls)) {
+      return m.toolCalls.some((tc: any) => tc.function?.name === toolName);
+    }
+    return false;
+  });
+}
 
 export class ProcessVapiWebhook {
   constructor(
@@ -61,11 +70,33 @@ export class ProcessVapiWebhook {
         .filter(Boolean);
       if (!customerMessages.length && transcript) customerMessages.push(transcript);
 
-      const classification = await classificarLigacao(transcript, customerMessages);
-      const decision = classification.decisao === 'Formaliza'
-        ? 'formalize'
-        : classification.decisao === 'Agendar' ? 'schedule' : 'zero';
-      const scheduledAt = classification.dataAgendamento ? new Date(classification.dataAgendamento) : null;
+      // 1. Check if the call triggered the 'confirmar_acordo' tool call in the messages history
+      const agreementConfirmedByTool = wasToolCalled(messages, 'confirmar_acordo');
+      const agendamentoTriggeredByTool = transcript.includes('#AGENDAMENTO');
+
+      let decision: 'formalize' | 'schedule' | 'zero' = 'zero';
+      let scheduledAt: Date | null = null;
+
+      if (agreementConfirmedByTool) {
+        decision = 'formalize';
+        console.log(`[ProcessVapiWebhook] Acordo formalizado em tempo real via ferramenta (confirmar_acordo) para a chamada ${providerCallId}`);
+      } else if (agendamentoTriggeredByTool) {
+        decision = 'schedule';
+        scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        console.log(`[ProcessVapiWebhook] Agendamento detectado via tags no transcript para a chamada ${providerCallId}`);
+      } else if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'dummy_key') {
+        try {
+          const classification = await classificarLigacao(transcript, customerMessages);
+          decision = classification.decisao === 'Formaliza'
+            ? 'formalize'
+            : classification.decisao === 'Agendar' ? 'schedule' : 'zero';
+          scheduledAt = classification.dataAgendamento ? new Date(classification.dataAgendamento) : null;
+        } catch (err: any) {
+          console.error('[ProcessVapiWebhook] Erro ao classificar ligacao via LLM, fallback para "zero":', err.message);
+        }
+      } else {
+        console.log(`[ProcessVapiWebhook] OPENAI_API_KEY nao configurada. Mantendo decisao como 'zero' para a chamada ${providerCallId}`);
+      }
 
       const startedAt = call.startedAt ? new Date(call.startedAt).getTime() : NaN;
       const endedAt = call.endedAt ? new Date(call.endedAt).getTime() : NaN;

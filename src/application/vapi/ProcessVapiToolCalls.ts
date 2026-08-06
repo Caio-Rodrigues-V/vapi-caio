@@ -139,6 +139,26 @@ function handleToolCall(call: ToolCall): ToolResult {
         }),
       };
 
+    case 'confirmar_acordo':
+      return {
+        name: call.name,
+        toolCallId: call.id,
+        result: JSON.stringify({
+          ok: true,
+          status: 'acordo_confirmado_realtime',
+        }),
+      };
+
+    case 'end_call_tool':
+      return {
+        name: call.name,
+        toolCallId: call.id,
+        result: JSON.stringify({
+          ok: true,
+          status: 'end_call_requested',
+        }),
+      };
+
     default:
       return {
         name: call.name,
