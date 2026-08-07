@@ -114,8 +114,17 @@ export class ProcessVapiWebhook {
         : Number(message.durationSeconds || call.durationSeconds || 0) || null;
 
       const recordingUrl = String(
-        message.recordingUrl || message.artifact?.recordingUrl || message.artifact?.recording?.url || '',
-      ) || null;
+        message.presignedMonoUrl ||
+        message.presignedStereoUrl ||
+        message.recordingUrl ||
+        message.stereoRecordingUrl ||
+        message.artifact?.recordingUrl ||
+        message.artifact?.stereoRecordingUrl ||
+        message.artifact?.recording?.url ||
+        call.recordingUrl ||
+        call.stereoRecordingUrl ||
+        '',
+      ).trim() || null;
 
       await this.repository.saveCallResult({
         campaignCallId,

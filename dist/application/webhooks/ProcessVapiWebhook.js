@@ -118,7 +118,16 @@ class ProcessVapiWebhook {
             const durationSeconds = Number.isFinite(startedAt) && Number.isFinite(endedAt)
                 ? Math.max(0, Math.round((endedAt - startedAt) / 1000))
                 : Number(message.durationSeconds || call.durationSeconds || 0) || null;
-            const recordingUrl = String(message.recordingUrl || message.artifact?.recordingUrl || message.artifact?.recording?.url || '') || null;
+            const recordingUrl = String(message.presignedMonoUrl ||
+                message.presignedStereoUrl ||
+                message.recordingUrl ||
+                message.stereoRecordingUrl ||
+                message.artifact?.recordingUrl ||
+                message.artifact?.stereoRecordingUrl ||
+                message.artifact?.recording?.url ||
+                call.recordingUrl ||
+                call.stereoRecordingUrl ||
+                '').trim() || null;
             await this.repository.saveCallResult({
                 campaignCallId,
                 providerCallId,
