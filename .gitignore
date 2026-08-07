@@ -9,6 +9,7 @@ frontend/node_modules/
 
 # Uploads temporários
 uploads/
+tmp/
 
 # Logs
 *.log
