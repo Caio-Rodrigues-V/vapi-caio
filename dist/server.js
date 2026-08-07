@@ -16,6 +16,7 @@ const adminVapiHealth_1 = require("./api/routes/adminVapiHealth");
 const adminMigrations_1 = require("./api/routes/adminMigrations");
 const vapiWebhook_1 = __importDefault(require("./api/routes/vapiWebhook"));
 const campaignsV2_1 = require("./api/routes/campaignsV2");
+const stream_1 = require("./api/routes/stream");
 const runMigrations_1 = require("./infrastructure/database/runMigrations");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -25,6 +26,7 @@ app.use('/api/admin', adminVapiHealth_1.adminVapiHealthRouter);
 app.use('/api/admin', adminMigrations_1.adminMigrationsRouter);
 app.use('/api/v2', vapiWebhook_1.default);
 app.use('/api/v2', campaignsV2_1.campaignsV2Router);
+app.use('/api/v2', stream_1.streamRouter);
 const PORT = Number(process.env.PORT || 3000);
 const upload = (0, multer_1.default)({
     dest: 'uploads/',

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProcessVapiWebhook = void 0;
 const llmClassifier_1 = require("../../services/llmClassifier");
 const NotificationSender_1 = require("../../providers/notifications/NotificationSender");
+const eventBroadcaster_1 = require("../../infrastructure/events/eventBroadcaster");
 function asRecord(value) {
     return value && typeof value === 'object' ? value : {};
 }
@@ -57,8 +58,10 @@ class ProcessVapiWebhook {
             return { duplicate: true, processed: false };
         try {
             const status = mapStatus(type, message);
-            if (status)
+            if (status) {
                 await this.repository.markCallStatus(providerCallId, status);
+                eventBroadcaster_1.eventBroadcaster.broadcast('call_updated', { providerCallId, status, type });
+            }
             if (type !== 'end-of-call-report') {
                 await this.repository.markEventProcessed('vapi', eventId);
                 return { duplicate: false, processed: true };
@@ -126,6 +129,14 @@ class ProcessVapiWebhook {
                 transcript: transcript || null,
                 endedReason: String(message.endedReason || call.endedReason || '') || null,
                 rawPayload: payload,
+            });
+            eventBroadcaster_1.eventBroadcaster.broadcast('call_updated', {
+                campaignCallId,
+                providerCallId,
+                status: 'completed',
+                decision,
+                durationSeconds,
+                endedReason: message.endedReason || call.endedReason,
             });
             if (decision === 'schedule' && scheduledAt && !Number.isNaN(scheduledAt.getTime())) {
                 await this.repository.scheduleCallbackFromCall(campaignCallId, scheduledAt);
