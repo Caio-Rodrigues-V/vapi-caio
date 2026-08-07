@@ -11,6 +11,7 @@ import { adminVapiHealthRouter } from './api/routes/adminVapiHealth';
 import { adminMigrationsRouter } from './api/routes/adminMigrations';
 import vapiWebhookRouter from './api/routes/vapiWebhook';
 import { campaignsV2Router } from './api/routes/campaignsV2';
+import { streamRouter } from './api/routes/stream';
 import { runPendingMigrations } from './infrastructure/database/runMigrations';
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use('/api/admin', adminVapiHealthRouter);
 app.use('/api/admin', adminMigrationsRouter);
 app.use('/api/v2', vapiWebhookRouter);
 app.use('/api/v2', campaignsV2Router);
+app.use('/api/v2', streamRouter);
 
 const PORT = Number(process.env.PORT || 3000);
 const upload = multer({

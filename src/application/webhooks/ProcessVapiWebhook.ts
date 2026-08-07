@@ -2,6 +2,7 @@ import { classificarLigacao } from '../../services/llmClassifier';
 import { WebhookRepository } from '../../core/webhooks/WebhookRepository';
 import { DebtProvider } from '../../core/debt/DebtProvider';
 import { NotificationSender } from '../../providers/notifications/NotificationSender';
+import { eventBroadcaster } from '../../infrastructure/events/eventBroadcaster';
 
 function asRecord(value: unknown): Record<string, any> {
   return value && typeof value === 'object' ? value as Record<string, any> : {};
@@ -51,7 +52,10 @@ export class ProcessVapiWebhook {
 
     try {
       const status = mapStatus(type, message);
-      if (status) await this.repository.markCallStatus(providerCallId, status);
+      if (status) {
+        await this.repository.markCallStatus(providerCallId, status);
+        eventBroadcaster.broadcast('call_updated', { providerCallId, status, type });
+      }
       if (type !== 'end-of-call-report') {
         await this.repository.markEventProcessed('vapi', eventId);
         return { duplicate: false, processed: true };
@@ -123,6 +127,15 @@ export class ProcessVapiWebhook {
         transcript: transcript || null,
         endedReason: String(message.endedReason || call.endedReason || '') || null,
         rawPayload: payload,
+      });
+
+      eventBroadcaster.broadcast('call_updated', {
+        campaignCallId,
+        providerCallId,
+        status: 'completed',
+        decision,
+        durationSeconds,
+        endedReason: message.endedReason || call.endedReason,
       });
 
       if (decision === 'schedule' && scheduledAt && !Number.isNaN(scheduledAt.getTime())) {

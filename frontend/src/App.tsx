@@ -346,6 +346,29 @@ function Campaigns() {
   }, []);
 
   useEffect(() => {
+    let eventSource: EventSource | null = null;
+
+    try {
+      const streamUrl = apiUrl('/stream');
+      eventSource = new EventSource(streamUrl);
+
+      eventSource.addEventListener('call_updated', () => {
+        void load({ silent: true });
+      });
+
+      eventSource.addEventListener('campaign_updated', () => {
+        void load({ silent: true });
+      });
+    } catch (err) {
+      console.warn('[SSE] EventSource error:', err);
+    }
+
+    return () => {
+      if (eventSource) eventSource.close();
+    };
+  }, [selectedId]);
+
+  useEffect(() => {
     const hasRunningCampaign = campaigns.some((campaign) => campaign.status === 'running');
     if (!hasRunningCampaign) return;
 
