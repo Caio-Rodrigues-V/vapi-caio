@@ -7,7 +7,22 @@ function escapeCsvCell(value: unknown): string {
 
 export async function prepareImportFile(file: File): Promise<File> {
   try {
-    const buffer = await file.arrayBuffer();
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lines.length === 0) return file;
+
+    // Check if data lines (lines 2+) use semicolon ';' while line 1 uses commas ','
+    const sampleData = lines.slice(1, 10).join('\n');
+    const semiCount = (sampleData.match(/;/g) || []).length;
+    const commaCount = (sampleData.match(/,/g) || []).length;
+
+    let cleanText = text;
+    if (semiCount > commaCount && lines[0].includes(',') && !lines[0].includes(';')) {
+      // Mismatched header line 1 with commas vs data lines with semicolons - remove line 1
+      cleanText = lines.slice(1).join('\n');
+    }
+
+    const buffer = new TextEncoder().encode(cleanText);
     const workbook = XLSX.read(buffer, { type: 'array', raw: true });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     if (!sheet) return file;
@@ -22,7 +37,13 @@ export async function prepareImportFile(file: File): Promise<File> {
     if (!rows || rows.length === 0) return file;
 
     const csv = rows
-      .map((row) => row.map(escapeCsvCell).join(','))
+      .map((row) => {
+        // If a row was parsed as a single string containing semicolons, split it into separate cells
+        if (row.length === 1 && typeof row[0] === 'string' && row[0].includes(';')) {
+          row = row[0].split(';');
+        }
+        return row.map(escapeCsvCell).join(',');
+      })
       .join('\n');
 
     return new File([csv], file.name.replace(/\.[^/.]+$/, '.csv'), {

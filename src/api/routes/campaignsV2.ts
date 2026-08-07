@@ -593,6 +593,16 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
       for (const [index, row] of rows.entries()) {
         const line = index + 2;
         
+        // If row was parsed as a single string cell containing semicolons, expand it into separate fields
+        const keys = Object.keys(row);
+        const firstKey = keys[0];
+        if (firstKey && keys.length === 1 && String(row[firstKey] || '').includes(';')) {
+          const parts = String(row[firstKey]).split(';');
+          parts.forEach((p, idx) => {
+            row[`_col_${idx}`] = p.trim();
+          });
+        }
+
         // Find CPF/Document
         let cpfRaw = row.cpf || row.cpfcgc_pes || row.cpfcgc || row.documento || row.document || row.doc;
         if (!cpfRaw) {
