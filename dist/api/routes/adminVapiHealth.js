@@ -96,4 +96,11 @@ exports.adminVapiHealthRouter.get('/vapi/health', async (req, res) => {
         });
     }
 });
+exports.adminVapiHealthRouter.get('/version', (_req, res) => {
+    return res.json({
+        ok: true,
+        version: '2026-08-07.v2_smart_csv',
+        buildDate: new Date().toISOString(),
+    });
+});
 //# sourceMappingURL=adminVapiHealth.js.map
