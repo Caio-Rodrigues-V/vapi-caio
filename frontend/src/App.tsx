@@ -509,22 +509,49 @@ function Campaigns() {
     }));
   }, [campaigns]);
 
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getRelativeTime = (lastDate: Date | null, currentDate: Date) => {
+    if (!lastDate) return 'Aguardando sincronismo...';
+    const diffSec = Math.max(0, Math.floor((currentDate.getTime() - lastDate.getTime()) / 1000));
+    if (diffSec < 5) return 'Sincronizado agora mesmo';
+    if (diffSec < 60) return `Sincronizado há ${diffSec}s atrás`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `Sincronizado há ${diffMin} ${diffMin === 1 ? 'min' : 'mins'} atrás`;
+    const diffHours = Math.floor(diffMin / 60);
+    return `Sincronizado há ${diffHours}h atrás`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner de Monitoramento */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-glass border-glass p-6 shadow-2xl">
-        <div className="space-y-1">
+        <div className="space-y-2">
           <h2 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
             Dashboard
             <span className="text-gradient">DDM Call Center</span>
           </h2>
           <p className="text-slate-400 text-sm">Operação automatizada de acordos e discagem via Vapi</p>
-          {lastUpdatedAt && (
-            <p className="text-xs text-slate-500 flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
-              Sincronizado às {lastUpdatedAt.toLocaleTimeString('pt-BR')}
-            </p>
-          )}
+          
+          <div className="flex flex-wrap items-center gap-3 text-xs pt-1">
+            <div className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-emerald-400 font-medium">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Tempo Real</span>
+              <span className="text-slate-400 font-mono text-[11px] ml-1">[{now.toLocaleTimeString('pt-BR')}]</span>
+            </div>
+
+            {lastUpdatedAt && (
+              <p className="text-slate-400 flex items-center gap-1.5 font-medium">
+                <RefreshCw size={12} className="text-slate-500" />
+                {getRelativeTime(lastUpdatedAt, now)}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-3">
