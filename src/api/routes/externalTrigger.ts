@@ -6,15 +6,30 @@ export const externalTriggerRouter = Router();
 
 function requireAuthToken(req: Request, res: Response, next: any) {
   const expectedToken = process.env.API_AUTH_TOKEN || process.env.WORKER_TRIGGER_TOKEN || process.env.ADMIN_MIGRATION_TOKEN;
-  const providedToken = req.header('authorization')?.replace(/^Bearer\s+/i, '') || req.header('x-api-token');
+  const providedToken =
+    req.header('authorization')?.replace(/^Bearer\s+/i, '') ||
+    req.header('x-api-token') ||
+    (req.query.token as string) ||
+    (req.query.api_token as string) ||
+    req.body?.token;
   
   if (expectedToken && providedToken !== expectedToken) {
-    return res.status(401).json({ error: 'Não autorizado. Token de API inválido.' });
+    return res.status(401).json({ error: 'Não autorizado. Token de API ausente ou inválido.' });
   }
   return next();
 }
 
 externalTriggerRouter.use(requireAuthToken);
+
+externalTriggerRouter.get('/calls/trigger', (_req: Request, res: Response) => {
+  return res.json({
+    ok: true,
+    status: 'online',
+    endpoint: '/api/v2/calls/trigger',
+    methodRequired: 'POST',
+    message: 'Endpoint de disparo ativo. Envie uma requisição HTTP POST com o JSON do contato para efetuar a chamada.',
+  });
+});
 
 externalTriggerRouter.post('/calls/trigger', async (req: Request, res: Response) => {
   try {
