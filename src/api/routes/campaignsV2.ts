@@ -597,26 +597,40 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
           if (cpfKey) cpfRaw = row[cpfKey];
         }
 
-        const cpfDigits = String(cpfRaw || '').replace(/\D/g, '');
+        let cpfDigits = String(cpfRaw || '').replace(/\D/g, '');
+        
+        // Smart fallback: if cpfRaw is missing or not 11 digits (e.g. header misalignment like "510"), search all values in the row for an 11-digit number
+        if (!cpfRaw || cpfDigits.length !== 11) {
+          for (const val of Object.values(row)) {
+            const digits = String(val || '').replace(/\D/g, '');
+            if (digits.length === 11) {
+              cpfDigits = digits;
+              cpfRaw = val;
+              break;
+            }
+          }
+        }
+
         const cpf = cpfDigits.padStart(11, '0');
 
-        if (!cpfRaw) {
-          errors.push({ line, reason: 'CPF ausente' });
-          continue;
-        }
-        if (cpf.length !== 11) {
+        if (!cpfRaw || cpfDigits.length !== 11) {
           errors.push({ line, reason: 'CPF deve possuir 11 dígitos', cpf: cpfDigits });
           continue;
         }
 
         // Find Name
         let nameRaw = row.nome || row.nome_dev || row.name;
-        if (!nameRaw) {
+        if (!nameRaw || /^\d+$/.test(String(nameRaw).trim())) {
           const nameKey = Object.keys(row).find(k => {
             const l = k.toLowerCase();
-            return l.includes('nome') || l.includes('name');
+            return (l.includes('nome') || l.includes('name')) && !/^\d+$/.test(String(row[k] || '').trim());
           });
-          if (nameKey) nameRaw = row[nameKey];
+          if (nameKey) {
+            nameRaw = row[nameKey];
+          } else {
+            const textVal = Object.values(row).find(v => typeof v === 'string' && /[a-zA-Z]{3,}\s+[a-zA-Z]{3,}/.test(v.trim()));
+            if (textVal) nameRaw = textVal;
+          }
         }
         const debtorName = nameRaw ? String(nameRaw).trim() : null;
 
@@ -628,14 +642,29 @@ campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (re
         
         const uniquePhones = new Set<string>();
         for (const key of Object.keys(row)) {
+          const rawVal = row[key];
+          if (!rawVal) continue;
+          
+          const digits = String(rawVal).replace(/\D/g, '');
+          if (digits === cpfDigits) continue;
+
           const lowerKey = key.toLowerCase().trim();
           if (possiblePhoneKeys.some(k => lowerKey.includes(k))) {
-            const rawVal = row[key];
-            if (rawVal) {
-              const normalized = normalizePhone(String(rawVal));
-              if (normalized) {
-                uniquePhones.add(normalized);
-              }
+            const normalized = normalizePhone(String(rawVal));
+            if (normalized) {
+              uniquePhones.add(normalized);
+            }
+          }
+        }
+
+        if (uniquePhones.size === 0) {
+          for (const val of Object.values(row)) {
+            if (!val) continue;
+            const digits = String(val).replace(/\D/g, '');
+            if (digits === cpfDigits) continue;
+            const normalized = normalizePhone(String(val));
+            if (normalized) {
+              uniquePhones.add(normalized);
             }
           }
         }
