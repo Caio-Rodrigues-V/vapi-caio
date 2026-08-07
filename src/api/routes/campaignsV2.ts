@@ -36,16 +36,23 @@ function configuredValue(value: unknown, fallbackName: string): string {
 }
 
 function detectDelimiter(filePath: string): ',' | ';' | '\t' {
-  const sample = fs.readFileSync(filePath, 'utf8').slice(0, 8192);
-  const firstLine = sample.split(/\r?\n/, 1)[0] || '';
-  const candidates = [
-    { delimiter: ',' as const, count: (firstLine.match(/,/g) || []).length },
-    { delimiter: ';' as const, count: (firstLine.match(/;/g) || []).length },
-    { delimiter: '\t' as const, count: (firstLine.match(/\t/g) || []).length },
-  ].sort((a, b) => b.count - a.count);
-  const selected = candidates[0];
+  const sample = fs.readFileSync(filePath, 'utf8').slice(0, 16384);
+  const lines = sample.split(/\r?\n/).filter(l => l.trim().length > 0).slice(0, 10);
+  
+  const counts = { ',': 0, ';': 0, '\t': 0 };
+  for (const line of lines) {
+    counts[','] += (line.match(/,/g) || []).length;
+    counts[';'] += (line.match(/;/g) || []).length;
+    counts['\t'] += (line.match(/\t/g) || []).length;
+  }
 
-  return selected && selected.count > 0 ? selected.delimiter : ',';
+  const sorted = [
+    { delimiter: ';' as const, count: counts[';'] },
+    { delimiter: ',' as const, count: counts[','] },
+    { delimiter: '\t' as const, count: counts['\t'] },
+  ].sort((a, b) => b.count - a.count);
+
+  return sorted[0] && sorted[0].count > 0 ? sorted[0].delimiter : ',';
 }
 
 campaignsV2Router.get('/campaigns/diag-logs', async (req, res) => {

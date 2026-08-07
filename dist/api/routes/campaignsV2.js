@@ -36,15 +36,20 @@ function configuredValue(value, fallbackName) {
     return fallback;
 }
 function detectDelimiter(filePath) {
-    const sample = fs_1.default.readFileSync(filePath, 'utf8').slice(0, 8192);
-    const firstLine = sample.split(/\r?\n/, 1)[0] || '';
-    const candidates = [
-        { delimiter: ',', count: (firstLine.match(/,/g) || []).length },
-        { delimiter: ';', count: (firstLine.match(/;/g) || []).length },
-        { delimiter: '\t', count: (firstLine.match(/\t/g) || []).length },
+    const sample = fs_1.default.readFileSync(filePath, 'utf8').slice(0, 16384);
+    const lines = sample.split(/\r?\n/).filter(l => l.trim().length > 0).slice(0, 10);
+    const counts = { ',': 0, ';': 0, '\t': 0 };
+    for (const line of lines) {
+        counts[','] += (line.match(/,/g) || []).length;
+        counts[';'] += (line.match(/;/g) || []).length;
+        counts['\t'] += (line.match(/\t/g) || []).length;
+    }
+    const sorted = [
+        { delimiter: ';', count: counts[';'] },
+        { delimiter: ',', count: counts[','] },
+        { delimiter: '\t', count: counts['\t'] },
     ].sort((a, b) => b.count - a.count);
-    const selected = candidates[0];
-    return selected && selected.count > 0 ? selected.delimiter : ',';
+    return sorted[0] && sorted[0].count > 0 ? sorted[0].delimiter : ',';
 }
 exports.campaignsV2Router.get('/campaigns/diag-logs', async (req, res) => {
     const secret = req.query.secret;
