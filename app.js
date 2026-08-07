@@ -125,4 +125,17 @@ const server = app.listen(port, () => {
   console.log(`Servidor iniciado na porta ${port}`);
 });
 
+// Auto-dispatcher loop: roda a cada 15s no Node.js
+setInterval(async () => {
+  if (dispatcherRunning) return;
+  dispatcherRunning = true;
+  try {
+    await runCampaignDispatcher();
+  } catch (err) {
+    console.error('[app.js] Erro no worker automático:', err.message);
+  } finally {
+    dispatcherRunning = false;
+  }
+}, 15000);
+
 module.exports = server;
