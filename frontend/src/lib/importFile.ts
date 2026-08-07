@@ -6,26 +6,30 @@ function escapeCsvCell(value: unknown): string {
 }
 
 export async function prepareImportFile(file: File): Promise<File> {
-  const extension = file.name.split('.').pop()?.toLowerCase();
-  if (extension !== 'xlsx' && extension !== 'xls') return file;
+  try {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array', raw: true });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    if (!sheet) return file;
 
-  const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array', raw: true });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  if (!sheet) throw new Error('A planilha não possui uma aba válida.');
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+      header: 1,
+      raw: true,
+      defval: '',
+      blankrows: false,
+    });
 
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-    header: 1,
-    raw: true,
-    defval: '',
-    blankrows: false,
-  });
+    if (!rows || rows.length === 0) return file;
 
-  const csv = rows
-    .map((row) => row.map(escapeCsvCell).join(','))
-    .join('\n');
+    const csv = rows
+      .map((row) => row.map(escapeCsvCell).join(','))
+      .join('\n');
 
-  return new File([csv], file.name.replace(/\.(xlsx|xls)$/i, '.csv'), {
-    type: 'text/csv;charset=utf-8',
-  });
+    return new File([csv], file.name.replace(/\.[^/.]+$/, '.csv'), {
+      type: 'text/csv;charset=utf-8',
+    });
+  } catch (err) {
+    console.warn('[importFile] Falha ao pré-processar arquivo com XLSX, usando original:', err);
+    return file;
+  }
 }
