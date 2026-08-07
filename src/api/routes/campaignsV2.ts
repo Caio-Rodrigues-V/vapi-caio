@@ -237,10 +237,17 @@ campaignsV2Router.get('/campaigns', async (req, res) => {
       SUM(cc.status = 'completed') AS completed_calls,
       SUM(cc.status = 'failed') AS failed_calls,
       SUM(cc.status = 'skipped') AS skipped_calls,
+      SUM(cr.duration_seconds > 0 OR cr.decision IS NOT NULL OR cc.status = 'answered') AS answered_calls,
+      SUM(cr.decision = 'formalize') AS formalized_calls,
+      SUM(cr.decision = 'schedule') AS scheduled_calls,
+      SUM(cr.decision = 'zero') AS zero_calls,
+      COALESCE(SUM(cr.duration_seconds), 0) AS total_duration_seconds,
+      COALESCE(ROUND(AVG(NULLIF(cr.duration_seconds, 0))), 0) AS avg_duration_seconds,
       COUNT(DISTINCT cc.cpf) AS total_leads,
       COUNT(cc.id) AS total_calls
      FROM campaigns c
      LEFT JOIN campaign_calls cc ON cc.campaign_id = c.id
+     LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
      ${where}
      GROUP BY c.id
      ORDER BY c.created_at DESC

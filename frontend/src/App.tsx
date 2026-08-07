@@ -24,6 +24,9 @@ import {
   Volume2,
   MessageSquare,
   PhoneOff,
+  Clock,
+  Award,
+  Calendar,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -93,6 +96,12 @@ type Campaign = {
   skipped_calls: number;
   total_leads: number;
   max_attempts?: number;
+  answered_calls?: number;
+  formalized_calls?: number;
+  scheduled_calls?: number;
+  zero_calls?: number;
+  total_duration_seconds?: number;
+  avg_duration_seconds?: number;
 };
 
 type CallRow = {
@@ -347,9 +356,17 @@ function Campaigns() {
     return () => window.clearInterval(interval);
   }, [campaigns, selectedId]);
 
+  // Helper para formatar segundos em mm:ss
+  const formatDuration = (totalSec: number) => {
+    if (!totalSec || isNaN(totalSec) || totalSec <= 0) return '00:00';
+    const mins = Math.floor(totalSec / 60);
+    const secs = Math.round(totalSec % 60);
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
   // Estatísticas gerais das campanhas
   const stats = useMemo(() => {
-    return campaigns.reduce(
+    const raw = campaigns.reduce(
       (acc, item) => ({
         campaigns: acc.campaigns + 1,
         leads: acc.leads + Number(item.total_leads || 0),
@@ -358,9 +375,38 @@ function Campaigns() {
         completed: acc.completed + Number(item.completed_calls || 0),
         pending: acc.pending + Number(item.pending_calls || 0),
         failed: acc.failed + Number(item.failed_calls || 0),
+        answered: acc.answered + Number(item.answered_calls || 0),
+        formalized: acc.formalized + Number(item.formalized_calls || 0),
+        scheduled: acc.scheduled + Number(item.scheduled_calls || 0),
+        totalDuration: acc.totalDuration + Number(item.total_duration_seconds || 0),
       }),
-      { campaigns: 0, leads: 0, calls: 0, active: 0, completed: 0, pending: 0, failed: 0 },
+      {
+        campaigns: 0, leads: 0, calls: 0, active: 0, completed: 0, pending: 0, failed: 0,
+        answered: 0, formalized: 0, scheduled: 0, totalDuration: 0,
+      },
     );
+
+    const attemptedCalls = raw.completed + raw.failed + raw.active + raw.answered;
+    const effectiveCalls = Math.max(raw.calls, attemptedCalls);
+
+    const pickupRate = effectiveCalls > 0
+      ? ((raw.answered / effectiveCalls) * 100).toFixed(1)
+      : '0.0';
+
+    const conversionRate = raw.answered > 0
+      ? ((raw.formalized / raw.answered) * 100).toFixed(1)
+      : '0.0';
+
+    const avgDurationSec = raw.answered > 0
+      ? Math.round(raw.totalDuration / raw.answered)
+      : 0;
+
+    return {
+      ...raw,
+      pickupRate,
+      conversionRate,
+      avgDurationFormatted: formatDuration(avgDurationSec),
+    };
   }, [campaigns]);
 
   // Agregações de chamadas para gráficos
@@ -487,13 +533,45 @@ function Campaigns() {
         </div>
       )}
 
-      {/* Cartões de Indicadores Premium */}
+      {/* Cartões de Indicadores de Performance (KPIs Principais) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
+            label: 'Taxa de Alô (% Atendimento)',
+            value: `${stats.pickupRate}%`,
+            description: `${stats.answered.toLocaleString('pt-BR')} chamadas atendidas`,
+            icon: PhoneCall,
+            color: 'text-emerald-400',
+            bg: 'from-emerald-500/10 to-emerald-500/2',
+          },
+          {
+            label: 'Conversão (Formalizados)',
+            value: `${stats.conversionRate}%`,
+            description: `${stats.formalized.toLocaleString('pt-BR')} acordos fechados`,
+            icon: Award,
+            color: 'text-orange-400',
+            bg: 'from-orange-500/10 to-orange-500/2',
+          },
+          {
+            label: 'Duração Média (AHT)',
+            value: stats.avgDurationFormatted,
+            description: 'tempo médio de conversa',
+            icon: Clock,
+            color: 'text-cyan-400',
+            bg: 'from-cyan-500/10 to-cyan-500/2',
+          },
+          {
+            label: 'Retornos Agendados',
+            value: stats.scheduled,
+            description: 'pedidos de rechamada',
+            icon: Calendar,
+            color: 'text-amber-400',
+            bg: 'from-amber-500/10 to-amber-500/2',
+          },
+          {
             label: 'Total de Leads (CPFs)',
             value: stats.leads,
-            description: `${stats.calls.toLocaleString('pt-BR')} telefones`,
+            description: `${stats.calls.toLocaleString('pt-BR')} telefones cadastrados`,
             icon: FileText,
             color: 'text-indigo-400',
             bg: 'from-indigo-500/10 to-indigo-500/2',
@@ -501,6 +579,7 @@ function Campaigns() {
           {
             label: 'Chamadas Ativas',
             value: stats.active,
+            description: 'em linha simultaneamente',
             icon: Activity,
             color: 'text-emerald-400',
             bg: 'from-emerald-500/10 to-emerald-500/2',
@@ -510,6 +589,7 @@ function Campaigns() {
           {
             label: 'Finalizados (Fila)',
             value: stats.completed,
+            description: 'processados na fila',
             icon: CheckCircle2,
             color: 'text-primary',
             bg: 'from-orange-500/10 to-orange-500/2',
@@ -517,6 +597,7 @@ function Campaigns() {
           {
             label: 'Não Atendidos / Erros',
             value: stats.failed,
+            description: 'falhas ou indisponíveis',
             icon: XCircle,
             color: 'text-rose-400',
             bg: 'from-rose-500/10 to-rose-500/2',
