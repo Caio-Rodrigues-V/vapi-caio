@@ -189,6 +189,32 @@ class ProcessVapiWebhook {
                     throw formError;
                 }
             }
+            // Send callback notification if callbackUrl is present in metadata
+            try {
+                const callDetails = await this.repository.findCampaignCall(campaignCallId);
+                const callbackUrl = callDetails?.metadata?.callbackUrl;
+                if (callbackUrl && typeof callbackUrl === 'string' && callbackUrl.startsWith('http')) {
+                    console.log(`[ProcessVapiWebhook] Enviando callback de chamada para: ${callbackUrl}`);
+                    const { default: axios } = await import('axios');
+                    await axios.post(callbackUrl, {
+                        contactId: callDetails.metadata?.contactId || null,
+                        campaignContactId: callDetails.metadata?.campaignContactId || null,
+                        campaignId: callDetails.metadata?.externalCampaignId || callDetails.campaignId,
+                        customerNumber: callDetails.customerNumber,
+                        cpf: callDetails.cpf,
+                        status: 'completed',
+                        decision,
+                        durationSeconds,
+                        recordingUrl,
+                        transcript: transcript || null,
+                        endedReason: message.endedReason || call.endedReason || null,
+                        vapiCallId: providerCallId,
+                    }, { timeout: 7000 });
+                }
+            }
+            catch (cbErr) {
+                console.error('[ProcessVapiWebhook] Erro ao enviar callback:', cbErr.message);
+            }
             await this.repository.markEventProcessed('vapi', eventId);
             return { duplicate: false, processed: true };
         }
