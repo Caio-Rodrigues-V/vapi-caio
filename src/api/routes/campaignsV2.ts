@@ -606,15 +606,33 @@ campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
   const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
   const offset = (page - 1) * limit;
   const status = String(req.query.status || '').trim();
-  const whereStatus = status ? 'AND cc.status = ?' : '';
-  const params = status ? [id, status, limit, offset] : [id, limit, offset];
+  const decision = String(req.query.decision || '').trim();
+
+  let whereClause = '';
+  const params: any[] = [id];
+
+  if (status) {
+    whereClause += ' AND cc.status = ?';
+    params.push(status);
+  }
+
+  if (decision && decision !== 'all') {
+    if (decision === 'pending') {
+      whereClause += " AND cc.status = 'pending'";
+    } else {
+      whereClause += ' AND cr.decision = ?';
+      params.push(decision);
+    }
+  }
+
+  params.push(limit, offset);
 
   const [rows]: any = await pool.query(
     `SELECT cc.*, cr.decision, cr.scheduled_callback_at, cr.ended_reason, cr.created_at AS result_created_at
      FROM campaign_calls cc
      LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
-     WHERE cc.campaign_id = ? ${whereStatus}
-     ORDER BY cc.id DESC LIMIT ? OFFSET ?`,
+     WHERE cc.campaign_id = ? ${whereClause}
+     ORDER BY (CASE WHEN cc.status = 'pending' THEN 1 ELSE 0 END) ASC, cc.id DESC LIMIT ? OFFSET ?`,
     params,
   );
   return res.json({ page, limit, data: rows });

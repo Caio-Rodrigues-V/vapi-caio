@@ -246,7 +246,7 @@ function Campaigns() {
 
         if (stillExists) {
           const callsResult = await apiFetch(
-            `/campaigns/${selectedId}/calls?limit=100&_=${Date.now()}`,
+            `/campaigns/${selectedId}/calls?limit=100&decision=${decisionFilter}&_=${Date.now()}`,
           );
           setCalls(Array.isArray(callsResult.data) ? callsResult.data : []);
         } else {
@@ -263,7 +263,7 @@ function Campaigns() {
 
   async function loadCalls(id: number) {
     setSelectedId(id);
-    const result = await apiFetch(`/campaigns/${id}/calls?limit=100&_=${Date.now()}`);
+    const result = await apiFetch(`/campaigns/${id}/calls?limit=100&decision=${decisionFilter}&_=${Date.now()}`);
     setCalls(Array.isArray(result.data) ? result.data : []);
   }
 
@@ -378,6 +378,12 @@ function Campaigns() {
 
     return () => window.clearInterval(interval);
   }, [campaigns, selectedId]);
+
+  useEffect(() => {
+    if (selectedId) {
+      void loadCalls(selectedId);
+    }
+  }, [decisionFilter]);
 
   // Helper para formatar segundos em mm:ss
   const formatDuration = (totalSec: number) => {
