@@ -124,6 +124,24 @@ exports.campaignsV2Router.get('/campaigns/diag-ddm-locate', async (req, res) => 
         return res.status(500).json({ error: err.message, response: err.response?.data });
     }
 });
+exports.campaignsV2Router.get('/campaigns/diag-vapi-call/:callId', async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+    try {
+        const apiKey = process.env.VAPI_API_KEY;
+        if (!apiKey)
+            throw new Error('VAPI_API_KEY não configurada no servidor.');
+        const response = await axios_1.default.get(`https://api.vapi.ai/call/${req.params.callId}`, {
+            headers: { Authorization: `Bearer ${apiKey}` }
+        });
+        return res.json(response.data);
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message, response: err.response?.data });
+    }
+});
 exports.campaignsV2Router.use(requireAdmin);
 exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, res) => {
     const { providerCallId } = req.params;
