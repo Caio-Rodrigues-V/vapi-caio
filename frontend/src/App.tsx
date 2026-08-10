@@ -211,6 +211,7 @@ function Campaigns() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [decisionFilter, setDecisionFilter] = useState<string>('all');
   const [selectedCall, setSelectedCall] = useState<CallRow | null>(null);
+  const [callsPage, setCallsPage] = useState(1);
   const [terminatingCallId, setTerminatingCallId] = useState<string | null>(null);
 
   async function terminateCall(providerCallId: string, event: React.MouseEvent) {
@@ -246,7 +247,7 @@ function Campaigns() {
 
         if (stillExists) {
           const callsResult = await apiFetch(
-            `/campaigns/${selectedId}/calls?limit=100&decision=${decisionFilter}&_=${Date.now()}`,
+            `/campaigns/${selectedId}/calls?page=${callsPage}&limit=100&decision=${decisionFilter}&_=${Date.now()}`,
           );
           setCalls(Array.isArray(callsResult.data) ? callsResult.data : []);
         } else {
@@ -261,9 +262,10 @@ function Campaigns() {
     }
   }
 
-  async function loadCalls(id: number) {
+  async function loadCalls(id: number, page: number = 1) {
     setSelectedId(id);
-    const result = await apiFetch(`/campaigns/${id}/calls?limit=100&decision=${decisionFilter}&_=${Date.now()}`);
+    setCallsPage(page);
+    const result = await apiFetch(`/campaigns/${id}/calls?page=${page}&limit=100&decision=${decisionFilter}&_=${Date.now()}`);
     setCalls(Array.isArray(result.data) ? result.data : []);
   }
 
@@ -381,9 +383,9 @@ function Campaigns() {
 
   useEffect(() => {
     if (selectedId) {
-      void loadCalls(selectedId);
+      void loadCalls(selectedId, callsPage);
     }
-  }, [decisionFilter]);
+  }, [selectedId, decisionFilter, callsPage]);
 
   // Helper para formatar segundos em mm:ss
   const formatDuration = (totalSec: number) => {
@@ -935,7 +937,10 @@ function Campaigns() {
                 <button
                   key={f.value}
                   type="button"
-                  onClick={() => setDecisionFilter(f.value)}
+                  onClick={() => {
+                    setCallsPage(1);
+                    setDecisionFilter(f.value);
+                  }}
                   className={`rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${
                     decisionFilter === f.value
                       ? 'bg-primary text-white border-primary/50 shadow-md shadow-primary/10'
@@ -960,7 +965,7 @@ function Campaigns() {
             </div>
           </div>
 
-          <div className="overflow-x-auto max-h-96">
+          <div className="overflow-x-auto max-h-[60vh]">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-900/60 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-glass sticky top-0 backdrop-blur-md">
                 <tr>
@@ -1049,6 +1054,27 @@ function Campaigns() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Paginação */}
+          <div className="flex items-center justify-between px-6 py-3 border-t border-glass bg-slate-900/40">
+            <button
+              type="button"
+              onClick={() => setCallsPage(p => Math.max(1, p - 1))}
+              disabled={callsPage === 1}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-glass disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              Anterior
+            </button>
+            <span className="text-xs text-slate-400 font-semibold">Página {callsPage}</span>
+            <button
+              type="button"
+              onClick={() => setCallsPage(p => p + 1)}
+              disabled={calls.length < 100}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-glass disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              Próxima
+            </button>
           </div>
         </div>
       )}
