@@ -475,6 +475,7 @@ function Campaigns() {
   const filteredCalls = useMemo(() => {
     if (decisionFilter === 'all') return calls;
     if (decisionFilter === 'pending') return calls.filter(c => !c.decision && c.status !== 'completed');
+    if (decisionFilter === 'answered') return calls.filter(c => (c.duration_seconds && c.duration_seconds > 0) || c.status === 'answered');
     return calls.filter(c => c.decision === decisionFilter);
   }, [calls, decisionFilter]);
 
@@ -931,6 +932,7 @@ function Campaigns() {
                 { label: 'Todos', value: 'all' },
                 { label: 'Formalizado', value: 'formalize' },
                 { label: 'Agendado', value: 'schedule' },
+                { label: 'Atendidas', value: 'answered' },
                 { label: 'Sem Acordo', value: 'zero' },
                 { label: 'Pendente', value: 'pending' },
               ].map(f => (

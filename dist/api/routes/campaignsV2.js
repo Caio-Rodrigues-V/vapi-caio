@@ -526,6 +526,9 @@ exports.campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
         if (decision === 'pending') {
             whereClause += " AND cc.status = 'pending'";
         }
+        else if (decision === 'answered') {
+            whereClause += " AND (cr.duration_seconds > 0 OR cc.status = 'answered')";
+        }
         else {
             whereClause += ' AND cr.decision = ?';
             params.push(decision);
