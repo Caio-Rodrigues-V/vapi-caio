@@ -18,7 +18,7 @@ const upload = (0, multer_1.default)({
 });
 function requireAdmin(req, res, next) {
     const expected = process.env.API_AUTH_TOKEN || process.env.ADMIN_MIGRATION_TOKEN;
-    const provided = req.header('authorization')?.replace(/^Bearer\s+/i, '') || req.header('x-api-token');
+    const provided = req.header('authorization')?.replace(/^Bearer\s+/i, '') || req.header('x-api-token') || req.query.token;
     if (!expected || provided !== expected)
         return res.status(401).json({ error: 'Não autorizado' });
     return next();
@@ -182,6 +182,34 @@ exports.campaignsV2Router.get('/campaigns/diag-campaign-stats/:id', async (req, 
     }
 });
 exports.campaignsV2Router.use(requireAdmin);
+exports.campaignsV2Router.get('/calls/:providerCallId/recording', async (req, res) => {
+    const { providerCallId } = req.params;
+    if (!providerCallId)
+        return res.status(400).json({ error: 'ID da chamada é obrigatório' });
+    try {
+        const apiKey = process.env.VAPI_API_KEY;
+        if (!apiKey)
+            throw new Error('VAPI_API_KEY não configurada no servidor.');
+        // We do not follow redirects (maxRedirects: 0) to capture the 302 Location header
+        // and redirect the user directly to the presigned R2/S3 URL from Vapi.
+        const response = await axios_1.default.get(`https://api.vapi.ai/call/${providerCallId}/mono-recording`, {
+            headers: { Authorization: `Bearer ${apiKey}` },
+            maxRedirects: 0,
+            validateStatus: (status) => status >= 200 && status < 400,
+        });
+        if (response.status === 302 || response.status === 301 || response.status === 307 || response.status === 308) {
+            const redirectUrl = response.headers.location;
+            if (redirectUrl) {
+                return res.redirect(redirectUrl);
+            }
+        }
+        return res.status(response.status).send(response.data);
+    }
+    catch (err) {
+        console.error('[recording proxy] Error:', err.message);
+        return res.status(500).json({ error: 'Erro ao obter gravação', details: err.message });
+    }
+});
 exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, res) => {
     const { providerCallId } = req.params;
     if (!providerCallId)
@@ -422,18 +450,35 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
         return res.status(400).json({ error: 'Campanha inválida' });
     }
     const status = String(req.query.status || '').trim();
-    const whereStatus = status ? 'AND cc.status = ?' : '';
-    const params = status ? [id, status] : [id];
+    const decision = String(req.query.decision || '').trim();
+    let whereClause = '';
+    const params = [id];
+    if (status) {
+        whereClause += ' AND cc.status = ?';
+        params.push(status);
+    }
+    if (decision && decision !== 'all') {
+        if (decision === 'pending') {
+            whereClause += " AND cc.status = 'pending'";
+        }
+        else if (decision === 'answered') {
+            whereClause += " AND (cr.duration_seconds > 0 OR cc.status = 'answered')";
+        }
+        else {
+            whereClause += ' AND cr.decision = ?';
+            params.push(decision);
+        }
+    }
     try {
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename=relatorio-campanha-${id}.csv`);
         res.write('\uFEFF'); // BOM for Portuguese Excel encoding compatibility
-        res.write('Telefone;CPF;Nome;Status;Tentativas;Decisão;Duração (s);Motivo do Fim;Última Atualização\n');
+        res.write('Telefone;CPF;Nome;Status;Tentativas;Decisão;Duração (s);Motivo do Fim;Última Atualização;Transcrição\n');
         const [rows] = await db_1.default.query(`SELECT cc.customer_number, cc.cpf, cc.attempts, cc.status, cc.metadata,
-              cr.decision, cr.duration_seconds, cr.ended_reason, cc.updated_at
+              cr.decision, cr.duration_seconds, cr.ended_reason, cc.updated_at, cr.transcript
        FROM campaign_calls cc
        LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
-       WHERE cc.campaign_id = ? ${whereStatus}
+       WHERE cc.campaign_id = ? ${whereClause}
        ORDER BY cc.id DESC`, params);
         for (const row of rows) {
             const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
@@ -472,9 +517,12 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
                 decisionText,
                 row.duration_seconds !== null && row.duration_seconds !== undefined ? row.duration_seconds : '',
                 row.ended_reason || '',
-                row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : ''
+                row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '',
+                row.transcript || '',
             ].map(val => {
-                const text = String(val).replace(/;/g, ' '); // Avoid breaking CSV formatting
+                const text = String(val)
+                    .replace(/;/g, ' ')
+                    .replace(/\r?\n/g, ' | '); // Avoid breaking CSV formatting and keep it single-line
                 return text;
             }).join(';');
             res.write(line + '\n');
@@ -516,6 +564,7 @@ exports.campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
     const offset = (page - 1) * limit;
     const status = String(req.query.status || '').trim();
     const decision = String(req.query.decision || '').trim();
+    const search = String(req.query.search || '').trim();
     let whereClause = '';
     const params = [id];
     if (status) {
@@ -533,6 +582,10 @@ exports.campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
             whereClause += ' AND cr.decision = ?';
             params.push(decision);
         }
+    }
+    if (search) {
+        whereClause += " AND (cc.customer_number LIKE ? OR cc.cpf LIKE ? OR JSON_UNQUOTE(JSON_EXTRACT(cc.metadata, '$.name')) LIKE ?)";
+        params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
     params.push(limit, offset);
     const [rows] = await db_1.default.query(`SELECT cc.*, cr.decision, cr.scheduled_callback_at, cr.ended_reason, cr.created_at AS result_created_at

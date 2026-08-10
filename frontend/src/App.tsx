@@ -213,6 +213,8 @@ function Campaigns() {
   const [selectedCall, setSelectedCall] = useState<CallRow | null>(null);
   const [callsPage, setCallsPage] = useState(1);
   const [terminatingCallId, setTerminatingCallId] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   async function terminateCall(providerCallId: string, event: React.MouseEvent) {
     event.stopPropagation(); // Prevent opening modal
@@ -247,7 +249,7 @@ function Campaigns() {
 
         if (stillExists) {
           const callsResult = await apiFetch(
-            `/campaigns/${selectedId}/calls?page=${callsPage}&limit=100&decision=${decisionFilter}&_=${Date.now()}`,
+            `/campaigns/${selectedId}/calls?page=${callsPage}&limit=100&decision=${decisionFilter}&search=${searchQuery}&_=${Date.now()}`,
           );
           setCalls(Array.isArray(callsResult.data) ? callsResult.data : []);
         } else {
@@ -265,7 +267,7 @@ function Campaigns() {
   async function loadCalls(id: number, page: number = 1) {
     setSelectedId(id);
     setCallsPage(page);
-    const result = await apiFetch(`/campaigns/${id}/calls?page=${page}&limit=100&decision=${decisionFilter}&_=${Date.now()}`);
+    const result = await apiFetch(`/campaigns/${id}/calls?page=${page}&limit=100&decision=${decisionFilter}&search=${searchQuery}&_=${Date.now()}`);
     setCalls(Array.isArray(result.data) ? result.data : []);
   }
 
@@ -385,7 +387,7 @@ function Campaigns() {
     if (selectedId) {
       void loadCalls(selectedId, callsPage);
     }
-  }, [selectedId, decisionFilter, callsPage]);
+  }, [selectedId, decisionFilter, callsPage, searchQuery]);
 
   // Helper para formatar segundos em mm:ss
   const formatDuration = (totalSec: number) => {
@@ -485,8 +487,9 @@ function Campaigns() {
     if (!selectedId) return;
     setExporting(true);
     try {
-      const statusParam = decisionFilter !== 'all' ? `&status=${decisionFilter}` : '';
-      const response = await fetch(apiUrl(`/campaigns/${selectedId}/export?${statusParam}`), {
+      const decisionParam = decisionFilter !== 'all' ? `&decision=${decisionFilter}` : '';
+      const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
+      const response = await fetch(apiUrl(`/campaigns/${selectedId}/export?${decisionParam}${searchParam}`), {
         headers: {
           'Authorization': `Bearer ${getToken()}`,
         }
@@ -535,6 +538,7 @@ function Campaigns() {
     const diffHours = Math.floor(diffMin / 60);
     return `Sincronizado há ${diffHours}h atrás`;
   };
+  const selectedCampaign = campaigns.find(c => c.id === selectedId);
 
   return (
     <div className="space-y-6">
@@ -573,6 +577,15 @@ function Campaigns() {
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             {loading ? 'Sincronizando...' : 'Sincronizar'}
           </button>
+
+          <a
+            href="/modelo_importacao.csv"
+            download="modelo_importacao.csv"
+            className="btn-click flex items-center gap-2 rounded-xl border border-glass bg-slate-800/40 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800"
+          >
+            <Download size={16} />
+            Planilha Modelo
+          </a>
 
           <button
             type="button"
@@ -803,7 +816,7 @@ function Campaigns() {
           <table className="w-full text-left">
             <thead className="bg-slate-900/60 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-glass">
               <tr>
-                {['Campanha', 'Status', 'Fila/Pendentes', 'Ativas', 'Concluídas', 'Falhas', 'Ações'].map((header) => (
+                {['Campanha', 'Status', 'Fila/Pendentes', 'Ativas', 'Atendidas', 'Concluídas', 'Falhas', 'Ações'].map((header) => (
                   <th key={header} className="px-6 py-4">{header}</th>
                 ))}
               </tr>
@@ -836,6 +849,7 @@ function Campaigns() {
                     <td className="px-6 py-4"><StatusBadge status={campaign.status} /></td>
                     <td className="px-6 py-4 font-medium text-indigo-300">{Number(campaign.pending_calls || 0)}</td>
                     <td className="px-6 py-4 font-medium text-emerald-400">{Number(campaign.active_calls || 0)}</td>
+                    <td className="px-6 py-4 font-semibold text-emerald-300">{Number(campaign.answered_calls || 0)}</td>
                     <td className="px-6 py-4 font-medium text-primary">{Number(campaign.completed_calls || 0)}</td>
                     <td className="px-6 py-4 font-medium text-rose-400">{Number(campaign.failed_calls || 0)}</td>
                     <td className="px-6 py-4">
@@ -916,14 +930,54 @@ function Campaigns() {
         <div className="rounded-2xl bg-glass border-glass shadow-2xl overflow-hidden animate-slide-in">
           <div className="bg-slate-900/40 px-6 py-5 border-b border-glass flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 Contatos da Campanha #{selectedId}
+                {selectedCampaign && (
+                  <span className="text-xs font-normal px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    {selectedCampaign.answered_calls || 0} Atendidas
+                  </span>
+                )}
               </h3>
-              <p className="text-xs text-slate-400">Total de contatos importados e status de discagem</p>
+              <p className="text-xs text-slate-400">
+                {selectedCampaign ? (
+                  `${selectedCampaign.completed_calls || 0} discadas de ${selectedCampaign.total_calls || 0} contatos importados`
+                ) : (
+                  'Total de contatos importados e status de discagem'
+                )}
+              </p>
             </div>
 
             {/* Filtros de Decisão do Acordo */}
             <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 mr-3 bg-slate-950/20 px-2 py-1 rounded-lg border border-glass">
+                <input
+                  type="text"
+                  placeholder="Buscar CPF, Telefone ou Nome..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setCallsPage(1);
+                      setSearchQuery(searchInput);
+                    }
+                  }}
+                  className="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none w-44 sm:w-52"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchInput('');
+                      setCallsPage(1);
+                      setSearchQuery('');
+                    }}
+                    className="text-[10px] text-slate-400 hover:text-white bg-slate-800 px-1.5 py-0.5 rounded transition-all"
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
+
               <span className="text-xs text-slate-400 flex items-center gap-1">
                 <Filter size={12} />
                 Filtrar por:
@@ -1288,7 +1342,13 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                 <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-semibold">
                   <Volume2 size={14} /> Gravação do Áudio
                 </h4>
-                <audio src={call.recording_url} controls className="w-full mt-2 rounded-lg" />
+                <audio 
+                  src={call.provider_call_id 
+                    ? apiUrl(`/calls/${call.provider_call_id}/recording?token=${getToken()}`) 
+                    : call.recording_url || undefined} 
+                  controls 
+                  className="w-full mt-2 rounded-lg" 
+                />
               </div>
             ) : (
               <div className="rounded-xl border border-glass bg-slate-950/20 p-4 text-center text-slate-500 text-sm">
