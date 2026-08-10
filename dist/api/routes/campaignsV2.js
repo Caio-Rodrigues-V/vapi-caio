@@ -170,7 +170,7 @@ exports.campaignsV2Router.get('/campaigns/diag-campaign-stats/:id', async (req, 
        LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
        WHERE cc.campaign_id = ?
        GROUP BY cc.status, cr.ended_reason`, [campaignId]);
-        const [successRows] = await db_1.default.query(`SELECT cc.id, cc.customer_number, cc.status, cr.decision, cr.ended_reason, cr.duration_seconds, cr.transcript
+        const [successRows] = await db_1.default.query(`SELECT cc.id, cc.customer_number, cc.status, cr.decision, cr.ended_reason, cr.duration_seconds, cr.transcript, cc.recording_url, cr.recording_url as cr_recording_url
        FROM campaign_calls cc
        JOIN call_results cr ON cr.campaign_call_id = cc.id
        WHERE cc.campaign_id = ? AND (cr.duration_seconds > 0 OR cr.transcript IS NOT NULL)

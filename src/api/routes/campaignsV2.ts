@@ -177,7 +177,7 @@ campaignsV2Router.get('/campaigns/diag-campaign-stats/:id', async (req, res) => 
       [campaignId]
     );
     const [successRows]: any = await pool.query(
-      `SELECT cc.id, cc.customer_number, cc.status, cr.decision, cr.ended_reason, cr.duration_seconds, cr.transcript
+      `SELECT cc.id, cc.customer_number, cc.status, cr.decision, cr.ended_reason, cr.duration_seconds, cr.transcript, cc.recording_url, cr.recording_url as cr_recording_url
        FROM campaign_calls cc
        JOIN call_results cr ON cr.campaign_call_id = cc.id
        WHERE cc.campaign_id = ? AND (cr.duration_seconds > 0 OR cr.transcript IS NOT NULL)
