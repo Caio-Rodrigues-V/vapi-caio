@@ -142,6 +142,22 @@ exports.campaignsV2Router.get('/campaigns/diag-vapi-call/:callId', async (req, r
         return res.status(500).json({ error: err.message, response: err.response?.data });
     }
 });
+exports.campaignsV2Router.get('/campaigns/diag-env', async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+    return res.json({
+        VAPI_PHONE_NUMBER_ID: process.env.VAPI_PHONE_NUMBER_ID,
+        VAPI_ASSISTANT_ID_UVA: process.env.VAPI_ASSISTANT_ID_UVA,
+        NODE_ENV: process.env.NODE_ENV,
+        PORT: process.env.PORT,
+        DB_HOST: process.env.DB_HOST,
+        DB_NAME: process.env.DB_NAME,
+        N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL,
+        SMTP_HOST: process.env.SMTP_HOST,
+    });
+});
 exports.campaignsV2Router.use(requireAdmin);
 exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, res) => {
     const { providerCallId } = req.params;
