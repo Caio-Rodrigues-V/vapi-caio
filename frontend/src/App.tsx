@@ -992,7 +992,11 @@ function Campaigns() {
                       {call.decision === 'zero' && (
                         <span className="text-rose-400 flex items-center gap-1">
                           <XCircle size={14} />
-                          {call.ended_reason === 'voicemail' ? 'Caixa Postal' : 'Recusado/Sem Acordo'}
+                          {call.ended_reason === 'voicemail' 
+                            ? 'Caixa Postal' 
+                            : (call.duration_seconds && call.duration_seconds <= 10 
+                                ? 'Atendeu e Desligou' 
+                                : 'Recusado/Sem Acordo')}
                         </span>
                       )}
                       {call.status === 'skipped' ? (
@@ -1165,7 +1169,11 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                     {call.decision === 'schedule' && <span className="text-amber-400">Reagendado</span>}
                     {call.decision === 'zero' && (
                       <span className="text-rose-400">
-                        {call.ended_reason === 'voicemail' ? 'Caixa Postal' : 'Recusado/Sem Acordo'}
+                        {call.ended_reason === 'voicemail' 
+                          ? 'Caixa Postal' 
+                          : (call.duration_seconds && call.duration_seconds <= 10 
+                              ? 'Atendeu e Desligou' 
+                              : 'Recusado/Sem Acordo')}
                       </span>
                     )}
                     {call.status === 'skipped' && (

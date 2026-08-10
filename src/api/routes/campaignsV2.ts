@@ -533,7 +533,11 @@ campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
       if (row.decision === 'formalize') decisionText = 'Formalizado';
       else if (row.decision === 'schedule') decisionText = 'Reagendado';
       else if (row.decision === 'zero') {
-        decisionText = row.ended_reason === 'voicemail' ? 'Caixa Postal' : 'Recusado/Sem Acordo';
+        decisionText = row.ended_reason === 'voicemail' 
+          ? 'Caixa Postal' 
+          : (row.duration_seconds && row.duration_seconds <= 10 
+              ? 'Atendeu e Desligou' 
+              : 'Recusado/Sem Acordo');
       }
 
       let statusText = row.status;
