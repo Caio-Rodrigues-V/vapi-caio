@@ -158,6 +158,29 @@ exports.campaignsV2Router.get('/campaigns/diag-env', async (req, res) => {
         SMTP_HOST: process.env.SMTP_HOST,
     });
 });
+exports.campaignsV2Router.get('/campaigns/diag-campaign-stats/:id', async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+    try {
+        const campaignId = Number(req.params.id);
+        const [stats] = await db_1.default.query(`SELECT cc.status, cr.ended_reason, count(*) as count
+       FROM campaign_calls cc
+       LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
+       WHERE cc.campaign_id = ?
+       GROUP BY cc.status, cr.ended_reason`, [campaignId]);
+        const [successRows] = await db_1.default.query(`SELECT cc.id, cc.customer_number, cc.status, cr.decision, cr.ended_reason, cr.duration_seconds, cr.transcript
+       FROM campaign_calls cc
+       JOIN call_results cr ON cr.campaign_call_id = cc.id
+       WHERE cc.campaign_id = ? AND (cr.duration_seconds > 0 OR cr.transcript IS NOT NULL)
+       ORDER BY cc.id DESC LIMIT 10`, [campaignId]);
+        return res.json({ stats, successCalls: successRows });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
 exports.campaignsV2Router.use(requireAdmin);
 exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, res) => {
     const { providerCallId } = req.params;
