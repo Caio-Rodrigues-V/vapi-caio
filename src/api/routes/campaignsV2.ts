@@ -179,6 +179,26 @@ campaignsV2Router.get('/campaigns/diag-campaigns-list', async (req, res) => {
   }
 });
 
+campaignsV2Router.get('/campaigns/diag-skipped-list/:id', async (req, res) => {
+  const secret = req.query.secret;
+  if (secret !== 'ddm_diag_987') {
+    return res.status(401).json({ error: 'Não autorizado' });
+  }
+  const campaignId = Number(req.params.id);
+  try {
+    const [rows]: any = await pool.query(
+      `SELECT id, customer_number, cpf, status, last_error, metadata, updated_at
+       FROM campaign_calls
+       WHERE campaign_id = ? AND status = 'skipped'
+       LIMIT 10`,
+      [campaignId]
+    );
+    return res.json({ skipped: rows });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 campaignsV2Router.post('/campaigns/diag-reset-no-debt/:id', async (req, res) => {
   const secret = req.body.secret || req.query.secret;
   if (secret !== 'ddm_diag_987') {
