@@ -464,6 +464,9 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
         else if (decision === 'answered') {
             whereClause += " AND (cr.duration_seconds > 0 OR cc.status = 'answered')";
         }
+        else if (decision === 'no_debt') {
+            whereClause += " AND cc.status = 'skipped' AND cc.last_error = 'no_debt'";
+        }
         else {
             whereClause += ' AND cr.decision = ?';
             params.push(decision);
@@ -577,6 +580,9 @@ exports.campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
         }
         else if (decision === 'answered') {
             whereClause += " AND (cr.duration_seconds > 0 OR cc.status = 'answered')";
+        }
+        else if (decision === 'no_debt') {
+            whereClause += " AND cc.status = 'skipped' AND cc.last_error = 'no_debt'";
         }
         else {
             whereClause += ' AND cr.decision = ?';
