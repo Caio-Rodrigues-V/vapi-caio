@@ -161,6 +161,19 @@ exports.campaignsV2Router.get('/campaigns/diag-calls-detail', async (req, res) =
         return res.status(500).json({ error: err.message });
     }
 });
+exports.campaignsV2Router.get('/campaigns/diag-campaigns-list', async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+    try {
+        const [rows] = await db_1.default.query(`SELECT id, name, status, created_at FROM campaigns ORDER BY id DESC LIMIT 5`);
+        return res.json({ campaigns: rows });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
 exports.campaignsV2Router.post('/campaigns/diag-reset-no-debt/:id', async (req, res) => {
     const secret = req.body.secret || req.query.secret;
     if (secret !== 'ddm_diag_987') {
