@@ -142,6 +142,25 @@ exports.campaignsV2Router.get('/campaigns/diag-vapi-call/:callId', async (req, r
         return res.status(500).json({ error: err.message, response: err.response?.data });
     }
 });
+exports.campaignsV2Router.get('/campaigns/diag-calls-detail', async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+    try {
+        const cpfs = String(req.query.cpfs || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (cpfs.length === 0)
+            return res.json({ error: 'Nenhum CPF fornecido' });
+        const [rows] = await db_1.default.query(`SELECT cc.*, cr.decision, cr.ended_reason, cr.duration_seconds
+       FROM campaign_calls cc
+       LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
+       WHERE cc.cpf IN (${cpfs.map(() => '?').join(',')})`, cpfs);
+        return res.json({ rows });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
 exports.campaignsV2Router.get('/campaigns/diag-env', async (req, res) => {
     const secret = req.query.secret;
     if (secret !== 'ddm_diag_987') {
