@@ -199,6 +199,8 @@ campaignsV2Router.get('/campaigns/diag-env', async (req, res) => {
     DB_NAME: process.env.DB_NAME,
     N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL,
     SMTP_HOST: process.env.SMTP_HOST,
+    GLOBAL_MAX_CONCURRENT: process.env.GLOBAL_MAX_CONCURRENT,
+    WORKER_DELAY_BETWEEN_CALLS_MS: process.env.WORKER_DELAY_BETWEEN_CALLS_MS,
   });
 });
 
