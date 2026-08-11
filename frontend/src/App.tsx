@@ -1009,17 +1009,15 @@ function Campaigns() {
                 </button>
               ))}
 
-              {calls.length > 0 && (
-                <button
-                  type="button"
-                  disabled={exporting}
-                  onClick={exportToCsv}
-                  className="rounded-lg px-3 py-1.5 text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1.5 ml-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Download size={13} className={exporting ? 'animate-spin' : ''} />
-                  {exporting ? 'Exportando...' : 'Exportar CSV'}
-                </button>
-              )}
+              <button
+                type="button"
+                disabled={exporting}
+                onClick={exportToCsv}
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1.5 ml-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download size={13} className={exporting ? 'animate-spin' : ''} />
+                {exporting ? 'Exportando...' : 'Exportar CSV'}
+              </button>
             </div>
           </div>
 
