@@ -161,6 +161,22 @@ exports.campaignsV2Router.get('/campaigns/diag-calls-detail', async (req, res) =
         return res.status(500).json({ error: err.message });
     }
 });
+exports.campaignsV2Router.post('/campaigns/diag-reset-no-debt/:id', async (req, res) => {
+    const secret = req.body.secret || req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+    const campaignId = Number(req.params.id);
+    try {
+        const [result] = await db_1.default.query(`UPDATE campaign_calls
+       SET status = 'pending', attempts = 0, last_error = NULL
+       WHERE campaign_id = ? AND status = 'skipped' AND last_error = 'no_debt'`, [campaignId]);
+        return res.json({ affectedRows: result.affectedRows });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
 exports.campaignsV2Router.get('/campaigns/diag-env', async (req, res) => {
     const secret = req.query.secret;
     if (secret !== 'ddm_diag_987') {

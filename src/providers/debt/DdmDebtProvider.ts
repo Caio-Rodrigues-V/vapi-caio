@@ -151,62 +151,80 @@ export class DdmDebtProvider implements DebtProvider {
       return { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'no_debt' };
     }
 
-    const debtor = located[0] as Record<string, unknown>;
-    const debtorId = String(debtor.iddev ?? '').trim();
-    if (!debtorId) return { cpf, hasDebt: false, installments: [], raw: debtor, skipReason: 'no_debt' };
+    let lastResult: DebtLookupResult | null = null;
 
-    const system = String(debtor.sistema ?? '').trim().toLowerCase();
-    const client = system === 'cruzeirodosul' ? 'cruzeiro' : 'ddm';
-    const rawCalculation = await this.getWithRetry<unknown>('/calc/', {
-      tk: this.token,
-      idDev: debtorId,
-      cli: client,
-    });
-    const calculation = consolidateCalculation(rawCalculation);
+    for (const debtor of located) {
+      if (!debtor || typeof debtor !== 'object') continue;
+      const debtorId = String((debtor as Record<string, unknown>).iddev ?? '').trim();
+      if (!debtorId) continue;
 
-    const installmentContainer = getAny(calculation, ['ListaParcelas', 'lista_parcelas', 'parcelas']);
-    const rawInstallments = getAny(installmentContainer, ['Parcelas', 'Parcela', 'parcelas']);
-    const rows = Array.isArray(rawInstallments) ? rawInstallments : rawInstallments ? [rawInstallments] : [];
-    const installments = rows
-      .map((row, index) => {
-        const amount = parseMoney(getAny(row, ['ValorParcela', 'valor_parcela', 'valor', 'ValorFinal']));
-        if (!amount || amount <= 0) return null;
-        return {
-          number: index + 1,
-          amount,
-          dueDate: findFirst(row, ['Vencimento', 'DataVencimento', 'Venc', 'DtVenc']) || null,
+      const system = String((debtor as Record<string, unknown>).sistema ?? '').trim().toLowerCase();
+      const client = system === 'cruzeirodosul' ? 'cruzeiro' : 'ddm';
+
+      try {
+        const rawCalculation = await this.getWithRetry<unknown>('/calc/', {
+          tk: this.token,
+          idDev: debtorId,
+          cli: client,
+        });
+        const calculation = consolidateCalculation(rawCalculation);
+
+        const installmentContainer = getAny(calculation, ['ListaParcelas', 'lista_parcelas', 'parcelas']);
+        const rawInstallments = getAny(installmentContainer, ['Parcelas', 'Parcela', 'parcelas']);
+        const rows = Array.isArray(rawInstallments) ? rawInstallments : rawInstallments ? [rawInstallments] : [];
+        const installments = rows
+          .map((row, index) => {
+            const amount = parseMoney(getAny(row, ['ValorParcela', 'valor_parcela', 'valor', 'ValorFinal']));
+            if (!amount || amount <= 0) return null;
+            return {
+              number: index + 1,
+              amount,
+              dueDate: findFirst(row, ['Vencimento', 'DataVencimento', 'Venc', 'DtVenc']) || null,
+            };
+          })
+          .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+        const cashAmount = installments[0]?.amount ?? null;
+        const institution = findFirst(calculation, ['Cliente', 'Instituicao', 'instituicao']).replace(/\bNOVO\b/gi, '').trim() || null;
+        const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
+
+        const hasInstallments = installments.length > 0 && Boolean(cashAmount);
+        let skipReason: 'no_debt' | 'already_has_agreement' | null = null;
+        if (!hasInstallments) {
+          skipReason = 'no_debt';
+        } else if (calculation.FechaAcordo === false) {
+          skipReason = 'already_has_agreement';
+        }
+
+        const result: DebtLookupResult = {
+          cpf,
+          hasDebt: hasInstallments && calculation.FechaAcordo !== false,
+          institution,
+          debtorName: findFirst(calculation, ['NomeDev', 'NomeDevedor', 'nome_devedor']) || null,
+          debtorId,
+          calculationId: findFirst(calculation, ['idcalc', 'id_calc', 'idCalculo', 'calculoId']) || null,
+          nominalAmount: parseMoney(findFirst(calculation, ['TotalNominal', 'ValorTotal', 'valor_total'])),
+          cashAmount,
+          firstDueDate: findFirst(calculation, ['PrimeiroVencto', 'PrimeiroVencimento', 'DtVenc', 'Vencimento']) ||
+            installments[0]?.dueDate || null,
+          email,
+          installments,
+          raw: calculation,
+          skipReason,
         };
-      })
-      .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
-    const cashAmount = installments[0]?.amount ?? null;
-    const institution = findFirst(calculation, ['Cliente', 'Instituicao', 'instituicao']).replace(/\bNOVO\b/gi, '').trim() || null;
-    const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
+        lastResult = result;
 
-    const hasInstallments = installments.length > 0 && Boolean(cashAmount);
-    let skipReason: 'no_debt' | 'already_has_agreement' | null = null;
-    if (!hasInstallments) {
-      skipReason = 'no_debt';
-    } else if (calculation.FechaAcordo === false) {
-      skipReason = 'already_has_agreement';
+        // Se encontrou dívidas ativas para este devedor, retorna imediatamente
+        if (result.hasDebt) {
+          return result;
+        }
+      } catch (err) {
+        console.error(`[DdmDebtProvider] Falha ao consultar iddev ${debtorId}:`, err);
+      }
     }
 
-    return {
-      cpf,
-      hasDebt: hasInstallments && calculation.FechaAcordo !== false,
-      institution,
-      debtorName: findFirst(calculation, ['NomeDev', 'NomeDevedor', 'nome_devedor']) || null,
-      debtorId,
-      calculationId: findFirst(calculation, ['idcalc', 'id_calc', 'idCalculo', 'calculoId']) || null,
-      nominalAmount: parseMoney(findFirst(calculation, ['TotalNominal', 'ValorTotal', 'valor_total'])),
-      cashAmount,
-      firstDueDate: findFirst(calculation, ['PrimeiroVencto', 'PrimeiroVencimento', 'DtVenc', 'Vencimento']) ||
-        installments[0]?.dueDate || null,
-      email,
-      installments,
-      raw: calculation,
-      skipReason,
-    };
+    return lastResult || { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'no_debt' };
   }
 
   async formalize(debtorId: string, client: string, installments = 1): Promise<any> {
