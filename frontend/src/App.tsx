@@ -1063,7 +1063,7 @@ function Campaigns() {
                             ? 'Caixa Postal' 
                             : (!call.duration_seconds || call.duration_seconds === 0
                                 ? 'Não Atendido'
-                                : (call.duration_seconds <= 10 
+                                : (call.duration_seconds <= 30 
                                     ? 'Atendeu e Desligou' 
                                     : 'Recusado/Sem Acordo'))}
                         </span>
@@ -1263,7 +1263,7 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                           ? 'Caixa Postal' 
                           : (!call.duration_seconds || call.duration_seconds === 0
                               ? 'Não Atendido'
-                              : (call.duration_seconds <= 10 
+                              : (call.duration_seconds <= 30 
                                   ? 'Atendeu e Desligou' 
                                   : 'Recusado/Sem Acordo'))}
                       </span>

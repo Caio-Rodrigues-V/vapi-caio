@@ -77,6 +77,16 @@ export class DispatchCampaignBatch {
             continue;
           }
 
+          // Filtro rigoroso: Se tiver instituição e não for UVA/Veiga, pula como sem débito para a campanha
+          const instUpper = (debt.institution || '').toUpperCase();
+          const isUva = !debt.institution || instUpper.includes('VEIGA') || instUpper.includes('ALMEIDA') || instUpper.includes('UVA');
+          if (!isUva) {
+            await this.calls.mergeMetadata(call.id, { debtCheckedAt: new Date().toISOString(), hasDebt: false, institution: debt.institution });
+            await this.calls.updateStatus(call.id, 'skipped', 'no_debt');
+            result.skipped += 1;
+            continue;
+          }
+
           assistantId = this.assistantResolver?.resolve() || campaign.assistantId;
           customerName = asText(debt.debtorName) || customerName;
           debtMetadata = {

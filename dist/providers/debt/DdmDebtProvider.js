@@ -144,6 +144,7 @@ class DdmDebtProvider {
             return { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'no_debt' };
         }
         let lastResult = null;
+        let fallbackResult = null;
         for (const debtor of located) {
             if (!debtor || typeof debtor !== 'object')
                 continue;
@@ -202,16 +203,27 @@ class DdmDebtProvider {
                     skipReason,
                 };
                 lastResult = result;
-                // Se encontrou dívidas ativas para este devedor, retorna imediatamente
+                // Se encontrou dívidas ativas para este devedor
                 if (result.hasDebt) {
-                    return result;
+                    const instUpper = (result.institution || '').toUpperCase();
+                    const isTargetUva = instUpper.includes('VEIGA') || instUpper.includes('ALMEIDA') || instUpper.includes('UVA');
+                    if (isTargetUva) {
+                        // Se for específico da UVA, retorna imediatamente!
+                        return result;
+                    }
+                    else {
+                        // Se for outra instituição (ex: UNISUAM), salva como fallback e continua a busca por UVA
+                        if (!fallbackResult) {
+                            fallbackResult = result;
+                        }
+                    }
                 }
             }
             catch (err) {
                 console.error(`[DdmDebtProvider] Falha ao consultar iddev ${debtorId}:`, err);
             }
         }
-        return lastResult || { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'no_debt' };
+        return fallbackResult || lastResult || { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'no_debt' };
     }
     async formalize(debtorId, client, installments = 1) {
         const data = await this.getWithRetry('/calc/efetiva_acordo.php', {
