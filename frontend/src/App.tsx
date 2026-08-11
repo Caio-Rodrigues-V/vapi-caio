@@ -389,6 +389,8 @@ function Campaigns() {
     }
   }, [selectedId, decisionFilter, callsPage, searchQuery]);
 
+  const selectedCampaign = campaigns.find(c => c.id === selectedId);
+
   // Helper para formatar segundos em mm:ss
   const formatDuration = (totalSec: number) => {
     if (!totalSec || isNaN(totalSec) || totalSec <= 0) return '00:00';
@@ -399,25 +401,39 @@ function Campaigns() {
 
   // Estatísticas gerais das campanhas
   const stats = useMemo(() => {
-    const raw = campaigns.reduce(
-      (acc, item) => ({
-        campaigns: acc.campaigns + 1,
-        leads: acc.leads + Number(item.total_leads || 0),
-        calls: acc.calls + Number(item.total_calls || 0),
-        active: acc.active + Number(item.active_calls || 0),
-        completed: acc.completed + Number(item.completed_calls || 0),
-        pending: acc.pending + Number(item.pending_calls || 0),
-        failed: acc.failed + Number(item.failed_calls || 0),
-        answered: acc.answered + Number(item.answered_calls || 0),
-        formalized: acc.formalized + Number(item.formalized_calls || 0),
-        scheduled: acc.scheduled + Number(item.scheduled_calls || 0),
-        totalDuration: acc.totalDuration + Number(item.total_duration_seconds || 0),
-      }),
-      {
-        campaigns: 0, leads: 0, calls: 0, active: 0, completed: 0, pending: 0, failed: 0,
-        answered: 0, formalized: 0, scheduled: 0, totalDuration: 0,
-      },
-    );
+    const raw = selectedId && selectedCampaign
+      ? {
+          campaigns: 1,
+          leads: Number(selectedCampaign.total_leads || 0),
+          calls: Number(selectedCampaign.total_calls || 0),
+          active: Number(selectedCampaign.active_calls || 0),
+          completed: Number(selectedCampaign.completed_calls || 0),
+          pending: Number(selectedCampaign.pending_calls || 0),
+          failed: Number(selectedCampaign.failed_calls || 0),
+          answered: Number(selectedCampaign.answered_calls || 0),
+          formalized: Number(selectedCampaign.formalized_calls || 0),
+          scheduled: Number(selectedCampaign.scheduled_calls || 0),
+          totalDuration: Number(selectedCampaign.total_duration_seconds || 0),
+        }
+      : campaigns.reduce(
+          (acc, item) => ({
+            campaigns: acc.campaigns + 1,
+            leads: acc.leads + Number(item.total_leads || 0),
+            calls: acc.calls + Number(item.total_calls || 0),
+            active: acc.active + Number(item.active_calls || 0),
+            completed: acc.completed + Number(item.completed_calls || 0),
+            pending: acc.pending + Number(item.pending_calls || 0),
+            failed: acc.failed + Number(item.failed_calls || 0),
+            answered: acc.answered + Number(item.answered_calls || 0),
+            formalized: acc.formalized + Number(item.formalized_calls || 0),
+            scheduled: acc.scheduled + Number(item.scheduled_calls || 0),
+            totalDuration: acc.totalDuration + Number(item.total_duration_seconds || 0),
+          }),
+          {
+            campaigns: 0, leads: 0, calls: 0, active: 0, completed: 0, pending: 0, failed: 0,
+            answered: 0, formalized: 0, scheduled: 0, totalDuration: 0,
+          },
+        );
 
     const attemptedCalls = raw.completed + raw.failed + raw.active + raw.answered;
     const effectiveCalls = Math.max(raw.calls, attemptedCalls);
@@ -440,7 +456,7 @@ function Campaigns() {
       conversionRate,
       avgDurationFormatted: formatDuration(avgDurationSec),
     };
-  }, [campaigns]);
+  }, [campaigns, selectedId, selectedCampaign]);
 
   // Agregações de chamadas para gráficos
   const chartStatusData = useMemo(() => {
@@ -539,7 +555,6 @@ function Campaigns() {
     const diffHours = Math.floor(diffMin / 60);
     return `Sincronizado há ${diffHours}h atrás`;
   };
-  const selectedCampaign = campaigns.find(c => c.id === selectedId);
 
   return (
     <div className="space-y-6">
@@ -605,6 +620,28 @@ function Campaigns() {
           {error}
         </div>
       )}
+
+      {/* Seletor/Indicador de Estatísticas Ativas */}
+      <div className="flex items-center justify-between bg-glass border-glass rounded-xl px-4 py-2.5 shadow-sm">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-primary animate-pulse"></span>
+          <span className="text-xs font-semibold text-slate-300">
+            {selectedId && selectedCampaign
+              ? `Estatísticas da Campanha #${selectedId}: "${selectedCampaign.name}"`
+              : 'Estatísticas de Visão Geral (Soma de Todas as Campanhas)'}
+          </span>
+        </div>
+        {selectedId && (
+          <button
+            type="button"
+            onClick={() => setSelectedId(null)}
+            className="text-xs font-bold text-primary hover:text-primary-hover flex items-center gap-1 transition-all"
+          >
+            <X size={12} />
+            Ver Geral (Todas)
+          </button>
+        )}
+      </div>
 
       {/* Cartões de Indicadores de Performance (KPIs Principais) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
