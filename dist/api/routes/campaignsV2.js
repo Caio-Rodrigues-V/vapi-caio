@@ -576,10 +576,31 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
             const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
             const name = metadata.name || '';
             let decisionText = 'Aguardando';
-            if (row.decision === 'formalize')
+            if (row.status === 'skipped') {
+                const calcId = metadata.calculationId || metadata.debtorId;
+                const suffix = calcId ? ` (Cadastro DDM #${calcId})` : '';
+                if (row.last_error === 'already_has_agreement') {
+                    decisionText = `Já possui acordo formalizado${suffix}`;
+                }
+                else if (row.last_error === 'no_online_agreement') {
+                    decisionText = `Acordo online não permitido pela DDM${suffix}`;
+                }
+                else if (row.last_error === 'no_debt') {
+                    decisionText = `Sem débito em aberto${suffix}`;
+                }
+                else if (row.last_error === 'cpf_missing') {
+                    decisionText = 'CPF ausente';
+                }
+                else {
+                    decisionText = 'Não discado / Pulado';
+                }
+            }
+            else if (row.decision === 'formalize') {
                 decisionText = 'Formalizado';
-            else if (row.decision === 'schedule')
+            }
+            else if (row.decision === 'schedule') {
                 decisionText = 'Reagendado';
+            }
             else if (row.decision === 'zero') {
                 decisionText = row.ended_reason === 'voicemail'
                     ? 'Caixa Postal'
@@ -600,15 +621,13 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
                 statusText = 'Falhou';
             else if (row.status === 'skipped') {
                 const calcId = metadata.calculationId || metadata.debtorId;
-                const suffix = calcId ? ` (Cadastro DDM #${calcId})` : '';
+                const suffix = calcId ? ` (#${calcId})` : '';
                 if (row.last_error === 'already_has_agreement')
-                    statusText = `Pulado - Já possui acordo formalizado${suffix}`;
+                    statusText = `Pulado - Acordo Formalizado${suffix}`;
                 else if (row.last_error === 'no_online_agreement')
-                    statusText = `Pulado - Acordo online não permitido pela DDM${suffix}`;
+                    statusText = `Pulado - Acordo Online Bloqueado${suffix}`;
                 else if (row.last_error === 'no_debt')
-                    statusText = `Pulado - Sem débito em aberto${suffix}`;
-                else if (row.last_error === 'cpf_missing')
-                    statusText = 'Pulado - CPF ausente';
+                    statusText = `Pulado - Sem Débito${suffix}`;
                 else
                     statusText = 'Pulado';
             }
