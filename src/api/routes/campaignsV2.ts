@@ -209,65 +209,60 @@ campaignsV2Router.all('/campaigns/diag-reclassify-campaign/:id', async (req, res
   if (!campaignId) return res.status(400).json({ error: 'ID da campanha inválido' });
 
   try {
-    const provider = new DdmDebtProvider({
-      token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
-      tokenCalcula: process.env.DDM_TOKEN || '',
-      baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
-    });
-
     const [calls]: any = await pool.query(
       `SELECT id, cpf, metadata FROM campaign_calls WHERE campaign_id = ? AND status = 'skipped'`,
       [campaignId]
     );
 
-    let reclassifiedCount = 0;
-    const details: any[] = [];
-
-    const BATCH_SIZE = 15;
-    for (let i = 0; i < calls.length; i += BATCH_SIZE) {
-      const chunk = calls.slice(i, i + BATCH_SIZE);
-      await Promise.all(
-        chunk.map(async (call: any) => {
-          if (!call.cpf) return;
-          try {
-            const debt = await provider.lookup(call.cpf);
-            if (debt.skipReason && debt.skipReason !== 'no_debt') {
-              const existingMeta = call.metadata && typeof call.metadata === 'object' ? call.metadata : {};
-              const updatedMeta = {
-                ...existingMeta,
-                calculationId: debt.calculationId ?? null,
-                debtorId: debt.debtorId ?? null,
-                institution: debt.institution ?? null,
-              };
-
-              await pool.query(
-                `UPDATE campaign_calls SET last_error = ?, metadata = ? WHERE id = ?`,
-                [debt.skipReason, JSON.stringify(updatedMeta), call.id]
-              );
-
-              reclassifiedCount += 1;
-              details.push({
-                callId: call.id,
-                cpf: call.cpf,
-                newReason: debt.skipReason,
-                calculationId: debt.calculationId,
-                institution: debt.institution,
-              });
-            }
-          } catch (e: any) {
-            console.error(`Erro ao reclassificar chamada ${call.id}:`, e.message);
-          }
-        })
-      );
-    }
-
-    return res.json({
+    // Responde imediatamente ao navegador sem travar a conexão
+    res.json({
       success: true,
-      campaignId,
-      totalSkipped: calls.length,
-      reclassifiedCount,
-      details,
+      message: `Reclassificação da campanha ${campaignId} iniciada em segundo plano!`,
+      totalSkippedLeads: calls.length,
+      note: 'O servidor está reconsultando e atualizando a DDM no banco de dados agora. Você já pode baixar o relatório CSV ou acompanhar as atualizações.',
     });
+
+    // Processa a reclassificação em segundo plano
+    (async () => {
+      const provider = new DdmDebtProvider({
+        token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
+        tokenCalcula: process.env.DDM_TOKEN || '',
+        baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
+      });
+
+      let reclassifiedCount = 0;
+      const BATCH_SIZE = 15;
+      for (let i = 0; i < calls.length; i += BATCH_SIZE) {
+        const chunk = calls.slice(i, i + BATCH_SIZE);
+        await Promise.all(
+          chunk.map(async (call: any) => {
+            if (!call.cpf) return;
+            try {
+              const debt = await provider.lookup(call.cpf);
+              if (debt.skipReason && debt.skipReason !== 'no_debt') {
+                const existingMeta = call.metadata && typeof call.metadata === 'object' ? call.metadata : {};
+                const updatedMeta = {
+                  ...existingMeta,
+                  calculationId: debt.calculationId ?? null,
+                  debtorId: debt.debtorId ?? null,
+                  institution: debt.institution ?? null,
+                };
+
+                await pool.query(
+                  `UPDATE campaign_calls SET last_error = ?, metadata = ? WHERE id = ?`,
+                  [debt.skipReason, JSON.stringify(updatedMeta), call.id]
+                );
+                reclassifiedCount++;
+              }
+            } catch (e: any) {
+              console.error(`Erro ao reclassificar chamada ${call.id}:`, e.message);
+            }
+          })
+        );
+      }
+      console.log(`Reclassificação da campanha ${campaignId} concluída. Total reclassificados: ${reclassifiedCount}`);
+    })().catch(err => console.error('Erro na task de reclassificação:', err));
+
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
