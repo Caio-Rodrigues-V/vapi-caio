@@ -192,17 +192,58 @@ exports.campaignsV2Router.get('/campaigns/diag-skipped-list/:id', async (req, re
         return res.status(500).json({ error: err.message });
     }
 });
-exports.campaignsV2Router.post('/campaigns/diag-reset-no-debt/:id', async (req, res) => {
-    const secret = req.body.secret || req.query.secret;
+exports.campaignsV2Router.all('/campaigns/diag-reclassify-campaign/:id', async (req, res) => {
+    const secret = req.body?.secret || req.query?.secret;
     if (secret !== 'ddm_diag_987') {
         return res.status(401).json({ error: 'Não autorizado' });
     }
     const campaignId = Number(req.params.id);
+    if (!campaignId)
+        return res.status(400).json({ error: 'ID da campanha inválido' });
     try {
-        const [result] = await db_1.default.query(`UPDATE campaign_calls
-       SET status = 'pending', attempts = 0, last_error = NULL
-       WHERE campaign_id = ? AND status = 'skipped' AND last_error = 'no_debt'`, [campaignId]);
-        return res.json({ affectedRows: result.affectedRows });
+        const provider = new DdmDebtProvider_1.DdmDebtProvider({
+            token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
+            tokenCalcula: process.env.DDM_TOKEN || '',
+            baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
+        });
+        const [calls] = await db_1.default.query(`SELECT id, cpf, metadata FROM campaign_calls WHERE campaign_id = ? AND status = 'skipped'`, [campaignId]);
+        let reclassifiedCount = 0;
+        const details = [];
+        for (const call of calls) {
+            if (!call.cpf)
+                continue;
+            try {
+                const debt = await provider.lookup(call.cpf);
+                if (debt.skipReason && debt.skipReason !== 'no_debt') {
+                    const existingMeta = call.metadata && typeof call.metadata === 'object' ? call.metadata : {};
+                    const updatedMeta = {
+                        ...existingMeta,
+                        calculationId: debt.calculationId ?? null,
+                        debtorId: debt.debtorId ?? null,
+                        institution: debt.institution ?? null,
+                    };
+                    await db_1.default.query(`UPDATE campaign_calls SET last_error = ?, metadata = ? WHERE id = ?`, [debt.skipReason, JSON.stringify(updatedMeta), call.id]);
+                    reclassifiedCount += 1;
+                    details.push({
+                        callId: call.id,
+                        cpf: call.cpf,
+                        newReason: debt.skipReason,
+                        calculationId: debt.calculationId,
+                        institution: debt.institution,
+                    });
+                }
+            }
+            catch (e) {
+                console.error(`Erro ao reclassificar chamada ${call.id}:`, e.message);
+            }
+        }
+        return res.json({
+            success: true,
+            campaignId,
+            totalSkipped: calls.length,
+            reclassifiedCount,
+            details,
+        });
     }
     catch (err) {
         return res.status(500).json({ error: err.message });
