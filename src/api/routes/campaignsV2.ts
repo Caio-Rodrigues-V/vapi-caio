@@ -223,36 +223,42 @@ campaignsV2Router.all('/campaigns/diag-reclassify-campaign/:id', async (req, res
     let reclassifiedCount = 0;
     const details: any[] = [];
 
-    for (const call of calls) {
-      if (!call.cpf) continue;
-      try {
-        const debt = await provider.lookup(call.cpf);
-        if (debt.skipReason && debt.skipReason !== 'no_debt') {
-          const existingMeta = call.metadata && typeof call.metadata === 'object' ? call.metadata : {};
-          const updatedMeta = {
-            ...existingMeta,
-            calculationId: debt.calculationId ?? null,
-            debtorId: debt.debtorId ?? null,
-            institution: debt.institution ?? null,
-          };
+    const BATCH_SIZE = 15;
+    for (let i = 0; i < calls.length; i += BATCH_SIZE) {
+      const chunk = calls.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        chunk.map(async (call: any) => {
+          if (!call.cpf) return;
+          try {
+            const debt = await provider.lookup(call.cpf);
+            if (debt.skipReason && debt.skipReason !== 'no_debt') {
+              const existingMeta = call.metadata && typeof call.metadata === 'object' ? call.metadata : {};
+              const updatedMeta = {
+                ...existingMeta,
+                calculationId: debt.calculationId ?? null,
+                debtorId: debt.debtorId ?? null,
+                institution: debt.institution ?? null,
+              };
 
-          await pool.query(
-            `UPDATE campaign_calls SET last_error = ?, metadata = ? WHERE id = ?`,
-            [debt.skipReason, JSON.stringify(updatedMeta), call.id]
-          );
+              await pool.query(
+                `UPDATE campaign_calls SET last_error = ?, metadata = ? WHERE id = ?`,
+                [debt.skipReason, JSON.stringify(updatedMeta), call.id]
+              );
 
-          reclassifiedCount += 1;
-          details.push({
-            callId: call.id,
-            cpf: call.cpf,
-            newReason: debt.skipReason,
-            calculationId: debt.calculationId,
-            institution: debt.institution,
-          });
-        }
-      } catch (e: any) {
-        console.error(`Erro ao reclassificar chamada ${call.id}:`, e.message);
-      }
+              reclassifiedCount += 1;
+              details.push({
+                callId: call.id,
+                cpf: call.cpf,
+                newReason: debt.skipReason,
+                calculationId: debt.calculationId,
+                institution: debt.institution,
+              });
+            }
+          } catch (e: any) {
+            console.error(`Erro ao reclassificar chamada ${call.id}:`, e.message);
+          }
+        })
+      );
     }
 
     return res.json({
