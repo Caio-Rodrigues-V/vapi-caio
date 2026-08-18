@@ -194,7 +194,7 @@ class DdmDebtProvider {
                     institution,
                     debtorName: findFirst(calculation, ['NomeDev', 'NomeDevedor', 'nome_devedor']) || null,
                     debtorId,
-                    calculationId: findFirst(calculation, ['idcalc', 'id_calc', 'idCalculo', 'calculoId']) || null,
+                    calculationId: findFirst(calculation, ['idcalc', 'id_calc', 'idCalculo', 'calculoId', 'CalculoID', 'codigo', 'cod_status', 'status_codigo', 'id_cadastro', 'cadastro', 'cod_motivo', 'motivo_codigo']) || null,
                     nominalAmount: parseMoney(findFirst(calculation, ['TotalNominal', 'ValorTotal', 'valor_total'])),
                     cashAmount,
                     firstDueDate: findFirst(calculation, ['PrimeiroVencto', 'PrimeiroVencimento', 'DtVenc', 'Vencimento']) ||
