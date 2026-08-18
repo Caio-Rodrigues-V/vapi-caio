@@ -272,17 +272,32 @@ exports.campaignsV2Router.get('/campaigns/diag-check-cpf', async (req, res) => {
     if (secret !== 'ddm_diag_987') {
         return res.status(401).json({ error: 'Não autorizado' });
     }
-    const cpf = String(req.query.cpf || '').replace(/\D/g, '');
-    if (!cpf)
-        return res.status(400).json({ error: 'CPF não informado' });
+    const rawInput = String(req.query.cpf || '').trim();
+    const digitsOnly = rawInput.replace(/\D/g, '').padStart(11, '0');
+    if (!digitsOnly || digitsOnly.length !== 11)
+        return res.status(400).json({ error: 'CPF inválido' });
+    const formattedCpf = `${digitsOnly.slice(0, 3)}.${digitsOnly.slice(3, 6)}.${digitsOnly.slice(6, 9)}-${digitsOnly.slice(9, 11)}`;
+    const token = process.env.DDM_TOKEN_BUSCA || process.env.DDM_TOKEN || '';
     try {
+        const [rawDigitsRes, rawFormattedRes] = await Promise.all([
+            axios_1.default.get('https://ddmacordos.com/calc/localiza_dev.php', { params: { tk: token, cpf: digitsOnly }, timeout: 15000 }).catch(e => ({ data: e.message })),
+            axios_1.default.get('https://ddmacordos.com/calc/localiza_dev.php', { params: { tk: token, cpf: formattedCpf }, timeout: 15000 }).catch(e => ({ data: e.message })),
+        ]);
         const provider = new DdmDebtProvider_1.DdmDebtProvider({
-            token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
-            tokenCalcula: process.env.DDM_TOKEN || '',
+            token,
+            tokenCalcula: process.env.DDM_TOKEN || token,
             baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
+            timeoutMs: 15000,
         });
-        const result = await provider.lookup(cpf);
-        return res.json({ cpf, result });
+        const result = await provider.lookup(digitsOnly);
+        return res.json({
+            cpfDigits: digitsOnly,
+            cpfFormatted: formattedCpf,
+            tokenUsed: token,
+            ddmRawResponseDigits: rawDigitsRes.data,
+            ddmRawResponseFormatted: rawFormattedRes.data,
+            providerResult: result,
+        });
     }
     catch (err) {
         return res.status(500).json({ error: err.message, stack: err.stack });
