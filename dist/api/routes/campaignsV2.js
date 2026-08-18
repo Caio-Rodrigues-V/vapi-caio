@@ -620,14 +620,18 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
             if (row.status === 'skipped') {
                 const calcId = metadata.calculationId || metadata.debtorId;
                 const suffix = calcId ? ` (Cadastro DDM #${calcId})` : '';
+                const instName = metadata.institution ? ` (${metadata.institution})` : '';
                 if (row.last_error === 'already_has_agreement') {
                     decisionText = `Já possui acordo formalizado${suffix}`;
                 }
                 else if (row.last_error === 'no_online_agreement') {
                     decisionText = `Acordo online não permitido pela DDM${suffix}`;
                 }
+                else if (row.last_error === 'non_uva_institution') {
+                    decisionText = `Pertence a outra instituição${instName}`;
+                }
                 else if (row.last_error === 'no_debt') {
-                    decisionText = `Sem débito em aberto${suffix}`;
+                    decisionText = metadata.institution ? `Outra instituição${instName}` : `Sem débito em aberto`;
                 }
                 else if (row.last_error === 'cpf_missing') {
                     decisionText = 'CPF ausente';
@@ -663,12 +667,15 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
             else if (row.status === 'skipped') {
                 const calcId = metadata.calculationId || metadata.debtorId;
                 const suffix = calcId ? ` (#${calcId})` : '';
+                const instName = metadata.institution ? ` (${metadata.institution})` : '';
                 if (row.last_error === 'already_has_agreement')
                     statusText = `Pulado - Acordo Formalizado${suffix}`;
                 else if (row.last_error === 'no_online_agreement')
                     statusText = `Pulado - Acordo Online Bloqueado${suffix}`;
+                else if (row.last_error === 'non_uva_institution')
+                    statusText = `Pulado - Outra Instituição${instName}`;
                 else if (row.last_error === 'no_debt')
-                    statusText = `Pulado - Sem Débito${suffix}`;
+                    statusText = metadata.institution ? `Pulado - Outra Instituição${instName}` : `Pulado - Sem Débito${suffix}`;
                 else
                     statusText = 'Pulado';
             }
