@@ -696,10 +696,12 @@ campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
       else if (row.status === 'completed') statusText = 'Concluído';
       else if (row.status === 'failed') statusText = 'Falhou';
       else if (row.status === 'skipped') {
-        if (row.last_error === 'already_has_agreement') statusText = 'Pulado (Já possui acordo formalizado)';
-        else if (row.last_error === 'no_online_agreement') statusText = 'Pulado (Acordo online não permitido pela DDM)';
-        else if (row.last_error === 'no_debt') statusText = 'Pulado (Sem débito em aberto)';
-        else if (row.last_error === 'cpf_missing') statusText = 'Pulado (CPF ausente)';
+        const calcId = metadata.calculationId || metadata.debtorId;
+        const suffix = calcId ? ` (Cadastro DDM #${calcId})` : '';
+        if (row.last_error === 'already_has_agreement') statusText = `Pulado - Já possui acordo formalizado${suffix}`;
+        else if (row.last_error === 'no_online_agreement') statusText = `Pulado - Acordo online não permitido pela DDM${suffix}`;
+        else if (row.last_error === 'no_debt') statusText = `Pulado - Sem débito em aberto${suffix}`;
+        else if (row.last_error === 'cpf_missing') statusText = 'Pulado - CPF ausente';
         else statusText = 'Pulado';
       }
 

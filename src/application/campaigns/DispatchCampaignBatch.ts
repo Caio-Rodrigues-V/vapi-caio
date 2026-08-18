@@ -71,7 +71,13 @@ export class DispatchCampaignBatch {
           const debt = await this.debts.lookup(call.cpf);
           if (!debt.hasDebt) {
             const reason = debt.skipReason || 'no_debt';
-            await this.calls.mergeMetadata(call.id, { debtCheckedAt: new Date().toISOString(), hasDebt: false });
+            await this.calls.mergeMetadata(call.id, {
+              debtCheckedAt: new Date().toISOString(),
+              hasDebt: false,
+              calculationId: debt.calculationId ?? null,
+              debtorId: debt.debtorId ?? null,
+              institution: debt.institution ?? null,
+            });
             await this.calls.updateStatus(call.id, 'skipped', reason);
             result.skipped += 1;
             continue;

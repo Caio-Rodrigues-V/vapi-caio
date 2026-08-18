@@ -119,6 +119,7 @@ type CallRow = {
   recording_url?: string | null;
   duration_seconds?: number | null;
   last_error?: string | null;
+  metadata?: Record<string, any> | null;
 };
 
 type VapiConfig = {
@@ -1126,8 +1127,8 @@ function Campaigns() {
                       {call.status === 'skipped' ? (
                         <span className="text-slate-400 font-normal flex items-center gap-1">
                           <X size={14} className="text-slate-500" />
-                          {call.last_error === 'already_has_agreement' && 'Já possui acordo formalizado'}
-                          {call.last_error === 'no_online_agreement' && 'Acordo online não permitido pela DDM'}
+                          {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
+                          {call.last_error === 'no_online_agreement' && `Acordo online não permitido${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
                           {call.last_error === 'no_debt' && 'Sem débito em aberto'}
                           {call.last_error === 'cpf_missing' && 'CPF ausente'}
                           {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
@@ -1326,8 +1327,8 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                     )}
                     {call.status === 'skipped' && (
                       <span className="text-slate-400">
-                        {call.last_error === 'already_has_agreement' && 'Já possui acordo formalizado'}
-                        {call.last_error === 'no_online_agreement' && 'Acordo online não permitido pela DDM'}
+                        {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
+                        {call.last_error === 'no_online_agreement' && `Acordo online não permitido${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
                         {call.last_error === 'no_debt' && 'Sem débito em aberto'}
                         {call.last_error === 'cpf_missing' && 'CPF ausente'}
                         {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
