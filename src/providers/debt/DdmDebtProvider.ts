@@ -190,11 +190,13 @@ export class DdmDebtProvider implements DebtProvider {
         const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
 
         const hasInstallments = installments.length > 0 && Boolean(cashAmount);
-        let skipReason: 'no_debt' | 'already_has_agreement' | null = null;
+        let skipReason: 'no_debt' | 'already_has_agreement' | 'no_online_agreement' | null = null;
         if (!hasInstallments) {
           skipReason = 'no_debt';
         } else if (calculation.FechaAcordo === false) {
-          skipReason = 'already_has_agreement';
+          const rawAcordos = Array.isArray(calculation.Acordos) ? calculation.Acordos : [];
+          const hasActiveAgreement = rawAcordos.some((a: any) => (Array.isArray(a) ? a.length > 0 : Boolean(a)));
+          skipReason = hasActiveAgreement ? 'already_has_agreement' : 'no_online_agreement';
         }
 
         const result: DebtLookupResult = {

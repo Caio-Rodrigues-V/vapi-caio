@@ -5,6 +5,7 @@ import fs from 'fs';
 import { parse } from 'csv-parse';
 import pool from '../../db';
 import { normalizePhone } from '../../utils/phoneValidator';
+import { DdmDebtProvider } from '../../providers/debt/DdmDebtProvider';
 
 export const campaignsV2Router = Router();
 
@@ -235,6 +236,27 @@ campaignsV2Router.get('/campaigns/diag-env', async (req, res) => {
     GLOBAL_MAX_CONCURRENT: process.env.GLOBAL_MAX_CONCURRENT,
     WORKER_DELAY_BETWEEN_CALLS_MS: process.env.WORKER_DELAY_BETWEEN_CALLS_MS,
   });
+});
+
+campaignsV2Router.get('/campaigns/diag-check-cpf', async (req, res) => {
+  const secret = req.query.secret;
+  if (secret !== 'ddm_diag_987') {
+    return res.status(401).json({ error: 'Não autorizado' });
+  }
+  const cpf = String(req.query.cpf || '').replace(/\D/g, '');
+  if (!cpf) return res.status(400).json({ error: 'CPF não informado' });
+
+  try {
+    const provider = new DdmDebtProvider({
+      token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
+      tokenCalcula: process.env.DDM_TOKEN || '',
+      baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
+    });
+    const result = await provider.lookup(cpf);
+    return res.json({ cpf, result });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message, stack: err.stack });
+  }
 });
 
 campaignsV2Router.get('/campaigns/diag-campaign-stats/:id', async (req, res) => {
@@ -642,7 +664,7 @@ campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
     res.write('Telefone;CPF;Nome;Status;Tentativas;Decisão;Duração (s);Motivo do Fim;Última Atualização;Transcrição\n');
 
     const [rows]: any = await pool.query(
-      `SELECT cc.customer_number, cc.cpf, cc.attempts, cc.status, cc.metadata,
+      `SELECT cc.customer_number, cc.cpf, cc.attempts, cc.status, cc.last_error, cc.metadata,
               cr.decision, cr.duration_seconds, cr.ended_reason, cc.updated_at, cr.transcript
        FROM campaign_calls cc
        LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
@@ -673,7 +695,13 @@ campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
       else if (row.status === 'running' || row.status === 'in_progress' || row.status === 'queued' || row.status === 'answered') statusText = 'Em Linha';
       else if (row.status === 'completed') statusText = 'Concluído';
       else if (row.status === 'failed') statusText = 'Falhou';
-      else if (row.status === 'skipped') statusText = 'Pulado';
+      else if (row.status === 'skipped') {
+        if (row.last_error === 'already_has_agreement') statusText = 'Pulado (Já possui acordo formalizado)';
+        else if (row.last_error === 'no_online_agreement') statusText = 'Pulado (Acordo online não permitido pela DDM)';
+        else if (row.last_error === 'no_debt') statusText = 'Pulado (Sem débito em aberto)';
+        else if (row.last_error === 'cpf_missing') statusText = 'Pulado (CPF ausente)';
+        else statusText = 'Pulado';
+      }
 
       const line = [
         row.customer_number,

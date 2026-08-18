@@ -621,8 +621,8 @@ function Campaigns() {
         </div>
       )}
 
-      {/* Seletor/Indicador de Estatísticas Ativas */}
-      <div className="flex items-center justify-between bg-glass border-glass rounded-xl px-4 py-2.5 shadow-sm">
+      {/* Seletor/Indicador de Estatísticas Ativas (Dropdown de Filtro) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-glass border-glass rounded-xl px-4 py-2.5 shadow-sm gap-2">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-primary animate-pulse"></span>
           <span className="text-xs font-semibold text-slate-300">
@@ -631,16 +631,34 @@ function Campaigns() {
               : 'Estatísticas de Visão Geral (Soma de Todas as Campanhas)'}
           </span>
         </div>
-        {selectedId && (
-          <button
-            type="button"
-            onClick={() => setSelectedId(null)}
-            className="text-xs font-bold text-primary hover:text-primary-hover flex items-center gap-1 transition-all"
+        <div className="flex items-center gap-2">
+          <label htmlFor="campaign-select" className="text-xs text-slate-400 font-medium whitespace-nowrap">
+            Selecionar Campanha:
+          </label>
+          <select
+            id="campaign-select"
+            value={selectedId ?? ''}
+            onChange={(e) => setSelectedId(e.target.value ? Number(e.target.value) : null)}
+            className="bg-slate-900/90 text-xs font-semibold text-slate-200 border border-slate-700/80 rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer max-w-[320px] truncate"
           >
-            <X size={12} />
-            Ver Geral (Todas)
-          </button>
-        )}
+            <option value="">Todas as Campanhas (Visão Geral)</option>
+            {campaigns.map((c) => (
+              <option key={c.id} value={c.id}>
+                #{c.id} - {c.name}
+              </option>
+            ))}
+          </select>
+          {selectedId && (
+            <button
+              type="button"
+              onClick={() => setSelectedId(null)}
+              className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-all"
+            >
+              <X size={12} />
+              Geral
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Cartões de Indicadores de Performance (KPIs Principais) */}
@@ -1108,10 +1126,11 @@ function Campaigns() {
                       {call.status === 'skipped' ? (
                         <span className="text-slate-400 font-normal flex items-center gap-1">
                           <X size={14} className="text-slate-500" />
-                          {call.last_error === 'already_has_agreement' && 'Já tem acordo ativo'}
+                          {call.last_error === 'already_has_agreement' && 'Já possui acordo formalizado'}
+                          {call.last_error === 'no_online_agreement' && 'Acordo online não permitido pela DDM'}
                           {call.last_error === 'no_debt' && 'Sem débito em aberto'}
                           {call.last_error === 'cpf_missing' && 'CPF ausente'}
-                          {!['already_has_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
+                          {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
                         </span>
                       ) : (
                         !call.decision && (
@@ -1307,10 +1326,11 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                     )}
                     {call.status === 'skipped' && (
                       <span className="text-slate-400">
-                        {call.last_error === 'already_has_agreement' && 'Já tem acordo ativo'}
+                        {call.last_error === 'already_has_agreement' && 'Já possui acordo formalizado'}
+                        {call.last_error === 'no_online_agreement' && 'Acordo online não permitido pela DDM'}
                         {call.last_error === 'no_debt' && 'Sem débito em aberto'}
                         {call.last_error === 'cpf_missing' && 'CPF ausente'}
-                        {!['already_has_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
+                        {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
                       </span>
                     )}
                     {!call.decision && call.status !== 'skipped' && <span className="text-slate-400">Pendente</span>}
