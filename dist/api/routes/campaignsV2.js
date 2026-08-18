@@ -209,7 +209,7 @@ exports.campaignsV2Router.all('/campaigns/diag-reclassify-campaign/:id', async (
             totalSkippedLeads: calls.length,
             note: 'O servidor está reconsultando e atualizando a DDM no banco de dados agora. Você já pode baixar o relatório CSV ou acompanhar as atualizações.',
         });
-        // Processa a reclassificação em segundo plano
+        // Processa a reclassificação em segundo plano sequencialmente para evitar rate limit da DDM
         (async () => {
             const provider = new DdmDebtProvider_1.DdmDebtProvider({
                 token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
@@ -218,30 +218,29 @@ exports.campaignsV2Router.all('/campaigns/diag-reclassify-campaign/:id', async (
                 timeoutMs: 15000,
             });
             let reclassifiedCount = 0;
-            const BATCH_SIZE = 3;
-            for (let i = 0; i < calls.length; i += BATCH_SIZE) {
-                const chunk = calls.slice(i, i + BATCH_SIZE);
-                await Promise.all(chunk.map(async (call) => {
-                    if (!call.cpf)
-                        return;
-                    try {
-                        const debt = await provider.lookup(call.cpf);
-                        if (debt.skipReason && debt.skipReason !== 'no_debt') {
-                            const existingMeta = call.metadata && typeof call.metadata === 'object' ? call.metadata : {};
-                            const updatedMeta = {
-                                ...existingMeta,
-                                calculationId: debt.calculationId ?? null,
-                                debtorId: debt.debtorId ?? null,
-                                institution: debt.institution ?? null,
-                            };
-                            await db_1.default.query(`UPDATE campaign_calls SET last_error = ?, metadata = ? WHERE id = ?`, [debt.skipReason, JSON.stringify(updatedMeta), call.id]);
-                            reclassifiedCount++;
-                        }
+            for (let i = 0; i < calls.length; i += 1) {
+                const call = calls[i];
+                if (!call.cpf)
+                    continue;
+                try {
+                    const debt = await provider.lookup(call.cpf);
+                    if (debt.skipReason && debt.skipReason !== 'no_debt') {
+                        const existingMeta = call.metadata && typeof call.metadata === 'object' ? call.metadata : {};
+                        const updatedMeta = {
+                            ...existingMeta,
+                            calculationId: debt.calculationId ?? null,
+                            debtorId: debt.debtorId ?? null,
+                            institution: debt.institution ?? null,
+                        };
+                        await db_1.default.query(`UPDATE campaign_calls SET last_error = ?, metadata = ? WHERE id = ?`, [debt.skipReason, JSON.stringify(updatedMeta), call.id]);
+                        reclassifiedCount++;
                     }
-                    catch (e) {
-                        console.error(`Erro ao reclassificar chamada ${call.id}:`, e.message);
-                    }
-                }));
+                }
+                catch (e) {
+                    console.error(`Erro ao reclassificar chamada ${call.id}:`, e.message);
+                }
+                // Pausa suave de 300ms entre requisições para respeitar o limite da DDM
+                await new Promise((resolve) => setTimeout(resolve, 300));
             }
             console.log(`Reclassificação da campanha ${campaignId} concluída. Total reclassificados: ${reclassifiedCount}`);
         })().catch(err => console.error('Erro na task de reclassificação:', err));
