@@ -228,10 +228,11 @@ campaignsV2Router.all('/campaigns/diag-reclassify-campaign/:id', async (req, res
         token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
         tokenCalcula: process.env.DDM_TOKEN || '',
         baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
+        timeoutMs: 15000,
       });
 
       let reclassifiedCount = 0;
-      const BATCH_SIZE = 15;
+      const BATCH_SIZE = 3;
       for (let i = 0; i < calls.length; i += BATCH_SIZE) {
         const chunk = calls.slice(i, i + BATCH_SIZE);
         await Promise.all(

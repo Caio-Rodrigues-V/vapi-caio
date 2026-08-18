@@ -113,7 +113,7 @@ export class DdmDebtProvider implements DebtProvider {
     this.maxRetries = options.maxRetries ?? 3;
     this.client = axios.create({
       baseURL: (options.baseUrl || 'https://ddmacordos.com').replace(/\/$/, ''),
-      timeout: options.timeoutMs ?? 7_000,
+      timeout: options.timeoutMs ?? 15_000,
       headers: { Accept: 'application/json' },
     });
   }
