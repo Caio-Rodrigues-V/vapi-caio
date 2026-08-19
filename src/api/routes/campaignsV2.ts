@@ -601,6 +601,7 @@ campaignsV2Router.patch('/campaigns/:id/status', async (req, res) => {
   if (!Number.isInteger(id) || id <= 0 || !allowed.has(status)) {
     return res.status(400).json({ error: 'Campanha ou status inválido' });
   }
+
   await pool.execute(
     `UPDATE campaigns
      SET status = ?,
@@ -609,6 +610,16 @@ campaignsV2Router.patch('/campaigns/:id/status', async (req, res) => {
      WHERE id = ?`,
     [status, status, status, id],
   );
+
+  if (status === 'paused' || status === 'cancelled') {
+    await pool.execute(
+      `UPDATE campaign_calls
+       SET status = 'pending', locked_at = NULL
+       WHERE campaign_id = ? AND status IN ('reserved', 'queued') AND provider_call_id IS NULL`,
+      [id]
+    );
+  }
+
   return res.json({ ok: true, id, status });
 });
 

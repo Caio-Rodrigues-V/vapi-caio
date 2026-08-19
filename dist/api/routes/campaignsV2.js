@@ -531,6 +531,11 @@ exports.campaignsV2Router.patch('/campaigns/:id/status', async (req, res) => {
          started_at = CASE WHEN ? = 'running' AND started_at IS NULL THEN NOW() ELSE started_at END,
          completed_at = CASE WHEN ? IN ('completed','cancelled') THEN NOW() ELSE completed_at END
      WHERE id = ?`, [status, status, status, id]);
+    if (status === 'paused' || status === 'cancelled') {
+        await db_1.default.execute(`UPDATE campaign_calls
+       SET status = 'pending', locked_at = NULL
+       WHERE campaign_id = ? AND status IN ('reserved', 'queued') AND provider_call_id IS NULL`, [id]);
+    }
     return res.json({ ok: true, id, status });
 });
 exports.campaignsV2Router.put('/campaigns/:id', async (req, res) => {
