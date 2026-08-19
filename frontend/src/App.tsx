@@ -493,7 +493,8 @@ function Campaigns() {
   // Filtragem de contatos listados da campanha selecionada
   const filteredCalls = useMemo(() => {
     if (decisionFilter === 'all') return calls;
-    if (decisionFilter === 'pending') return calls.filter(c => !c.decision && c.status !== 'completed');
+    if (decisionFilter === 'active') return calls.filter(c => ['reserved', 'queued', 'in_progress', 'answered'].includes(c.status));
+    if (decisionFilter === 'pending') return calls.filter(c => !c.decision && c.status !== 'completed' && !['reserved', 'queued', 'in_progress', 'answered'].includes(c.status));
     if (decisionFilter === 'answered') return calls.filter(c => (c.duration_seconds && c.duration_seconds > 0) || c.status === 'answered');
     if (decisionFilter === 'no_debt') return calls.filter(c => c.status === 'skipped' && c.last_error === 'no_debt');
     return calls.filter(c => c.decision === decisionFilter);
@@ -1041,6 +1042,7 @@ function Campaigns() {
               </span>
               {[
                 { label: 'Todos', value: 'all' },
+                { label: 'Em Linha', value: 'active' },
                 { label: 'Formalizado', value: 'formalize' },
                 { label: 'Agendado', value: 'schedule' },
                 { label: 'Atendidas', value: 'answered' },

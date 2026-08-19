@@ -326,6 +326,28 @@ exports.campaignsV2Router.get('/campaigns/diag-campaign-stats/:id', async (req, 
         return res.status(500).json({ error: err.message });
     }
 });
+exports.campaignsV2Router.get('/campaigns/diag-kill-active-calls', async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+    const campaignId = Number(req.query.id);
+    if (!campaignId)
+        return res.status(400).json({ error: 'ID da campanha não informado' });
+    try {
+        const [result] = await db_1.default.query(`UPDATE campaign_calls
+       SET status = 'failed', last_error = 'force_cleared_by_admin', locked_at = NULL
+       WHERE campaign_id = ? AND status IN ('reserved','queued','in_progress','answered')`, [campaignId]);
+        return res.json({
+            success: true,
+            campaignId,
+            clearedCalls: Number(result.affectedRows || 0),
+        });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message, stack: err.stack });
+    }
+});
 exports.campaignsV2Router.use(requireAdmin);
 exports.campaignsV2Router.get('/calls/:providerCallId/recording', async (req, res) => {
     const { providerCallId } = req.params;
