@@ -151,52 +151,53 @@ class ProcessVapiWebhook {
                 await this.repository.scheduleCallbackFromCall(campaignCallId, scheduledAt);
             }
             if (decision === 'formalize' && this.debts) {
-                try {
-                    console.log(`[ProcessVapiWebhook] Iniciando formalização DDM para campaignCallId: ${campaignCallId}`);
-                    const callDetails = await this.repository.findCampaignCall(campaignCallId);
-                    if (callDetails) {
-                        const cpf = callDetails.cpf;
-                        if (cpf) {
-                            let debtorId = callDetails.metadata?.debtorId;
-                            if (!debtorId) {
-                                console.log(`[ProcessVapiWebhook] debtorId não encontrado no metadata. Buscando via localiza_dev para CPF: ${cpf}...`);
-                                const lookupRes = await this.debts.lookup(cpf);
-                                debtorId = lookupRes.debtorId;
+                // Processa a formalização DDM e notificação de forma assíncrona para responder ao webhook da Vapi em milissegundos sem estourar o timeout de 30s
+                void (async () => {
+                    try {
+                        console.log(`[ProcessVapiWebhook] [Async] Iniciando formalização DDM para campaignCallId: ${campaignCallId}`);
+                        const callDetails = await this.repository.findCampaignCall(campaignCallId);
+                        if (callDetails) {
+                            const cpf = callDetails.cpf;
+                            if (cpf) {
+                                let debtorId = callDetails.metadata?.debtorId;
+                                if (!debtorId) {
+                                    console.log(`[ProcessVapiWebhook] debtorId não encontrado no metadata. Buscando via localiza_dev para CPF: ${cpf}...`);
+                                    const lookupRes = await this.debts.lookup(cpf);
+                                    debtorId = lookupRes.debtorId;
+                                }
+                                if (!debtorId) {
+                                    console.error(`[ProcessVapiWebhook] Não foi possível localizar o debtorId para o CPF ${cpf} na DDM.`);
+                                    return;
+                                }
+                                const institutionName = String(callDetails.metadata?.institution || '');
+                                const client = institutionName.toLowerCase().includes('cruzeiro') ? 'cruzeiro' : 'ddm';
+                                console.log(`[ProcessVapiWebhook] Chamando efetiva_acordo.php p/ debtorId: ${debtorId}, cli: ${client}`);
+                                const agreement = await this.debts.formalize(debtorId, client);
+                                const sender = new NotificationSender_1.NotificationSender();
+                                await sender.send({
+                                    cpf,
+                                    nome: callDetails.metadata?.debtorName || callDetails.metadata?.name || 'Cliente',
+                                    email: callDetails.metadata?.email || null,
+                                    phone: callDetails.customerNumber || null,
+                                    instituicao: institutionName || 'DDM Credores',
+                                    valor: agreement.valor ? agreement.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (callDetails.metadata?.cashAmount?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'),
+                                    formaPagamento: 'À vista',
+                                    linkBoleto: agreement.linkBoleto,
+                                    linkPix: agreement.linkPix,
+                                    linhaDigitavel: agreement.linhaDigitavel,
+                                    vencimento: agreement.vencimento,
+                                    numeroAcordo: agreement.numeroAcordo,
+                                    vapiCallId: providerCallId,
+                                    pagamentoPronto: Boolean(agreement.linkBoleto || agreement.linkPix || agreement.linhaDigitavel),
+                                });
+                                console.log(`[ProcessVapiWebhook] [Async] Formalização concluída com sucesso para campaignCallId: ${campaignCallId}`);
                             }
-                            if (!debtorId) {
-                                throw new Error(`Não foi possível localizar o debtorId para o CPF ${cpf} na DDM.`);
-                            }
-                            const institutionName = String(callDetails.metadata?.institution || '');
-                            const client = institutionName.toLowerCase().includes('cruzeiro') ? 'cruzeiro' : 'ddm';
-                            console.log(`[ProcessVapiWebhook] Chamando efetiva_acordo.php p/ debtorId: ${debtorId}, cli: ${client}`);
-                            const agreement = await this.debts.formalize(debtorId, client);
-                            const sender = new NotificationSender_1.NotificationSender();
-                            await sender.send({
-                                cpf,
-                                nome: callDetails.metadata?.debtorName || callDetails.metadata?.name || 'Cliente',
-                                email: callDetails.metadata?.email || null,
-                                phone: callDetails.customerNumber || null,
-                                instituicao: institutionName || 'DDM Credores',
-                                valor: agreement.valor ? agreement.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (callDetails.metadata?.cashAmount?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'),
-                                formaPagamento: 'À vista',
-                                linkBoleto: agreement.linkBoleto,
-                                linkPix: agreement.linkPix,
-                                linhaDigitavel: agreement.linhaDigitavel,
-                                vencimento: agreement.vencimento,
-                                numeroAcordo: agreement.numeroAcordo,
-                                vapiCallId: providerCallId,
-                                pagamentoPronto: Boolean(agreement.linkBoleto || agreement.linkPix || agreement.linhaDigitavel),
-                            });
-                        }
-                        else {
-                            console.warn('[ProcessVapiWebhook] calculationId ou CPF ausentes nos metadados. Não foi possível formalizar.');
                         }
                     }
-                }
-                catch (formError) {
-                    console.error('[ProcessVapiWebhook] Falha ao processar formalização/email:', formError.message);
-                    throw formError;
-                }
+                    catch (formError) {
+                        console.error('[ProcessVapiWebhook] [Async] Falha ao processar formalização DDM/email em background:', formError.message);
+                    }
+                })();
             }
             // Send callback notification if callbackUrl is present in metadata
             try {
