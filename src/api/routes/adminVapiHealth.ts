@@ -59,7 +59,7 @@ adminVapiHealthRouter.get('/vapi/health', async (req, res) => {
 
     const client = axios.create({
       baseURL: 'https://api.vapi.ai',
-      timeout: 10_000,
+      timeout: 25_000,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',

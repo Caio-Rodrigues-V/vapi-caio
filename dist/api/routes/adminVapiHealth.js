@@ -40,7 +40,7 @@ exports.adminVapiHealthRouter.get('/vapi/health', async (req, res) => {
         const assistantId = getRequiredEnv('VAPI_ASSISTANT_ID_UVA');
         const client = axios_1.default.create({
             baseURL: 'https://api.vapi.ai',
-            timeout: 10_000,
+            timeout: 25_000,
             headers: {
                 Authorization: `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
