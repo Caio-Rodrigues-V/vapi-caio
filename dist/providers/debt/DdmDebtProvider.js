@@ -180,13 +180,13 @@ class DdmDebtProvider {
                 const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
                 const hasInstallments = installments.length > 0 && Boolean(cashAmount);
                 let skipReason = null;
-                if (!hasInstallments) {
-                    skipReason = 'no_debt';
-                }
-                else if (calculation.FechaAcordo === false) {
+                if (calculation.FechaAcordo === false) {
                     const rawAcordos = Array.isArray(calculation.Acordos) ? calculation.Acordos : [];
                     const hasActiveAgreement = rawAcordos.some((a) => (Array.isArray(a) ? a.length > 0 : Boolean(a)));
                     skipReason = hasActiveAgreement ? 'already_has_agreement' : 'no_online_agreement';
+                }
+                else if (!hasInstallments) {
+                    skipReason = 'no_debt';
                 }
                 const result = {
                     cpf,
