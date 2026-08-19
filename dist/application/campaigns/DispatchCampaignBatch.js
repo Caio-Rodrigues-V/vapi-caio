@@ -84,7 +84,7 @@ class DispatchCampaignBatch {
                         result.skipped += 1;
                         continue;
                     }
-                    assistantId = this.assistantResolver?.resolve() || campaign.assistantId;
+                    assistantId = this.assistantResolver?.resolve(debt.institution) || campaign.assistantId;
                     customerName = asText(debt.debtorName) || customerName;
                     debtMetadata = {
                         debtCheckedAt: new Date().toISOString(),

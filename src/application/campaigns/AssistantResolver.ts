@@ -1,5 +1,6 @@
 export type AssistantResolverOptions = {
   uvaAssistantId: string;
+  cruzeiroAssistantId?: string;
 };
 
 export class AssistantResolver {
@@ -9,7 +10,11 @@ export class AssistantResolver {
     }
   }
 
-  resolve(): string {
+  resolve(institution?: string | null): string {
+    const instUpper = (institution || '').toUpperCase();
+    if (instUpper.includes('CRUZEIRO')) {
+      return process.env.VAPI_ASSISTANT_ID_CRUZEIRO || this.options.cruzeiroAssistantId || this.options.uvaAssistantId;
+    }
     return this.options.uvaAssistantId;
   }
 }

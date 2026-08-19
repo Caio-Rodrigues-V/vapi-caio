@@ -9,7 +9,11 @@ class AssistantResolver {
             throw new Error('VAPI_ASSISTANT_ID_UVA não configurado.');
         }
     }
-    resolve() {
+    resolve(institution) {
+        const instUpper = (institution || '').toUpperCase();
+        if (instUpper.includes('CRUZEIRO')) {
+            return process.env.VAPI_ASSISTANT_ID_CRUZEIRO || this.options.cruzeiroAssistantId || this.options.uvaAssistantId;
+        }
         return this.options.uvaAssistantId;
     }
 }
