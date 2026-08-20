@@ -421,26 +421,18 @@ exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
             timeout: 10_000,
             headers: { Authorization: `Bearer ${apiKey}` },
         });
-        let assistants = [];
-        try {
-            const resp = await client.get('/assistant');
-            if (Array.isArray(resp.data)) {
-                assistants = resp.data.map((a) => ({
-                    id: String(a.id),
-                    name: String(a.name || a.id),
-                    institution: String(a.name || '').toUpperCase().includes('CRUZEIRO') ? 'CRUZEIRO' : 'UVA',
-                }));
-            }
-        }
-        catch (err) {
-            console.warn('[vapi/config] warning fetching assistants list:', err.message);
-        }
-        if (assistants.length === 0) {
-            assistants = [
-                { id: uvaAssistantId, name: 'JULIA - VEIGA VAPI (CAIO)', institution: 'UVA' },
-                { id: cruzeiroAssistantId, name: 'JULIA - CRUZEIRO', institution: 'CRUZEIRO' },
-            ];
-        }
+        const assistants = [
+            {
+                id: uvaAssistantId,
+                name: 'JULIA - VEIGA VAPI (UVA)',
+                institution: 'UVA',
+            },
+            {
+                id: cruzeiroAssistantId,
+                name: 'JULIA - CRUZEIRO DO SUL',
+                institution: 'CRUZEIRO',
+            },
+        ];
         let phoneData;
         try {
             const resp = await client.get(`/phone-number/${phoneNumberId}`);
