@@ -413,7 +413,8 @@ exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, r
 exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
     try {
         const apiKey = configuredValue(undefined, 'VAPI_API_KEY');
-        const assistantId = configuredValue(undefined, 'VAPI_ASSISTANT_ID_UVA');
+        const uvaAssistantId = process.env.VAPI_ASSISTANT_ID_UVA || '15190261-096d-47fe-bbbe-cbfe8dceb2ae';
+        const cruzeiroAssistantId = process.env.VAPI_ASSISTANT_ID_CRUZEIRO || '';
         const phoneNumberId = configuredValue(undefined, 'VAPI_PHONE_NUMBER_ID');
         const client = axios_1.default.create({
             baseURL: 'https://api.vapi.ai',
@@ -422,12 +423,11 @@ exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
         });
         let assistantData;
         try {
-            const resp = await client.get(`/assistant/${assistantId}`);
+            const resp = await client.get(`/assistant/${uvaAssistantId}`);
             assistantData = resp.data;
         }
         catch (err) {
-            const errMsg = err.response?.data?.message || err.message;
-            return res.status(404).json({ error: `Assistente ID [${assistantId}] não encontrado na Vapi: ${errMsg}` });
+            console.warn('[vapi/config] warning fetching uva assistant:', err.message);
         }
         let phoneData;
         try {
@@ -435,15 +435,31 @@ exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
             phoneData = resp.data;
         }
         catch (err) {
-            const errMsg = err.response?.data?.message || err.message;
-            return res.status(404).json({ error: `Telefone ID [${phoneNumberId}] não encontrado na Vapi: ${errMsg}` });
+            console.warn('[vapi/config] warning fetching phone:', err.message);
         }
-        return res.json({
-            operation: 'uva',
-            assistant: {
-                id: assistantId,
-                name: String(assistantData?.name || 'Assistant UVA'),
+        const assistants = [
+            {
+                id: uvaAssistantId,
+                name: `Veiga de Almeida - UVA (${assistantData?.name || 'Júlia'})`,
+                institution: 'UVA',
             },
+            ...(cruzeiroAssistantId
+                ? [
+                    {
+                        id: cruzeiroAssistantId,
+                        name: 'Cruzeiro do Sul (Agente Formalização)',
+                        institution: 'CRUZEIRO',
+                    },
+                ]
+                : []),
+        ];
+        return res.json({
+            operation: 'multi',
+            assistant: {
+                id: uvaAssistantId,
+                name: String(assistantData?.name || 'Júlia (UVA)'),
+            },
+            assistants,
             phoneNumber: {
                 id: phoneNumberId,
                 number: String(phoneData?.number ||

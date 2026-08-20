@@ -122,9 +122,12 @@ type CallRow = {
   metadata?: Record<string, any> | null;
 };
 
+type AssistantItem = { id: string; name: string; institution?: string };
+
 type VapiConfig = {
   operation: string;
   assistant: { id: string; name: string };
+  assistants?: AssistantItem[];
   phoneNumber: { id: string; number: string };
 };
 
@@ -136,6 +139,7 @@ type ImportError = {
 };
 
 function StatusBadge({ status }: { status: string }) {
+
   const normalized = status.toLowerCase();
   
   if (normalized === 'running') {
@@ -1489,13 +1493,25 @@ function CreateCampaign({
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [configError, setConfigError] = useState('');
   const [vapiConfig, setVapiConfig] = useState<VapiConfig | null>(null);
+  const [selectedAssistantId, setSelectedAssistantId] = useState<string>('');
+  const [customAssistantId, setCustomAssistantId] = useState<string>('');
 
   useEffect(() => {
     let active = true;
 
     void apiFetch('/vapi/config')
       .then((result) => {
-        if (active) setVapiConfig(result as VapiConfig);
+        if (active) {
+          const cfg = result as VapiConfig;
+          setVapiConfig(cfg);
+          if (campaign?.assistant_id) {
+            setSelectedAssistantId(campaign.assistant_id);
+          } else if (cfg.assistants && cfg.assistants.length > 0) {
+            setSelectedAssistantId(cfg.assistants[0].id);
+          } else {
+            setSelectedAssistantId(cfg.assistant.id);
+          }
+        }
       })
       .catch((err) => {
         if (active) {
@@ -1509,7 +1525,7 @@ function CreateCampaign({
     return () => {
       active = false;
     };
-  }, []);
+  }, [campaign?.assistant_id]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1518,6 +1534,16 @@ function CreateCampaign({
     const form = new FormData(event.currentTarget);
     setSaving(true);
 
+    const finalAssistantId = selectedAssistantId === 'custom'
+      ? customAssistantId.trim()
+      : (selectedAssistantId || vapiConfig.assistant.id);
+
+    if (!finalAssistantId) {
+      window.alert('Selecione ou informe um Assistente Vapi válido.');
+      setSaving(false);
+      return;
+    }
+
     try {
       if (campaign) {
         // Edit Mode
@@ -1525,6 +1551,7 @@ function CreateCampaign({
           method: 'PUT',
           body: JSON.stringify({
             name: form.get('name'),
+            assistantId: finalAssistantId,
             maxConcurrent: Number(form.get('maxConcurrent') || 1),
             maxAttempts: Number(form.get('maxAttempts') || 5),
           }),
@@ -1535,7 +1562,7 @@ function CreateCampaign({
           method: 'POST',
           body: JSON.stringify({
             name: form.get('name'),
-            assistantId: vapiConfig.assistant.id,
+            assistantId: finalAssistantId,
             phoneNumberId: vapiConfig.phoneNumber.id,
             maxConcurrent: Number(form.get('maxConcurrent') || 1),
             maxAttempts: Number(form.get('maxAttempts') || 5),
@@ -1551,6 +1578,8 @@ function CreateCampaign({
       setSaving(false);
     }
   }
+
+  const assistantOptions = vapiConfig?.assistants || (vapiConfig ? [vapiConfig.assistant] : []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
@@ -1573,19 +1602,44 @@ function CreateCampaign({
           />
         </div>
 
-        <div className="rounded-xl border border-glass bg-slate-950/60 p-4 space-y-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-primary">Agente de Voz & Telefonia</p>
+        <div className="rounded-xl border border-glass bg-slate-950/60 p-4 space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Agente de Voz & Carteira</p>
           {loadingConfig && <p className="text-sm text-slate-400">Verificando dados Vapi...</p>}
           {configError && <p className="text-sm text-rose-400">{configError}</p>}
           {vapiConfig && (
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <p className="text-slate-500">Assistente Virtual</p>
-                <p className="font-semibold text-white">{vapiConfig.assistant.name}</p>
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-slate-300">Selecionar Assistente Virtual (Carteira)</label>
+                <select
+                  value={selectedAssistantId}
+                  onChange={(e) => setSelectedAssistantId(e.target.value)}
+                  className="w-full rounded-xl border border-glass bg-slate-900 px-3.5 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all text-sm font-semibold"
+                >
+                  {assistantOptions.map((ast) => (
+                    <option key={ast.id} value={ast.id}>
+                      🎓 {ast.name}
+                    </option>
+                  ))}
+                  <option value="custom">⚙️ Outro Assistente (Informar ID Vapi)</option>
+                </select>
               </div>
-              <div>
-                <p className="text-slate-500">Telefone de Saída</p>
-                <p className="font-semibold text-white">{vapiConfig.phoneNumber.number}</p>
+
+              {selectedAssistantId === 'custom' && (
+                <div className="space-y-1 pt-1">
+                  <label className="block text-xs font-semibold text-slate-300">ID do Assistente Vapi</label>
+                  <input
+                    value={customAssistantId}
+                    onChange={(e) => setCustomAssistantId(e.target.value)}
+                    required={selectedAssistantId === 'custom'}
+                    placeholder="Cole o ID da Vapi (ex: 15190261-096d-47fe-bbbe-cbfe8dceb2ae)"
+                    className="w-full rounded-xl border border-glass bg-slate-950 px-3.5 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all text-xs font-mono"
+                  />
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-glass/40 flex justify-between items-center text-[11px] text-slate-400">
+                <span>Telefone de Saída Vapi:</span>
+                <strong className="font-semibold text-white">{vapiConfig.phoneNumber.number}</strong>
               </div>
             </div>
           )}
@@ -1603,7 +1657,7 @@ function CreateCampaign({
               className="mt-1 w-full rounded-xl border border-glass bg-slate-950 px-3.5 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all text-sm"
             />
             <p className="text-[10px] text-slate-500 mt-1 leading-normal">
-              Recomendado: <b>30</b> chamadas simultâneas para evitar limites na Vapi e bloqueio de rotas SIP.
+              Recomendado: <b>30</b> chamadas simultâneas.
             </p>
           </div>
 
