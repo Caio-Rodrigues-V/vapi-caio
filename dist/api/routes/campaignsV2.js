@@ -421,13 +421,25 @@ exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
             timeout: 10_000,
             headers: { Authorization: `Bearer ${apiKey}` },
         });
-        let assistantData;
+        let assistants = [];
         try {
-            const resp = await client.get(`/assistant/${uvaAssistantId}`);
-            assistantData = resp.data;
+            const resp = await client.get('/assistant');
+            if (Array.isArray(resp.data)) {
+                assistants = resp.data.map((a) => ({
+                    id: String(a.id),
+                    name: String(a.name || a.id),
+                    institution: String(a.name || '').toUpperCase().includes('CRUZEIRO') ? 'CRUZEIRO' : 'UVA',
+                }));
+            }
         }
         catch (err) {
-            console.warn('[vapi/config] warning fetching uva assistant:', err.message);
+            console.warn('[vapi/config] warning fetching assistants list:', err.message);
+        }
+        if (assistants.length === 0) {
+            assistants = [
+                { id: uvaAssistantId, name: 'JULIA - VEIGA VAPI (CAIO)', institution: 'UVA' },
+                { id: cruzeiroAssistantId, name: 'JULIA - CRUZEIRO', institution: 'CRUZEIRO' },
+            ];
         }
         let phoneData;
         try {
@@ -437,27 +449,11 @@ exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
         catch (err) {
             console.warn('[vapi/config] warning fetching phone:', err.message);
         }
-        const assistants = [
-            {
-                id: uvaAssistantId,
-                name: `Veiga de Almeida - UVA (${assistantData?.name || 'Júlia'})`,
-                institution: 'UVA',
-            },
-            ...(cruzeiroAssistantId
-                ? [
-                    {
-                        id: cruzeiroAssistantId,
-                        name: 'Cruzeiro do Sul (Agente Formalização)',
-                        institution: 'CRUZEIRO',
-                    },
-                ]
-                : []),
-        ];
         return res.json({
             operation: 'multi',
             assistant: {
                 id: uvaAssistantId,
-                name: String(assistantData?.name || 'Júlia (UVA)'),
+                name: 'JULIA - VEIGA VAPI (CAIO)',
             },
             assistants,
             phoneNumber: {
