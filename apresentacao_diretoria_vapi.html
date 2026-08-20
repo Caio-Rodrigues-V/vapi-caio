@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apresentação Executiva - Viabilidade Financeira Vapi IA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              500: '#ff5706',
+              600: '#ea4700',
+              700: '#c23400',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-12">
+
+  <!-- Header Executivo -->
+  <header class="border-b border-slate-800 bg-slate-900/60 sticky top-0 z-50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/30">
+          <i class="fa-solid fa-robot text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-white leading-tight">DDM Assessoria & IA</h1>
+          <p class="text-xs text-slate-400">Estudo de Viabilidade Financeira & Custos – Vapi AI</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Auditado 2026
+        </span>
+        <button onclick="window.print()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg border border-slate-700 transition">
+          <i class="fa-solid fa-print mr-1"></i> Imprimir / PDF
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 mt-8 space-y-8">
+
+    <!-- Title Banner -->
+    <div class="text-center space-y-3 py-4">
+      <span class="text-xs font-bold tracking-widest uppercase text-brand-500 bg-brand-500/10 px-4 py-1.5 rounded-full border border-brand-500/20">
+        Relatório Executivo para Diretoria
+      </span>
+      <h2 class="text-3xl md:text-4xl font-extrabold text-white">Análise de Custos & ROI do Agente de Voz IA</h2>
+      <p class="text-slate-400 max-w-2xl mx-auto text-sm md:text-base">
+        Modelo Pay-per-Use com 0% de custo fixo. Redução substancial no Custo por Abordagem (CPA) comparado à operação tradicional de call center.
+      </p>
+    </div>
+
+    <!-- 4 KPIs de Alto Impacto -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div class="glass-card p-5 rounded-2xl border-l-4 border-l-brand-500 shadow-xl">
+        <div class="flex justify-between items-start">
+          <span class="text-xs font-semibold uppercase text-slate-400">Custo Médio / Minuto</span>
+          <i class="fa-solid fa-stopwatch text-brand-500 text-lg"></i>
+        </div>
+        <div class="mt-3">
+          <span class="text-3xl font-extrabold text-white">R$ 0,52</span>
+          <span class="text-xs text-slate-400"> a R$ 0,88</span>
+        </div>
+        <p class="mt-2 text-xs text-emerald-400 font-medium">
+          <i class="fa-solid fa-arrow-down mr-1"></i> 78% mais barato que humano
+        </p>
+      </div>
+
+      <div class="glass-card p-5 rounded-2xl border-l-4 border-l-emerald-500 shadow-xl">
+        <div class="flex justify-between items-start">
+          <span class="text-xs font-semibold uppercase text-slate-400">Custo Fixo Mensal</span>
+          <i class="fa-solid fa-dollar-sign text-emerald-400 text-lg"></i>
+        </div>
+        <div class="mt-3">
+          <span class="text-3xl font-extrabold text-emerald-400">R$ 0,00</span>
+        </div>
+        <p class="mt-2 text-xs text-slate-400 font-medium">
+          Zero licença por PA / Zero salário fixo
+        </p>
+      </div>
+
+      <div class="glass-card p-5 rounded-2xl border-l-4 border-l-blue-500 shadow-xl">
+        <div class="flex justify-between items-start">
+          <span class="text-xs font-semibold uppercase text-slate-400">Capacidade Diária</span>
+          <i class="fa-solid fa-phone-volume text-blue-400 text-lg"></i>
+        </div>
+        <div class="mt-3">
+          <span class="text-3xl font-extrabold text-white">50.000+</span>
+          <span class="text-xs text-slate-400"> ligações/dia</span>
+        </div>
+        <p class="mt-2 text-xs text-blue-400 font-medium">
+          <i class="fa-solid fa-bolt mr-1"></i> Escalabilidade instantânea
+        </p>
+      </div>
+
+      <div class="glass-card p-5 rounded-2xl border-l-4 border-l-amber-500 shadow-xl">
+        <div class="flex justify-between items-start">
+          <span class="text-xs font-semibold uppercase text-slate-400">Precisão de Acordo</span>
+          <i class="fa-solid fa-shield-check text-amber-400 text-lg"></i>
+        </div>
+        <div class="mt-3">
+          <span class="text-3xl font-extrabold text-white">100%</span>
+        </div>
+        <p class="mt-2 text-xs text-amber-400 font-medium">
+          Validação DDM direta na chamada
+        </p>
+      </div>
+    </div>
+
+    <!-- Seção 1: Decomposição do Custo por Minuto -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="lg:col-span-2 glass-card p-6 rounded-2xl">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-6">
+          <i class="fa-solid fa-chart-pie text-brand-500"></i>
+          Decomposição Transparente do Custo por Minuto
+        </h3>
+        
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1">
+              <span class="text-slate-300">1. Plataforma Vapi Core (Orquestração & Conectividade)</span>
+              <span class="text-brand-500">$0.050 USD (R$ 0,27) — 31%</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <div class="bg-brand-500 h-full rounded-full" style="width: 31%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1">
+              <span class="text-slate-300">2. Voz Sintetizada TTS (ElevenLabs Premium / Azure)</span>
+              <span class="text-purple-400">$0.050 USD (R$ 0,27) — 31%</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <div class="bg-purple-500 h-full rounded-full" style="width: 31%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1">
+              <span class="text-slate-300">3. Telefonia Móvel/Fixo (SIP Trunking Brasil)</span>
+              <span class="text-blue-400">$0.040 USD (R$ 0,22) — 25%</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <div class="bg-blue-500 h-full rounded-full" style="width: 25%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1">
+              <span class="text-slate-300">4. Transcrição STT em Tempo Real (Deepgram Nova-2)</span>
+              <span class="text-emerald-400">$0.005 USD (R$ 0,03) — 6.5%</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <div class="bg-emerald-500 h-full rounded-full" style="width: 6.5%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1">
+              <span class="text-slate-300">5. Cérebro de IA LLM (OpenAI GPT-4o-mini)</span>
+              <span class="text-amber-400">$0.005 USD (R$ 0,03) — 6.5%</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <div class="bg-amber-500 h-full rounded-full" style="width: 6.5%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-800 flex justify-between items-center text-sm font-bold">
+          <span class="text-slate-300">Custo Total Consolidado por Minuto:</span>
+          <span class="text-xl font-extrabold text-white">~$0.16 USD / min <span class="text-emerald-400 text-base">(R$ 0,88 / min)</span></span>
+        </div>
+      </div>
+
+      <!-- Gráfico Comparativo Humano vs IA -->
+      <div class="glass-card p-6 rounded-2xl flex flex-col justify-between">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-4">
+            <i class="fa-solid fa-scale-balanced text-emerald-400"></i>
+            Custo por Ligação Atendida
+          </h3>
+          <p class="text-xs text-slate-400 mb-6">Comparação direta de custo por minuto entre atendimento humano em Call Center e a solução Vapi IA.</p>
+        </div>
+        
+        <div class="h-56 relative flex items-center justify-center">
+          <canvas id="costComparisonChart"></canvas>
+        </div>
+
+        <div class="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center">
+          <span class="text-xs text-emerald-400 font-semibold">Economia Média de 78% por Chamada</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção 2: Cenários de Uso (Premium vs Otimizado) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="glass-card p-6 rounded-2xl border border-brand-500/30 relative overflow-hidden">
+        <div class="absolute top-0 right-0 bg-brand-500 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-bl-xl">
+          Alta Conversão
+        </div>
+        <h4 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-crown text-amber-400"></i>
+          Cenário 1: Voz Premium (ElevenLabs)
+        </h4>
+        <p class="text-xs text-slate-400 mt-1">Recomendado para negociação consultiva de altos valores e retenção de alunos.</p>
+        
+        <div class="mt-5 space-y-2 text-sm text-slate-300">
+          <div class="flex justify-between py-1 border-b border-slate-800">
+            <span>Voz:</span> <strong class="text-white">ElevenLabs Ultra-Realista (Júlia)</strong>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-800">
+            <span>Inteligência:</span> <strong class="text-white">GPT-4o-mini (Latência &lt; 800ms)</strong>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-800">
+            <span>Telefonia:</span> <strong class="text-white">Saída Móvel Brasil</strong>
+          </div>
+          <div class="flex justify-between py-2 pt-3 font-bold text-base">
+            <span>Custo / Minuto:</span> <strong class="text-brand-500 text-xl">R$ 0,88 / min</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card p-6 rounded-2xl border border-blue-500/30 relative overflow-hidden">
+        <div class="absolute top-0 right-0 bg-blue-500 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-bl-xl">
+          Escala Massiva
+        </div>
+        <h4 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-rocket text-blue-400"></i>
+          Cenário 2: Otimizado (Azure TTS + SIP Local)
+        </h4>
+        <p class="text-xs text-slate-400 mt-1">Recomendado para cobrança preventiva massiva e confirmação rápida de cadastro.</p>
+        
+        <div class="mt-5 space-y-2 text-sm text-slate-300">
+          <div class="flex justify-between py-1 border-b border-slate-800">
+            <span>Voz:</span> <strong class="text-white">Azure Neural / Cartesia</strong>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-800">
+            <span>Inteligência:</span> <strong class="text-white">GPT-4o-mini</strong>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-800">
+            <span>Telefonia:</span> <strong class="text-white">Tronco SIP Local BR (R$ 0,08/min)</strong>
+          </div>
+          <div class="flex justify-between py-2 pt-3 font-bold text-base">
+            <span>Custo / Minuto:</span> <strong class="text-blue-400 text-xl">R$ 0,52 / min</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela de Projeção de Investimento por Volume -->
+    <div class="glass-card p-6 rounded-2xl">
+      <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-4">
+        <i class="fa-solid fa-table-list text-brand-500"></i>
+        Projeção de Investimento por Volume de Ligações
+      </h3>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-900/80 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
+            <tr>
+              <th class="px-5 py-3.5">Volume de Ligações</th>
+              <th class="px-5 py-3.5">Duração Média</th>
+              <th class="px-5 py-3.5">Minutos Totais</th>
+              <th class="px-5 py-3.5">Investimento (Cenário Premium - R$ 0,88/min)</th>
+              <th class="px-5 py-3.5">Investimento (Cenário Otimizado - R$ 0,52/min)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800 text-slate-300">
+            <tr class="hover:bg-slate-900/40">
+              <td class="px-5 py-4 font-semibold text-white">1.000 chamadas</td>
+              <td class="px-5 py-4 text-slate-400">30 seg (Recusas / Rápidas)</td>
+              <td class="px-5 py-4 font-mono">500 min</td>
+              <td class="px-5 py-4 font-bold text-brand-500">R$ 440,00</td>
+              <td class="px-5 py-4 font-bold text-blue-400">R$ 260,00</td>
+            </tr>
+            <tr class="hover:bg-slate-900/40">
+              <td class="px-5 py-4 font-semibold text-white">1.000 chamadas</td>
+              <td class="px-5 py-4 text-slate-400">1 min (Conversa Padrão)</td>
+              <td class="px-5 py-4 font-mono">1.000 min</td>
+              <td class="px-5 py-4 font-bold text-brand-500">R$ 880,00</td>
+              <td class="px-5 py-4 font-bold text-blue-400">R$ 520,00</td>
+            </tr>
+            <tr class="hover:bg-slate-900/40 bg-slate-900/20">
+              <td class="px-5 py-4 font-semibold text-white">10.000 chamadas</td>
+              <td class="px-5 py-4 text-slate-400">45 seg (Média de Operação)</td>
+              <td class="px-5 py-4 font-mono">7.500 min</td>
+              <td class="px-5 py-4 font-bold text-brand-500">R$ 6.600,00</td>
+              <td class="px-5 py-4 font-bold text-blue-400">R$ 3.900,00</td>
+            </tr>
+            <tr class="hover:bg-slate-900/40">
+              <td class="px-5 py-4 font-semibold text-white">50.000 chamadas</td>
+              <td class="px-5 py-4 text-slate-400">45 seg (Operação Mensal)</td>
+              <td class="px-5 py-4 font-mono">37.500 min</td>
+              <td class="px-5 py-4 font-bold text-brand-500">R$ 33.000,00</td>
+              <td class="px-5 py-4 font-bold text-blue-400">R$ 19.500,00</td>
+            </tr>
+            <tr class="hover:bg-slate-900/40 bg-brand-500/5">
+              <td class="px-5 py-4 font-semibold text-white">100.000 chamadas</td>
+              <td class="px-5 py-4 text-slate-400">45 seg (Escala Multi-Carteira)</td>
+              <td class="px-5 py-4 font-mono">75.000 min</td>
+              <td class="px-5 py-4 font-extrabold text-brand-500 text-base">R$ 66.000,00</td>
+              <td class="px-5 py-4 font-extrabold text-blue-400 text-base">R$ 39.000,00</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Travas Anti-Desperdício -->
+    <div class="glass-card p-6 rounded-2xl border-l-4 border-l-amber-500">
+      <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
+        <i class="fa-solid fa-shield-halved text-amber-400"></i>
+        Mecanismos de Proteção Financeira e Anti-Desperdício Integrados
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+          <div class="text-amber-400 font-bold text-sm mb-1">1. Corte de Caixa Postal</div>
+          <p class="text-xs text-slate-400">Desliga secretárias eletrônicas em até 5 segundos, economizando minutos em robôs do outro lado.</p>
+        </div>
+        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+          <div class="text-amber-400 font-bold text-sm mb-1">2. Filtro Prévio DDM</div>
+          <p class="text-xs text-slate-400">Consulta a DDM antes de ligar. Alunos sem débito ou restritos não recebem ligação (0 custo).</p>
+        </div>
+        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+          <div class="text-amber-400 font-bold text-sm mb-1">3. GPT-4o-mini de Baixa Latência</div>
+          <p class="text-xs text-slate-400">Cérebro 10x mais barato com respostas em menos de 800ms, otimizando o tempo de ligação.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer class="text-center text-xs text-slate-500 py-6 border-t border-slate-800">
+      <p>© 2026 DDM Assessoria & Engenharia de Sistemas. Estudo executivo de viabilidade para Vapi AI Voice Agent.</p>
+    </footer>
+
+  </main>
+
+  <script>
+    // Gráfico Comparativo Humano vs IA
+    const ctx = document.getElementById('costComparisonChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Operador Humano', 'Vapi IA (Premium)', 'Vapi IA (Otimizado)'],
+        datasets: [{
+          label: 'Custo por Minuto (R$)',
+          data: [3.80, 0.88, 0.52],
+          backgroundColor: [
+            'rgba(239, 68, 68, 0.85)',
+            'rgba(255, 87, 6, 0.85)',
+            'rgba(59, 130, 246, 0.85)'
+          ],
+          borderColor: [
+            '#ef4444',
+            '#ff5706',
+            '#3b82f6'
+          ],
+          borderWidth: 1.5,
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#94a3b8',
+              callback: function(value) { return 'R$ ' + value.toFixed(2); }
+            },
+            grid: { color: 'rgba(255,255,255,0.05)' }
+          },
+          x: {
+            ticks: { color: '#cbd5e1', font: { weight: '600' } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
