@@ -74,12 +74,25 @@ export class ProcessVapiWebhook {
         .filter(Boolean);
       if (!customerMessages.length && transcript) customerMessages.push(transcript);
 
-      // 1. Check if the call triggered the 'confirmar_acordo' tool call in the messages history
-      const agreementConfirmedByTool = wasToolCalled(messages, 'confirmar_acordo');
+      // 1. Check if the call triggered an agreement tool call in the messages history
+      const agreementConfirmedByTool = wasToolCalled(messages, 'confirmar_acordo') ||
+        wasToolCalled(messages, 'formalizar_acordo') ||
+        wasToolCalled(messages, 'efetivar_acordo') ||
+        wasToolCalled(messages, 'formaliza_acordo');
+
       const assistantSpokeAgreement = messages.some((m: any) => {
         const role = String(m.role || '').toLowerCase();
         const content = String(m.message || m.content || '').toLowerCase();
-        return (role === 'assistant' || role === 'ai') && (content.includes('acordo formalizado') || content.includes('acordo fechado'));
+        return (role === 'assistant' || role === 'ai') && (
+          content.includes('acordo formalizado') ||
+          content.includes('acordo fechado') ||
+          content.includes('acordo foi gerado') ||
+          content.includes('acordo gerado') ||
+          content.includes('formalizado com sucesso') ||
+          content.includes('enviado por e-mail') ||
+          content.includes('enviado para o seu e-mail') ||
+          content.includes('enviado no seu e-mail')
+        );
       });
       const agendamentoTriggeredByTool = transcript.includes('#AGENDAMENTO');
 

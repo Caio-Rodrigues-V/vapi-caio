@@ -69,10 +69,14 @@ class DispatchCampaignBatch {
                         result.skipped += 1;
                         continue;
                     }
-                    // Filtro rigoroso: Se tiver instituição e não for UVA/Veiga, pula informando a instituição pertencente
+                    // Filtro de Instituição: Aceita UVA, Veiga de Almeida e Cruzeiro do Sul
                     const instUpper = (debt.institution || '').toUpperCase();
-                    const isUva = !debt.institution || instUpper.includes('VEIGA') || instUpper.includes('ALMEIDA') || instUpper.includes('UVA');
-                    if (!isUva) {
+                    const isAllowedInst = !debt.institution ||
+                        instUpper.includes('VEIGA') ||
+                        instUpper.includes('ALMEIDA') ||
+                        instUpper.includes('UVA') ||
+                        instUpper.includes('CRUZEIRO');
+                    if (!isAllowedInst) {
                         await this.calls.mergeMetadata(call.id, {
                             debtCheckedAt: new Date().toISOString(),
                             hasDebt: false,
@@ -80,7 +84,7 @@ class DispatchCampaignBatch {
                             calculationId: debt.calculationId ?? null,
                             debtorId: debt.debtorId ?? null,
                         });
-                        await this.calls.updateStatus(call.id, 'skipped', 'non_uva_institution');
+                        await this.calls.updateStatus(call.id, 'skipped', 'unsupported_institution');
                         result.skipped += 1;
                         continue;
                     }
