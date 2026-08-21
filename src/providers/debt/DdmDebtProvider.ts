@@ -146,7 +146,26 @@ export class DdmDebtProvider implements DebtProvider {
     const cpf = normalizeCpf(cpfInput);
     if (cpf.length !== 11) throw new DebtProviderPermanentError('CPF inválido para consulta DDM.');
 
-    const located = await this.getWithRetry<unknown[]>('/calc/localiza_dev.php', { tk: this.token, cpf });
+    const tokensToTry = Array.from(new Set([
+      this.token,
+      process.env.DDM_TOKEN_CRUZEIRO || '',
+      process.env.DDM_TOKEN_BUSCA || '',
+      process.env.DDM_TOKEN || '',
+    ])).filter(Boolean);
+
+    let located: unknown[] = [];
+    for (const tk of tokensToTry) {
+      try {
+        const res = await this.getWithRetry<unknown[]>('/calc/localiza_dev.php', { tk, cpf });
+        if (Array.isArray(res) && res.length > 0) {
+          located = res;
+          break;
+        }
+      } catch (err) {
+        console.warn(`[DdmDebtProvider] localiza_dev falhou com token ${tk.slice(0, 8)}...:`, err);
+      }
+    }
+
     if (!Array.isArray(located) || !located.length) {
       return { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'no_debt' };
     }
@@ -241,8 +260,14 @@ export class DdmDebtProvider implements DebtProvider {
   }
 
   async formalize(debtorId: string, client: string, installments = 1): Promise<any> {
+    const isCruzeiro = String(client || '').toLowerCase().includes('cruzeiro');
+    const token = isCruzeiro
+      ? (process.env.DDM_TOKEN_CRUZEIRO || this.tokenCalcula)
+      : this.tokenCalcula;
+
+    console.log(`[DdmDebtProvider] Efetivando acordo idDev: ${debtorId}, cli: ${client}, usando token: ${token.slice(0, 8)}...`);
     const data = await this.getWithRetry<any>('/calc/efetiva_acordo.php', {
-      tk: this.tokenCalcula,
+      tk: token,
       idDev: debtorId,
       cli: client,
       Parc: String(installments),
