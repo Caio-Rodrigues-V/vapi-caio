@@ -182,8 +182,9 @@ export class DdmDebtProvider implements DebtProvider {
       const client = system === 'cruzeirodosul' ? 'cruzeiro' : 'ddm';
 
       try {
+        const calcToken = client === 'cruzeiro' ? (process.env.DDM_TOKEN_CRUZEIRO || this.token) : this.token;
         const rawCalculation = await this.getWithRetry<unknown>('/calc/', {
-          tk: this.token,
+          tk: calcToken,
           idDev: debtorId,
           cli: client,
         });
