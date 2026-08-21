@@ -12,6 +12,7 @@ const csv_parse_1 = require("csv-parse");
 const db_1 = __importDefault(require("../../db"));
 const phoneValidator_1 = require("../../utils/phoneValidator");
 const DdmDebtProvider_1 = require("../../providers/debt/DdmDebtProvider");
+const vapiCallSynchronizer_1 = require("../../workers/vapiCallSynchronizer");
 exports.campaignsV2Router = (0, express_1.Router)();
 const upload = (0, multer_1.default)({
     dest: 'uploads/',
@@ -771,11 +772,22 @@ exports.campaignsV2Router.get('/campaigns/:id/calls/cpf/:cpf', async (req, res) 
         return res.status(500).json({ error: 'Erro ao buscar telefones do CPF' });
     }
 });
+exports.campaignsV2Router.post('/campaigns/:id/sync-vapi', async (_req, res) => {
+    try {
+        const syncRes = await (0, vapiCallSynchronizer_1.runVapiCallSynchronizer)(50);
+        return res.json({ success: true, sync: syncRes });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
 exports.campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
         return res.status(400).json({ error: 'Campanha inválida' });
     }
+    // Sincroniza chamadas ativas com a Vapi em segundo plano para não manter 'Em Linha' se a chamada já terminou
+    void (0, vapiCallSynchronizer_1.runVapiCallSynchronizer)(20).catch((e) => console.warn('[campaigns] auto sync error:', e.message));
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
     const offset = (page - 1) * limit;

@@ -6,6 +6,7 @@ import { parse } from 'csv-parse';
 import pool from '../../db';
 import { normalizePhone } from '../../utils/phoneValidator';
 import { DdmDebtProvider } from '../../providers/debt/DdmDebtProvider';
+import { runVapiCallSynchronizer } from '../../workers/vapiCallSynchronizer';
 
 export const campaignsV2Router = Router();
 
@@ -885,11 +886,23 @@ campaignsV2Router.get('/campaigns/:id/calls/cpf/:cpf', async (req, res) => {
   }
 });
 
+campaignsV2Router.post('/campaigns/:id/sync-vapi', async (_req, res) => {
+  try {
+    const syncRes = await runVapiCallSynchronizer(50);
+    return res.json({ success: true, sync: syncRes });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
     return res.status(400).json({ error: 'Campanha inválida' });
   }
+
+  // Sincroniza chamadas ativas com a Vapi em segundo plano para não manter 'Em Linha' se a chamada já terminou
+  void runVapiCallSynchronizer(20).catch((e) => console.warn('[campaigns] auto sync error:', e.message));
 
   const page = Math.max(1, Number(req.query.page || 1));
   const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
