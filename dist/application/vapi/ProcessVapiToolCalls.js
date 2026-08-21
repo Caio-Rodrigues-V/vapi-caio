@@ -6,16 +6,30 @@ function asRecord(value) {
 }
 function normalizeToolCalls(payload) {
     const message = asRecord(payload.message ?? payload);
-    const directList = Array.isArray(message.toolCallList) ? message.toolCallList : [];
-    if (directList.length) {
-        return directList
+    const callObj = asRecord(message.call);
+    const rawList = (Array.isArray(message.toolCalls) ? message.toolCalls :
+        Array.isArray(message.toolCallList) ? message.toolCallList :
+            Array.isArray(payload.toolCalls) ? payload.toolCalls :
+                Array.isArray(callObj.toolCalls) ? callObj.toolCalls :
+                    []);
+    if (rawList.length) {
+        return rawList
             .map((item) => {
             const call = asRecord(item);
             const fn = asRecord(call.function);
+            let rawParams = call.parameters ?? fn.parameters ?? fn.arguments ?? call.arguments;
+            if (typeof rawParams === 'string') {
+                try {
+                    rawParams = JSON.parse(rawParams);
+                }
+                catch {
+                    rawParams = {};
+                }
+            }
             return {
                 id: String(call.id || fn.id || ''),
                 name: String(call.name || fn.name || ''),
-                parameters: asRecord(call.parameters ?? fn.parameters ?? fn.arguments),
+                parameters: asRecord(rawParams),
             };
         })
             .filter((call) => call.id && call.name);
@@ -28,10 +42,19 @@ function normalizeToolCalls(payload) {
         const wrapped = asRecord(item);
         const toolCall = asRecord(wrapped.toolCall);
         const fn = asRecord(toolCall.function);
+        let rawParams = toolCall.parameters ?? fn.parameters ?? fn.arguments ?? toolCall.arguments;
+        if (typeof rawParams === 'string') {
+            try {
+                rawParams = JSON.parse(rawParams);
+            }
+            catch {
+                rawParams = {};
+            }
+        }
         return {
             id: String(toolCall.id || ''),
             name: String(wrapped.name || toolCall.name || fn.name || ''),
-            parameters: asRecord(toolCall.parameters ?? fn.parameters ?? fn.arguments),
+            parameters: asRecord(rawParams),
         };
     })
         .filter((call) => call.id && call.name);
