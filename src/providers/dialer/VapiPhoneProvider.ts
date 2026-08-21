@@ -55,12 +55,15 @@ export class VapiPhoneProvider implements DialerProvider {
       (process.env.APP_BASE_URL ? `${process.env.APP_BASE_URL}/api/v2/vapi/webhook` :
       (process.env.NODE_ENV === 'staging' ? 'https://hml-vapi.grupoddm.com.br/api/v2/vapi/webhook' : undefined));
 
+    if (webhookUrl) {
+      overrides.serverUrl = webhookUrl;
+    }
+
     const payload: Record<string, unknown> = {
       assistantId: input.assistantId,
       phoneNumberId: input.phoneNumberId,
       customer,
       metadata: input.metadata,
-      ...(webhookUrl ? { serverUrl: webhookUrl } : {}),
     };
 
     if (Object.keys(overrides).length > 0) {
