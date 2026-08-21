@@ -23,11 +23,17 @@ function mapStatus(type: string, message: Record<string, any>): 'queued' | 'in_p
 }
 function wasToolCalled(messages: any[], toolName: string): boolean {
   if (!Array.isArray(messages)) return false;
+  const target = toolName.toLowerCase();
   return messages.some((m: any) => {
-    if (m.role === 'tool_calls' && Array.isArray(m.toolCalls)) {
-      return m.toolCalls.some((tc: any) => tc.function?.name === toolName);
-    }
-    return false;
+    if (!m) return false;
+    const name = String(m.name || m.toolName || m.function?.name || '').toLowerCase();
+    if (name && name.includes(target)) return true;
+
+    const toolCalls = Array.isArray(m.toolCalls) ? m.toolCalls : (Array.isArray(m.tool_calls) ? m.tool_calls : []);
+    return toolCalls.some((tc: any) => {
+      const tcName = String(tc.name || tc.function?.name || '').toLowerCase();
+      return tcName && tcName.includes(target);
+    });
   });
 }
 
@@ -48,26 +54,38 @@ export class ProcessVapiWebhook {
     const inserted = await this.repository.registerEvent({
       provider: 'vapi', eventId, providerCallId, eventType: type, payload,
     });
-    if (!inserted) return { duplicate: true, processed: false };
 
-    try {
-      const status = mapStatus(type, message);
-      if (status) {
-        await this.repository.markCallStatus(providerCallId, status);
-        eventBroadcaster.broadcast('call_updated', { providerCallId, status, type });
-      }
-      if (type !== 'end-of-call-report') {
-        await this.repository.markEventProcessed('vapi', eventId);
-        return { duplicate: false, processed: true };
-      }
+    if (!inserted) {
+      return { duplicate: true, processed: false };
+    }
 
-      const metadata = asRecord(call.metadata || message.metadata);
-      const metadataCallId = Number(metadata.campaignCallId || metadata.campaign_call_id || 0) || undefined;
-      const campaignCallId = await this.repository.findCampaignCallId(providerCallId, metadataCallId);
-      if (!campaignCallId) throw new Error('campaign_call não localizado para o webhook.');
+    const mappedStatus = mapStatus(type, message);
+    if (mappedStatus) {
+      try {
+        await this.repository.markCallStatus(providerCallId, mappedStatus);
+        eventBroadcaster.broadcast('call_updated', { providerCallId, status: mappedStatus, type });
 
-      const transcript = String(message.transcript || message.artifact?.transcript || '');
-      const messages = Array.isArray(message.artifact?.messages) ? message.artifact.messages : [];
+        if (type !== 'end-of-call-report') {
+          await this.repository.markEventProcessed('vapi', eventId);
+          return { duplicate: false, processed: true };
+        }
+
+        const metadata = asRecord(message.customer?.metadata ?? call.customer?.metadata ?? call.metadata ?? message.metadata);
+        const metadataCallId = Number(metadata.campaignCallId || metadata.campaign_call_id || 0) || undefined;
+        const campaignCallId = await this.repository.findCampaignCallId(providerCallId, metadataCallId);
+        if (!campaignCallId) throw new Error('campaign_call não localizado para o webhook.');
+
+        const transcript = String(
+          message.transcript ||
+          message.artifact?.transcript ||
+          call.transcript ||
+          call.artifact?.transcript ||
+          '',
+        );
+
+      const rawMessages = message.artifact?.messages || message.messages || call.artifact?.messages || call.messages || [];
+      const messages = Array.isArray(rawMessages) ? rawMessages : [];
+
       const customerMessages = messages
         .filter((item: any) => item?.role === 'user' || item?.role === 'customer')
         .map((item: any) => String(item.message || item.content || ''))
@@ -79,6 +97,10 @@ export class ProcessVapiWebhook {
         wasToolCalled(messages, 'formalizar_acordo') ||
         wasToolCalled(messages, 'efetivar_acordo') ||
         wasToolCalled(messages, 'formaliza_acordo');
+
+      const fullText = (
+        transcript + ' ' + messages.map((m: any) => String(m.message || m.content || '')).join(' ')
+      ).toLowerCase();
 
       const assistantSpokeAgreement = messages.some((m: any) => {
         const role = String(m.role || '').toLowerCase();
@@ -94,18 +116,27 @@ export class ProcessVapiWebhook {
           content.includes('enviado no seu e-mail')
         );
       });
-      const agendamentoTriggeredByTool = transcript.includes('#AGENDAMENTO');
+
+      const agreementInTranscript = (
+        fullText.includes('formaliz') ||
+        fullText.includes('acordo fechad') ||
+        fullText.includes('acordo gerad')
+      ) || (
+        fullText.includes('acordo') && (fullText.includes('email') || fullText.includes('e-mail') || fullText.includes('boleto'))
+      );
+
+      const agendamentoTriggeredByTool = fullText.includes('#agendamento') || fullText.includes('agendad');
 
       let decision: 'formalize' | 'schedule' | 'zero' = 'zero';
       let scheduledAt: Date | null = null;
 
-      if (agreementConfirmedByTool || assistantSpokeAgreement) {
+      if (agreementConfirmedByTool || assistantSpokeAgreement || agreementInTranscript) {
         decision = 'formalize';
-        console.log(`[ProcessVapiWebhook] Acordo formalizado detectado (ferramenta ou fala da assistente) para a chamada ${providerCallId}`);
+        console.log(`[ProcessVapiWebhook] Acordo formalizado detectado para a chamada ${providerCallId}`);
       } else if (agendamentoTriggeredByTool) {
         decision = 'schedule';
         scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        console.log(`[ProcessVapiWebhook] Agendamento detectado via tags no transcript para a chamada ${providerCallId}`);
+        console.log(`[ProcessVapiWebhook] Agendamento detectado para a chamada ${providerCallId}`);
       } else if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'dummy_key') {
         try {
           const classification = await classificarLigacao(transcript, customerMessages);
@@ -251,4 +282,7 @@ export class ProcessVapiWebhook {
       throw error;
     }
   }
+
+  return { duplicate: false, processed: true };
+}
 }
