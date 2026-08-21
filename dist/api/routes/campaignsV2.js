@@ -144,6 +144,24 @@ exports.campaignsV2Router.get('/campaigns/diag-vapi-call/:callId', async (req, r
         return res.status(500).json({ error: err.message, response: err.response?.data });
     }
 });
+exports.campaignsV2Router.get('/campaigns/diag-last-calls', async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+    try {
+        const [rows] = await db_1.default.query(`SELECT cc.id, cc.campaign_id, cc.customer_number, cc.cpf, cc.status, cc.last_error, cc.metadata,
+              cr.provider_call_id, cr.decision, cr.ended_reason, cr.duration_seconds, cr.transcript, cr.created_at
+       FROM campaign_calls cc
+       LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
+       ORDER BY cc.id DESC
+       LIMIT 5`);
+        return res.json({ calls: rows });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
 exports.campaignsV2Router.get('/campaigns/diag-calls-detail', async (req, res) => {
     const secret = req.query.secret;
     if (secret !== 'ddm_diag_987') {
