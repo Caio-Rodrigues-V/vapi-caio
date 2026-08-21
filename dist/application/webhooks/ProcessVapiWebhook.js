@@ -109,7 +109,9 @@ class ProcessVapiWebhook {
                         content.includes('enviado para o seu e-mail') ||
                         content.includes('enviado no seu e-mail'));
                 });
-                const agreementInTranscript = (fullText.includes('#fechado') ||
+                const agreementInTranscript = (fullText.includes('#acordoformalizado') ||
+                    fullText.includes('#acordo_formalizado') ||
+                    fullText.includes('#fechado') ||
                     fullText.includes('#formalizado') ||
                     fullText.includes('#acordo') ||
                     fullText.includes('#efetivado') ||
@@ -121,12 +123,12 @@ class ProcessVapiWebhook {
                 let scheduledAt = null;
                 if (agreementConfirmedByTool || assistantSpokeAgreement || agreementInTranscript) {
                     decision = 'formalize';
-                    console.log(`[ProcessVapiWebhook] Acordo formalizado detectado para a chamada ${providerCallId}`);
+                    console.log(`[ProcessVapiWebhook] Acordo formalizado detectado (#ACORDOFORMALIZADO) para a chamada ${providerCallId}`);
                 }
                 else if (agendamentoTriggeredByTool) {
                     decision = 'schedule';
                     scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-                    console.log(`[ProcessVapiWebhook] Agendamento detectado para a chamada ${providerCallId}`);
+                    console.log(`[ProcessVapiWebhook] Agendamento detectado (#AGENDAMENTO) para a chamada ${providerCallId}`);
                 }
                 else if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'dummy_key') {
                     try {

@@ -118,6 +118,8 @@ export class ProcessVapiWebhook {
       });
 
       const agreementInTranscript = (
+        fullText.includes('#acordoformalizado') ||
+        fullText.includes('#acordo_formalizado') ||
         fullText.includes('#fechado') ||
         fullText.includes('#formalizado') ||
         fullText.includes('#acordo') ||
@@ -136,11 +138,11 @@ export class ProcessVapiWebhook {
 
       if (agreementConfirmedByTool || assistantSpokeAgreement || agreementInTranscript) {
         decision = 'formalize';
-        console.log(`[ProcessVapiWebhook] Acordo formalizado detectado para a chamada ${providerCallId}`);
+        console.log(`[ProcessVapiWebhook] Acordo formalizado detectado (#ACORDOFORMALIZADO) para a chamada ${providerCallId}`);
       } else if (agendamentoTriggeredByTool) {
         decision = 'schedule';
         scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        console.log(`[ProcessVapiWebhook] Agendamento detectado para a chamada ${providerCallId}`);
+        console.log(`[ProcessVapiWebhook] Agendamento detectado (#AGENDAMENTO) para a chamada ${providerCallId}`);
       } else if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'dummy_key') {
         try {
           const classification = await classificarLigacao(transcript, customerMessages);
