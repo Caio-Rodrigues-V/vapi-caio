@@ -109,7 +109,11 @@ class ProcessVapiWebhook {
                         content.includes('enviado para o seu e-mail') ||
                         content.includes('enviado no seu e-mail'));
                 });
-                const agreementInTranscript = (fullText.includes('formaliz') ||
+                const agreementInTranscript = (fullText.includes('#fechado') ||
+                    fullText.includes('#formalizado') ||
+                    fullText.includes('#acordo') ||
+                    fullText.includes('#efetivado') ||
+                    fullText.includes('formaliz') ||
                     fullText.includes('acordo fechad') ||
                     fullText.includes('acordo gerad')) || (fullText.includes('acordo') && (fullText.includes('email') || fullText.includes('e-mail') || fullText.includes('boleto')));
                 const agendamentoTriggeredByTool = fullText.includes('#agendamento') || fullText.includes('agendad');

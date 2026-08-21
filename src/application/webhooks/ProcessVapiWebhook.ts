@@ -118,6 +118,10 @@ export class ProcessVapiWebhook {
       });
 
       const agreementInTranscript = (
+        fullText.includes('#fechado') ||
+        fullText.includes('#formalizado') ||
+        fullText.includes('#acordo') ||
+        fullText.includes('#efetivado') ||
         fullText.includes('formaliz') ||
         fullText.includes('acordo fechad') ||
         fullText.includes('acordo gerad')
