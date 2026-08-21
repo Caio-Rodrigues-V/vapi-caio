@@ -205,7 +205,9 @@ class NotificationSender {
             const formattedPhone = targetPhone.replace(/\D/g, '');
             const cleanPhone = formattedPhone.startsWith('55') ? formattedPhone : `55${formattedPhone}`;
             const link = input.linkBoleto || input.linkPix || '';
-            const messageText = `DDM Informa: Olá ${input.nome}, seu acordo com a ${input.instituicao} (R$ ${input.valor}) foi formalizado! Acesse o boleto/pix: ${link}`;
+            const linhaDigText = input.linhaDigitavel ? ` Linha Digitavel: ${input.linhaDigitavel}` : '';
+            const linkText = link ? ` Boleto/Pix: ${link}` : '';
+            const messageText = `DDM: Ola ${input.nome}, seu acordo com ${input.instituicao} (R$ ${input.valor}) foi formalizado!${linhaDigText}${linkText}`;
             console.log(`[NotificationSender] Enviando SMS/RCS via Smart RCS para ${cleanPhone}...`);
             const response = await axios_1.default.post(apiUrl, {
                 destination: cleanPhone,
