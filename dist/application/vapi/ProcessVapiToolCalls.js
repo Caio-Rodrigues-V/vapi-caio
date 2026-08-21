@@ -116,21 +116,15 @@ function handleToolCall(call) {
                 }),
             };
         case 'confirmar_acordo':
-            return {
-                name: call.name,
-                toolCallId: call.id,
-                result: JSON.stringify({
-                    ok: true,
-                    status: 'acordo_confirmado_realtime',
-                }),
-            };
+        case 'formalizar_acordo':
+        case 'end_call':
         case 'end_call_tool':
             return {
                 name: call.name,
                 toolCallId: call.id,
                 result: JSON.stringify({
                     ok: true,
-                    status: 'end_call_requested',
+                    status: 'acordo_confirmado_realtime',
                 }),
             };
         default:
