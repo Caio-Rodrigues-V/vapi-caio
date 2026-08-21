@@ -155,38 +155,82 @@ class NotificationSender {
             const config = this.getSmtpConfig();
             if (!config.user || !config.pass) {
                 console.warn('[NotificationSender] SMTP não configurado (pass ou user ausentes). E-mail ignorado.');
-                return { emailSent, n8nSent };
             }
-            try {
-                const transporter = nodemailer_1.default.createTransport({
-                    host: config.host,
-                    port: config.port,
-                    secure: config.secure,
-                    auth: {
-                        user: config.user,
-                        pass: config.pass,
-                    },
-                    tls: {
-                        rejectUnauthorized: false, // Evita erros comuns de certificado em servidores cPanel
-                    },
-                });
-                const from = process.env.SMTP_FROM || `"DDM Assessoria" <${config.user}>`;
-                const html = this.buildHtmlEmail({ ...input, email: targetEmail });
-                console.log(`[NotificationSender] Enviando e-mail SMTP direto para ${targetEmail}`);
-                await transporter.sendMail({
-                    from,
-                    to: targetEmail,
-                    subject: `Acordo Formalizado — ${input.instituicao}`,
-                    html,
-                });
-                emailSent = true;
-                console.log(`[NotificationSender] E-mail SMTP enviado com sucesso para ${targetEmail}`);
-            }
-            catch (error) {
-                console.error(`[NotificationSender] Erro ao enviar e-mail via SMTP: ${error.message}`);
+            else {
+                try {
+                    const transporter = nodemailer_1.default.createTransport({
+                        host: config.host,
+                        port: config.port,
+                        secure: config.secure,
+                        auth: {
+                            user: config.user,
+                            pass: config.pass,
+                        },
+                        tls: {
+                            rejectUnauthorized: false, // Evita erros comuns de certificado em servidores cPanel
+                        },
+                    });
+                    const from = process.env.SMTP_FROM || `"DDM Assessoria" <${config.user}>`;
+                    const html = this.buildHtmlEmail({ ...input, email: targetEmail });
+                    console.log(`[NotificationSender] Enviando e-mail SMTP direto para ${targetEmail}`);
+                    await transporter.sendMail({
+                        from,
+                        to: targetEmail,
+                        subject: `Acordo Formalizado — ${input.instituicao}`,
+                        html,
+                    });
+                    emailSent = true;
+                    console.log(`[NotificationSender] E-mail SMTP enviado com sucesso para ${targetEmail}`);
+                }
+                catch (error) {
+                    console.error(`[NotificationSender] Erro ao enviar e-mail via SMTP: ${error.message}`);
+                }
             }
         }
-        return { emailSent, n8nSent };
+        // 3. Disparo de SMS / RCS via Smart RCS
+        let smsSent = false;
+        if (targetPhone) {
+            smsSent = await this.sendSmartRcsSms(input, targetPhone);
+        }
+        return { emailSent, n8nSent, smsSent };
+    }
+    async sendSmartRcsSms(input, targetPhone) {
+        const apiKey = process.env.SMART_RCS_API_KEY;
+        const apiUrl = process.env.SMART_RCS_API_URL || 'https://api.smartrcs.com.br/v1/messages';
+        if (!apiKey) {
+            console.log('[NotificationSender] SMART_RCS_API_KEY não configurada no env. Envio de SMS/RCS ignorado.');
+            return false;
+        }
+        try {
+            const formattedPhone = targetPhone.replace(/\D/g, '');
+            const cleanPhone = formattedPhone.startsWith('55') ? formattedPhone : `55${formattedPhone}`;
+            const link = input.linkBoleto || input.linkPix || '';
+            const messageText = `DDM Informa: Olá ${input.nome}, seu acordo com a ${input.instituicao} (R$ ${input.valor}) foi formalizado! Acesse o boleto/pix: ${link}`;
+            console.log(`[NotificationSender] Enviando SMS/RCS via Smart RCS para ${cleanPhone}...`);
+            const response = await axios_1.default.post(apiUrl, {
+                destination: cleanPhone,
+                phone: cleanPhone,
+                message: messageText,
+                text: messageText,
+                link: link || undefined,
+                cpf: input.cpf,
+            }, {
+                headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    'X-API-KEY': apiKey,
+                    'Content-Type': 'application/json',
+                },
+                timeout: 10000,
+            });
+            if (response.status >= 200 && response.status < 300) {
+                console.log(`[NotificationSender] SMS Smart RCS enviado com sucesso para ${cleanPhone}`);
+                return true;
+            }
+        }
+        catch (error) {
+            console.error(`[NotificationSender] Falha ao enviar SMS Smart RCS para ${targetPhone}:`, error.response?.data || error.message);
+        }
+        return false;
     }
 }
 exports.NotificationSender = NotificationSender;
