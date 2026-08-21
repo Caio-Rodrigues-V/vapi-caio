@@ -105,7 +105,7 @@ export class ProcessVapiWebhook {
       const assistantSpokeAgreement = messages.some((m: any) => {
         const role = String(m.role || '').toLowerCase();
         const content = String(m.message || m.content || '').toLowerCase();
-        return (role === 'assistant' || role === 'ai') && (
+        return (role === 'assistant' || role === 'ai' || role === 'bot') && (
           content.includes('acordo formalizado') ||
           content.includes('acordo fechado') ||
           content.includes('acordo foi gerado') ||
