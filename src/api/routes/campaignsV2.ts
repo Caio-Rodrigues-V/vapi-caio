@@ -519,6 +519,9 @@ campaignsV2Router.get('/vapi/config', async (_req, res) => {
 });
 
 campaignsV2Router.get('/campaigns', async (req, res) => {
+  // Sincroniza chamadas ativas com a Vapi em segundo plano para limpar chamadas presas como 'in_progress'
+  void runVapiCallSynchronizer(20).catch((e) => console.warn('[campaigns] list sync error:', e.message));
+
   const page = Math.max(1, Number(req.query.page || 1));
   const limit = Math.min(100, Math.max(1, Number(req.query.limit || 25)));
   const offset = (page - 1) * limit;
