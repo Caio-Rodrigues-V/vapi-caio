@@ -10,14 +10,12 @@ const multer_1 = __importDefault(require("multer"));
 const fs_1 = __importDefault(require("fs"));
 const csv_parse_1 = require("csv-parse");
 const db_1 = __importDefault(require("./db"));
-const llmClassifier_1 = require("./services/llmClassifier");
 const phoneValidator_1 = require("./utils/phoneValidator");
 const adminVapiHealth_1 = require("./api/routes/adminVapiHealth");
 const adminMigrations_1 = require("./api/routes/adminMigrations");
 const vapiWebhook_1 = __importDefault(require("./api/routes/vapiWebhook"));
 const campaignsV2_1 = require("./api/routes/campaignsV2");
 const stream_1 = require("./api/routes/stream");
-const externalTrigger_1 = require("./api/routes/externalTrigger");
 const runMigrations_1 = require("./infrastructure/database/runMigrations");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -26,9 +24,9 @@ app.use(express_1.default.json({ limit: '2mb' }));
 app.use('/api/admin', adminVapiHealth_1.adminVapiHealthRouter);
 app.use('/api/admin', adminMigrations_1.adminMigrationsRouter);
 app.use('/api/v2', vapiWebhook_1.default);
+app.use('/api', vapiWebhook_1.default);
 app.use('/api/v2', campaignsV2_1.campaignsV2Router);
 app.use('/api/v2', stream_1.streamRouter);
-app.use('/api/v2', externalTrigger_1.externalTriggerRouter);
 const PORT = Number(process.env.PORT || 3000);
 const upload = (0, multer_1.default)({
     dest: 'uploads/',
@@ -36,76 +34,6 @@ const upload = (0, multer_1.default)({
 });
 app.get('/api/health', (_req, res) => {
     return res.json({ status: 'ok' });
-});
-app.post('/api/vapi/webhook', async (req, res) => {
-    try {
-        const message = req.body?.message;
-        if (!message) {
-            return res.status(400).json({ error: 'Missing message in body' });
-        }
-        const { type, call } = message;
-        const callId = call?.id;
-        if (!callId || !type) {
-            return res.status(400).json({ error: 'Missing call id or event type' });
-        }
-        try {
-            await db_1.default.query('INSERT INTO eventos_webhook (call_id, tipo_evento, payload) VALUES (?, ?, ?)', [callId, type, JSON.stringify(message)]);
-        }
-        catch (error) {
-            if (error.code === 'ER_DUP_ENTRY') {
-                return res.status(200).json({ received: true, ignored: 'duplicate' });
-            }
-            throw error;
-        }
-        if (type !== 'end-of-call-report') {
-            return res.status(200).json({ received: true });
-        }
-        const telefone = call?.customer?.number || '';
-        const transcricao = message.transcript || '';
-        const mensagens = Array.isArray(message.artifact?.messages)
-            ? message.artifact.messages
-            : [];
-        const falasCliente = mensagens
-            .filter((item) => item.role === 'user' || item.role === 'customer')
-            .map((item) => item.message)
-            .filter(Boolean);
-        if (falasCliente.length === 0 && transcricao) {
-            falasCliente.push(transcricao);
-        }
-        const { decisao, dataAgendamento } = await (0, llmClassifier_1.classificarLigacao)(transcricao, falasCliente);
-        await db_1.default.query(`INSERT INTO auditoria_chamadas
-        (call_id, telefone, decisao, data_agendamento)
-       VALUES (?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         telefone = VALUES(telefone),
-         decisao = VALUES(decisao),
-         data_agendamento = VALUES(data_agendamento)`, [callId, telefone, decisao, dataAgendamento || null]);
-        const filaIdMetadata = Number(call?.metadata?.filaDisparoId || message?.metadata?.filaDisparoId);
-        if (Number.isInteger(filaIdMetadata) && filaIdMetadata > 0) {
-            await db_1.default.query(`UPDATE fila_disparo
-         SET status = 'concluido', lote_id = NULL
-         WHERE id = ? AND call_id = ?`, [filaIdMetadata, callId]);
-        }
-        else {
-            await db_1.default.query(`UPDATE fila_disparo
-         SET status = 'concluido', lote_id = NULL
-         WHERE call_id = ?`, [callId]);
-        }
-        if (decisao === 'Agendar' && dataAgendamento) {
-            const [rows] = await db_1.default.query('SELECT cpf, telefone FROM fila_disparo WHERE call_id = ? LIMIT 1', [callId]);
-            const registroOriginal = rows[0];
-            if (registroOriginal) {
-                await db_1.default.query(`INSERT INTO fila_disparo
-            (telefone, cpf, status, proxima_tentativa_em)
-           VALUES (?, ?, 'pendente', ?)`, [registroOriginal.telefone, registroOriginal.cpf, dataAgendamento]);
-            }
-        }
-        return res.status(200).json({ received: true });
-    }
-    catch (error) {
-        console.error('Error processing webhook:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
 });
 app.post('/api/upload', upload.single('file'), (req, res) => {
     if (!req.file) {
