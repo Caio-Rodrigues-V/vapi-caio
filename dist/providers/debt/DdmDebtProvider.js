@@ -218,8 +218,8 @@ class DdmDebtProvider {
                 const institution = findFirst(calculation, ['Cliente', 'Instituicao', 'instituicao']).replace(/\bNOVO\b/gi, '').trim() || null;
                 const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
                 const hasInstallments = (installments.length > 0 && Boolean(cashAmount)) || (Boolean(cashAmount) && cashAmount > 0);
-                const erroStr = String(findFirst(calculation, ['ERRO', 'erro', 'mensagem', 'msg', 'motivo']) || '').toLowerCase();
-                const isBlocked = erroStr.includes('bloqueado') || erroStr.includes('operador');
+                const rawJsonStr = JSON.stringify(rawCalculation).toLowerCase();
+                const isBlocked = rawJsonStr.includes('bloqueado') || rawJsonStr.includes('operador');
                 let skipReason = null;
                 if (isBlocked) {
                     skipReason = 'blocked_operator';

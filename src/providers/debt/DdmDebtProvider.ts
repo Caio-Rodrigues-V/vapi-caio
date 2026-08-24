@@ -228,8 +228,8 @@ export class DdmDebtProvider implements DebtProvider {
         const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
         const hasInstallments = (installments.length > 0 && Boolean(cashAmount)) || (Boolean(cashAmount) && cashAmount! > 0);
 
-        const erroStr = String(findFirst(calculation, ['ERRO', 'erro', 'mensagem', 'msg', 'motivo']) || '').toLowerCase();
-        const isBlocked = erroStr.includes('bloqueado') || erroStr.includes('operador');
+        const rawJsonStr = JSON.stringify(rawCalculation).toLowerCase();
+        const isBlocked = rawJsonStr.includes('bloqueado') || rawJsonStr.includes('operador');
 
         let skipReason: 'no_debt' | 'already_has_agreement' | 'no_online_agreement' | 'blocked_operator' | null = null;
         if (isBlocked) {
