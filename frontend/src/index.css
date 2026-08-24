@@ -1,87 +1,122 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #F97316;
-  --color-primary-hover: #EA580C;
-  --color-secondary: #64748B;
-  --color-success: #22C55E;
-  --color-danger: #EF4444;
-  --color-background: #F8FAFC;
-  --color-surface: #FFFFFF;
-  --color-dark-bg: #0F172A;
-  --color-dark-surface: #1E293B;
-  --color-dark-border: #334155;
+  --color-primary: #FF5A0A;
+  --color-primary-hover: #E04B00;
+  --color-brand-bg: #080B12;
+  --color-brand-sidebar: #050814;
+  --color-brand-surface: #101521;
+  --color-brand-elevated: #151C2B;
+  --color-brand-hover: #1A2334;
+  --color-brand-border: rgba(148, 163, 184, 0.14);
+  --color-text-main: #F8FAFC;
+  --color-text-sub: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-danger: #F43F5E;
+  --color-info: #38BDF8;
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background-color: #0B0F19;
-  background-image: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #090d16 100%);
-  background-attachment: fixed;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #080B12;
   color: #F8FAFC;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Classes */
-.bg-glass {
-  background: rgba(20, 27, 45, 0.45);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+/* Card & Surface Tokens */
+.card-surface {
+  background-color: #101521;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
 }
 
-.border-glass {
-  border: 1px solid rgba(255, 255, 255, 0.07);
+.card-elevated {
+  background-color: #151C2B;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
 }
 
-.bg-glass-hover:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 87, 6, 0.3);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 87, 6, 0.05);
+.card-hover:hover {
+  background-color: #1A2334;
+  border-color: rgba(255, 90, 10, 0.3);
 }
 
-/* Pulsing indicators for active calls */
-.indicator-glow {
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.8), 0 0 20px rgba(34, 197, 94, 0.4);
+.btn-primary {
+  background-color: #FF5A0A;
+  color: #FFFFFF;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.indicator-glow-orange {
-  box-shadow: 0 0 8px rgba(249, 115, 22, 0.8), 0 0 20px rgba(249, 115, 22, 0.4);
+.btn-primary:hover {
+  background-color: #E04B00;
+  box-shadow: 0 4px 14px rgba(255, 90, 10, 0.25);
 }
 
-/* Scrollbars */
+.input-field {
+  background-color: #050814;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 10px;
+  color: #F8FAFC;
+  font-size: 14px;
+}
+
+.input-field:focus {
+  border-color: #FF5A0A;
+  outline: none;
+}
+
+/* Skeleton Loading Animation */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.skeleton {
+  background-color: #151C2B;
+  border-radius: 8px;
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+/* Scrollbar Style */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1); 
+  background: #050814;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155; 
+  background: #1A2334;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569; 
+  background: #64748B;
 }
 
-/* Custom Gradients */
-.text-gradient {
-  background: linear-gradient(135deg, #FFF 30%, #F97316 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
+/* Micro-interactions */
 .btn-click {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .btn-click:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
-.animate-pulse-slow {
-  animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
-

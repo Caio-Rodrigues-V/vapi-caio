@@ -27,6 +27,7 @@ import {
   Clock,
   Award,
   Calendar,
+  Menu,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -1773,7 +1774,7 @@ function Settings() {
   );
 }
 
-function Sidebar() {
+function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const location = useLocation();
   const links = [
     ['/', 'Painel Geral', BarChart3],
@@ -1781,63 +1782,109 @@ function Sidebar() {
   ] as const;
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 border-r border-glass bg-slate-950/90 backdrop-blur-xl text-slate-300 flex flex-col justify-between p-6 z-20">
-      <div className="space-y-8">
-        <div className="flex items-center gap-3 py-2">
-          <div className="p-2.5 rounded-xl bg-[#FF5706]/15 border border-[#FF5706]/30 text-[#FF5706] shadow-lg shadow-[#FF5706]/10">
-            <PhoneCall size={22} />
-          </div>
-          <span className="font-extrabold text-white text-base tracking-wide flex flex-col">
-            Grupo DDM
-            <span className="text-[10px] text-slate-400 font-normal">Cobrança Automatizada IA</span>
-          </span>
-        </div>
+    <>
+      {/* Backdrop para mobile / tablet */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
 
-        <nav className="space-y-1">
-          {links.map(([path, label, Icon]) => (
-            <Link
-              key={path}
-              to={path}
-              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
-                location.pathname === path
-                  ? 'bg-[#FF5706] text-white shadow-lg shadow-[#FF5706]/20'
-                  : 'hover:bg-slate-900/50 hover:text-white text-slate-400 border border-transparent hover:border-glass'
-              }`}
+      <aside
+        className={`fixed left-0 top-0 h-screen w-64 border-r border-glass bg-[#050814] text-slate-300 flex flex-col justify-between p-6 z-50 transition-transform duration-300 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        <div className="space-y-8">
+          <div className="flex items-center justify-between py-1">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-[#FF5A0A]/15 border border-[#FF5A0A]/30 text-[#FF5A0A] shadow-md">
+                <PhoneCall size={20} />
+              </div>
+              <span className="font-bold text-white text-base tracking-wide flex flex-col">
+                Grupo DDM
+                <span className="text-[11px] text-slate-400 font-normal">Call Center IA</span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fechar menu"
+              className="lg:hidden text-slate-400 hover:text-white p-1"
             >
-              <Icon size={18} />
-              {label}
-            </Link>
-          ))}
-        </nav>
-      </div>
+              <X size={20} />
+            </button>
+          </div>
 
-      <div className="rounded-xl border border-glass bg-slate-900/40 p-4 space-y-2">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ambiente de Operação</p>
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="text-xs font-semibold text-white">v2.4 (Vapi + DDM Pay)</span>
+          <nav className="space-y-1.5">
+            {links.map(([path, label, Icon]) => (
+              <Link
+                key={path}
+                to={path}
+                onClick={onClose}
+                className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                  location.pathname === path
+                    ? 'bg-[#FF5A0A] text-white shadow-md shadow-[#FF5A0A]/20'
+                    : 'hover:bg-[#151C2B] hover:text-white text-slate-400'
+                }`}
+              >
+                <Icon size={18} />
+                {label}
+              </Link>
+            ))}
+          </nav>
         </div>
-      </div>
-    </aside>
+
+        <div className="rounded-xl border border-glass bg-[#101521] p-4 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ambiente de Operação</p>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse"></span>
+            <span className="text-xs font-semibold text-white">v2.4 (Vapi + DDM Pay)</span>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
 
 export default function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   useEffect(() => {
     document.documentElement.classList.add('dark');
   }, []);
 
   return (
     <BrowserRouter basename={basePath || '/'}>
-      <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex relative overflow-hidden">
+      <div className="min-h-screen bg-[#080B12] text-slate-100 flex relative overflow-hidden">
         <ThreeBackground />
-        <Sidebar />
-        <main className="ml-64 p-8 flex-1 min-w-0 max-w-[1600px] mx-auto space-y-6 z-10 relative">
-          <Routes>
-            <Route path="/" element={<Campaigns />} />
-            <Route path="/configuracoes" element={<Settings />} />
-          </Routes>
-        </main>
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+        <div className="flex-1 min-w-0 flex flex-col lg:ml-64 transition-all">
+          {/* Header Mobile com Hamburger Toggle */}
+          <header className="lg:hidden bg-[#050814] border-b border-glass px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Abrir menu lateral"
+                className="p-2 rounded-lg bg-[#101521] text-slate-200 border border-glass hover:bg-[#151C2B]"
+              >
+                <Menu size={20} />
+              </button>
+              <span className="font-bold text-white text-sm">Grupo DDM Call Center</span>
+            </div>
+            <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse"></span>
+          </header>
+
+          <main className="p-4 sm:p-6 lg:p-8 flex-1 min-w-0 max-w-[1600px] w-full mx-auto space-y-6 z-10 relative">
+            <Routes>
+              <Route path="/" element={<Campaigns />} />
+              <Route path="/configuracoes" element={<Settings />} />
+            </Routes>
+          </main>
+        </div>
       </div>
     </BrowserRouter>
   );
