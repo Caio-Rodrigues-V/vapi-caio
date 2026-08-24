@@ -2,25 +2,25 @@
 
 @theme {
   --color-primary: #FF5A0A;
-  --color-primary-hover: #E04B00;
-  --color-brand-bg: #080B12;
-  --color-brand-sidebar: #050814;
-  --color-brand-surface: #101521;
-  --color-brand-elevated: #151C2B;
-  --color-brand-hover: #1A2334;
-  --color-brand-border: rgba(148, 163, 184, 0.14);
+  --color-primary-hover: #EA580C;
+  --color-brand-bg: #090D16;
+  --color-brand-sidebar: #0B0F19;
+  --color-brand-surface: #111827;
+  --color-brand-elevated: #1E293B;
+  --color-brand-hover: #1F2937;
+  --color-brand-border: #1E293B;
   --color-text-main: #F8FAFC;
   --color-text-sub: #94A3B8;
   --color-text-muted: #64748B;
   --color-success: #10B981;
   --color-warning: #F59E0B;
-  --color-danger: #F43F5E;
+  --color-danger: #EF4444;
   --color-info: #38BDF8;
 }
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #080B12;
+  background-color: #090D16;
   color: #F8FAFC;
   margin: 0;
   padding: 0;
@@ -28,41 +28,40 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Card & Surface Tokens */
+/* B2B Card & Surface Tokens (Sober, 8px-10px radius) */
 .card-surface {
-  background-color: #101521;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 14px;
+  background-color: #111827;
+  border: 1px solid #1E293B;
+  border-radius: 10px;
 }
 
 .card-elevated {
-  background-color: #151C2B;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 14px;
+  background-color: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 10px;
 }
 
 .card-hover:hover {
-  background-color: #1A2334;
-  border-color: rgba(255, 90, 10, 0.3);
+  background-color: #1F2937;
+  border-color: #334155;
 }
 
 .btn-primary {
   background-color: #FF5A0A;
   color: #FFFFFF;
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: 600;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease;
 }
 
 .btn-primary:hover {
-  background-color: #E04B00;
-  box-shadow: 0 4px 14px rgba(255, 90, 10, 0.25);
+  background-color: #EA580C;
 }
 
 .input-field {
-  background-color: #050814;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 10px;
+  background-color: #0B0F19;
+  border: 1px solid #1E293B;
+  border-radius: 8px;
   color: #F8FAFC;
   font-size: 14px;
 }
@@ -79,7 +78,7 @@ body {
 }
 
 .skeleton {
-  background-color: #151C2B;
+  background-color: #1E293B;
   border-radius: 8px;
   animation: skeleton-pulse 1.8s ease-in-out infinite;
 }
@@ -91,25 +90,21 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #050814;
+  background: #090D16;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1A2334;
+  background: #1E293B;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748B;
+  background: #475569;
 }
 
 /* Micro-interactions */
 .btn-click {
-  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.btn-click:active {
-  transform: scale(0.97);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {

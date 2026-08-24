@@ -29,15 +29,15 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   activeFiltersCount,
 }) => {
   return (
-    <div className="card-surface p-4 border border-[#94A3B8]/14 space-y-3">
+    <div className="rounded-lg bg-[#111827] p-3 border border-[#1E293B] space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Lado Esquerdo: Seleção de Campanha & Período */}
         <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <Filter size={15} className="text-[#FF5A0A]" />
-            <span className="text-xs font-semibold text-white whitespace-nowrap">Filtros Operacionais</span>
+            <Filter size={14} className="text-[#FF5A0A]" />
+            <span className="text-xs font-semibold text-slate-200 whitespace-nowrap">Filtros:</span>
             {activeFiltersCount > 0 && (
-              <span className="px-2 py-0.5 rounded-md bg-[#FF5A0A]/15 text-[#FF5A0A] text-[11px] font-bold border border-[#FF5A0A]/30">
+              <span className="px-2 py-0.5 rounded bg-[#FF5A0A]/10 text-[#FF5A0A] text-[11px] font-semibold border border-[#FF5A0A]/20">
                 {activeFiltersCount} ativo{activeFiltersCount > 1 ? 's' : ''}
               </span>
             )}
@@ -47,7 +47,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <select
             value={selectedCampaignId ?? ''}
             onChange={(e) => onSelectCampaign(e.target.value ? Number(e.target.value) : null)}
-            className="input-field px-3 py-1.5 text-xs font-medium cursor-pointer max-w-[260px] truncate"
+            className="bg-[#0B0F19] text-slate-200 border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-xs font-medium cursor-pointer max-w-[240px] truncate focus:outline-none focus:border-[#FF5A0A]"
           >
             <option value="">Todas as Campanhas</option>
             {campaigns.map((c) => (
@@ -58,21 +58,21 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </select>
 
           {/* Selector de Período */}
-          <div className="flex items-center gap-1 bg-[#050814] p-1 rounded-xl border border-[#94A3B8]/14">
+          <div className="flex items-center gap-1 bg-[#0B0F19] p-0.5 rounded-lg border border-[#1E293B]">
             {[
               { id: 'today', label: 'Hoje' },
-              { id: '7d', label: '7 Dias' },
-              { id: '30d', label: '30 Dias' },
+              { id: '7d', label: '7D' },
+              { id: '30d', label: '30D' },
               { id: 'all', label: 'Tudo' },
             ].map((p) => (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => onSelectPeriod(p.id)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
+                className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
                   period === p.id
-                    ? 'bg-[#FF5A0A] text-white font-semibold shadow-sm'
-                    : 'text-[#94A3B8] hover:text-white'
+                    ? 'bg-[#FF5A0A] text-white font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {p.label}
@@ -81,9 +81,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </div>
 
           {/* Selector de Status da Chamada */}
-          <div className="flex items-center gap-1 bg-[#050814] p-1 rounded-xl border border-[#94A3B8]/14">
+          <div className="flex items-center gap-1 bg-[#0B0F19] p-0.5 rounded-lg border border-[#1E293B]">
             {[
-              { id: 'all', label: 'Todos Status' },
+              { id: 'all', label: 'Todos' },
               { id: 'formalize', label: 'Formalizado' },
               { id: 'schedule', label: 'Agendado' },
               { id: 'zero', label: 'Sem Acordo' },
@@ -92,10 +92,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 key={s.id}
                 type="button"
                 onClick={() => onSelectStatusFilter(s.id)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
+                className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
                   statusFilter === s.id
-                    ? 'bg-[#FF5A0A] text-white font-semibold shadow-sm'
-                    : 'text-[#94A3B8] hover:text-white'
+                    ? 'bg-[#FF5A0A] text-white font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {s.label}
@@ -107,13 +107,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         {/* Lado Direito: Busca e Limpar Filtros */}
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-2.5 text-[#94A3B8]" />
+            <Search size={13} className="absolute left-2.5 top-2.5 text-slate-500" />
             <input
               type="text"
               placeholder="Buscar CPF, Telefone..."
               value={searchInput}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="input-field pl-8 pr-3 py-1.5 text-xs w-44 sm:w-56"
+              className="bg-[#0B0F19] text-slate-200 border border-[#1E293B] rounded-lg pl-8 pr-3 py-1.5 text-xs w-44 sm:w-56 focus:outline-none focus:border-[#FF5A0A]"
             />
           </div>
 
@@ -121,7 +121,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <button
               type="button"
               onClick={onClearFilters}
-              className="btn-click px-2.5 py-1.5 text-xs font-semibold text-[#94A3B8] hover:text-white bg-[#151C2B] hover:bg-[#1A2334] rounded-xl border border-[#94A3B8]/20 flex items-center gap-1.5"
+              className="btn-click px-2.5 py-1.5 text-xs font-semibold text-slate-400 hover:text-white bg-[#1E293B] hover:bg-slate-700 rounded-lg border border-slate-700/50 flex items-center gap-1"
             >
               <RotateCcw size={12} />
               Limpar
