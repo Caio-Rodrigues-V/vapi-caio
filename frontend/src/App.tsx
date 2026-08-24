@@ -532,7 +532,7 @@ function Campaigns() {
     if (decisionFilter === 'active') return calls.filter(c => ['reserved', 'queued', 'in_progress', 'answered'].includes(c.status));
     if (decisionFilter === 'pending') return calls.filter(c => !c.decision && c.status !== 'completed' && !['reserved', 'queued', 'in_progress', 'answered'].includes(c.status));
     if (decisionFilter === 'answered') return calls.filter(c => (c.duration_seconds && c.duration_seconds > 0) || c.status === 'answered');
-    if (decisionFilter === 'no_debt') return calls.filter(c => c.status === 'skipped' && c.last_error === 'no_debt');
+    if (decisionFilter === 'no_debt') return calls.filter(c => c.status === 'skipped' || c.last_error === 'no_debt' || c.last_error === 'already_has_agreement');
     return calls.filter(c => c.decision === decisionFilter);
   }, [calls, decisionFilter]);
 
@@ -659,8 +659,8 @@ function Campaigns() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-[#FAFAFA] text-[11px] font-bold uppercase tracking-wider text-[#5F6570] border-b border-[#E5E7EB]">
                 <tr>
-                  {['Campanha', 'Status', 'Fila/Pendentes', 'Ativas', 'Atendidas', 'Concluídas', 'Falhas', 'Ações Operacionais'].map((header) => (
-                    <th key={header} className="px-5 py-3">{header}</th>
+                  {['Campanha', 'Status', 'CPFs', 'Discados', 'Atendidos (Alô)', 'Cobraram (Acordos)', 'Agendados', 'Sem Débito / Ignorados', 'Falhas', 'Ações Operacionais'].map((header) => (
+                    <th key={header} className="px-4 py-3">{header}</th>
                   ))}
                 </tr>
               </thead>
@@ -674,7 +674,7 @@ function Campaigns() {
                       key={campaign.id}
                       className={`hover:bg-[#FFF7F2] transition-colors ${isSelected ? 'bg-[#FFF1E8]/60 border-l-[3px] border-[#D9480F]' : ''}`}
                     >
-                      <td className="px-5 py-3.5">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg border transition-colors ${isSelected ? 'bg-[#FFF1E8] text-[#B9380B] border-[#FFD1B8]' : 'bg-[#FAFAFA] text-[#5F6570] border-[#E5E7EB]'}`}>
                             <Layers size={15} />
@@ -692,13 +692,15 @@ function Campaigns() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5"><StatusBadge status={campaign.status} /></td>
-                      <td className="px-5 py-3.5 font-medium text-[#0369A1]">{Number(campaign.pending_calls || 0)}</td>
-                      <td className="px-5 py-3.5 font-medium text-[#15803D]">{Number(campaign.active_calls || 0)}</td>
-                      <td className="px-5 py-3.5 font-semibold text-[#15803D]">{Number(campaign.answered_calls || 0)}</td>
-                      <td className="px-5 py-3.5 font-medium text-[#D9480F]">{Number(campaign.completed_calls || 0)}</td>
-                      <td className="px-5 py-3.5 font-medium text-[#B91C1C]">{Number(campaign.failed_calls || 0)}</td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-4 py-3.5"><StatusBadge status={campaign.status} /></td>
+                      <td className="px-4 py-3.5 font-medium text-[#18181B]">{Number(campaign.total_leads || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-medium text-[#0369A1]">{Number(campaign.total_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-semibold text-[#15803D]">{Number(campaign.answered_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-extrabold text-[#D9480F] bg-[#FFF1E8]/40">{Number(campaign.formalized_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-semibold text-[#B45309]">{Number(campaign.scheduled_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-medium text-[#5F6570]">{Number(campaign.skipped_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-medium text-[#B91C1C]">{Number(campaign.failed_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
                           {campaign.status !== 'running' ? (
                             <button
@@ -829,27 +831,31 @@ function Campaigns() {
               </div>
             </div>
 
-            {/* 6 Metric Cards da Campanha */}
-            <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {/* 7 Metric Cards Detalhadas da Campanha */}
+            <div className="w-full grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
               <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
-                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Base / Importados</span>
-                <p className="text-base font-bold text-[#18181B] mt-0.5">{Number(selectedCampaign.total_calls || 0).toLocaleString('pt-BR')}</p>
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Base CPFs</span>
+                <p className="text-base font-bold text-[#18181B] mt-0.5">{Number(selectedCampaign.total_leads || 0).toLocaleString('pt-BR')}</p>
               </div>
               <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
                 <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Discados</span>
-                <p className="text-base font-bold text-[#0369A1] mt-0.5">{Number(selectedCampaign.completed_calls || 0).toLocaleString('pt-BR')}</p>
+                <p className="text-base font-bold text-[#0369A1] mt-0.5">{Number(selectedCampaign.total_calls || 0).toLocaleString('pt-BR')}</p>
               </div>
               <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
                 <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Atendidos</span>
                 <p className="text-base font-bold text-[#15803D] mt-0.5">{Number(selectedCampaign.answered_calls || 0).toLocaleString('pt-BR')}</p>
               </div>
-              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
-                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Formalizados</span>
-                <p className="text-base font-bold text-[#D9480F] mt-0.5">{Number(selectedCampaign.formalized_calls || 0).toLocaleString('pt-BR')}</p>
+              <div className="rounded-lg bg-[#FFF1E8] p-3 border border-[#FFD1B8]">
+                <span className="text-[11px] text-[#B9380B] font-bold uppercase tracking-wider block">Cobraram (Acordo)</span>
+                <p className="text-base font-extrabold text-[#D9480F] mt-0.5">{Number(selectedCampaign.formalized_calls || 0).toLocaleString('pt-BR')}</p>
               </div>
               <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
-                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Inválidos / Ignorados</span>
-                <p className="text-base font-bold text-[#B45309] mt-0.5">{Number(selectedCampaign.skipped_calls || 0).toLocaleString('pt-BR')}</p>
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Agendados</span>
+                <p className="text-base font-bold text-[#B45309] mt-0.5">{Number(selectedCampaign.scheduled_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Sem Débito / Ignorados</span>
+                <p className="text-base font-bold text-[#5F6570] mt-0.5">{Number(selectedCampaign.skipped_calls || 0).toLocaleString('pt-BR')}</p>
               </div>
               <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
                 <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Falhas</span>
@@ -1460,8 +1466,8 @@ function Campaigns() {
           <table className="w-full text-left border-collapse">
             <thead className="bg-[#FAFAFA] text-[11px] font-bold uppercase tracking-wider text-[#5F6570] border-b border-[#E5E7EB]">
               <tr>
-                {['Campanha', 'Status', 'CPFs', 'Fila/Pendentes', 'Ativas', 'Atendidas', 'Concluídas', 'Falhas', 'Ação'].map((header) => (
-                  <th key={header} className="px-5 py-2.5">{header}</th>
+                {['Campanha', 'Status', 'CPFs', 'Discados', 'Atendidos (Alô)', 'Cobraram (Acordos)', 'Agendados', 'Sem Débito / Ignorados', 'Falhas', 'Ação'].map((header) => (
+                  <th key={header} className="px-4 py-2.5">{header}</th>
                 ))}
               </tr>
             </thead>
@@ -1471,17 +1477,18 @@ function Campaigns() {
                   key={campaign.id}
                   className="hover:bg-[#FFF7F2] transition-colors"
                 >
-                  <td className="px-5 py-3.5 font-bold text-[#18181B]">
+                  <td className="px-4 py-3.5 font-bold text-[#18181B]">
                     {campaign.name}
                   </td>
-                  <td className="px-5 py-3.5"><StatusBadge status={campaign.status} /></td>
-                  <td className="px-5 py-3.5 text-[#5F6570] font-medium">{Number(campaign.total_leads || 0).toLocaleString('pt-BR')}</td>
-                  <td className="px-5 py-3.5 font-medium text-[#0369A1]">{Number(campaign.pending_calls || 0)}</td>
-                  <td className="px-5 py-3.5 font-medium text-[#15803D]">{Number(campaign.active_calls || 0)}</td>
-                  <td className="px-5 py-3.5 font-semibold text-[#15803D]">{Number(campaign.answered_calls || 0)}</td>
-                  <td className="px-5 py-3.5 font-medium text-[#D9480F]">{Number(campaign.completed_calls || 0)}</td>
-                  <td className="px-5 py-3.5 font-medium text-[#B91C1C]">{Number(campaign.failed_calls || 0)}</td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-4 py-3.5"><StatusBadge status={campaign.status} /></td>
+                  <td className="px-4 py-3.5 font-medium text-[#18181B]">{Number(campaign.total_leads || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-medium text-[#0369A1]">{Number(campaign.total_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-semibold text-[#15803D]">{Number(campaign.answered_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-extrabold text-[#D9480F] bg-[#FFF1E8]/40">{Number(campaign.formalized_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-semibold text-[#B45309]">{Number(campaign.scheduled_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-medium text-[#5F6570]">{Number(campaign.skipped_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-medium text-[#B91C1C]">{Number(campaign.failed_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5">
                     <Link
                       to={`/campanhas?id=${campaign.id}`}
                       className="btn-click rounded-lg bg-[#FFF1E8] hover:bg-[#FFD1B8] px-2.5 py-1 text-[#B9380B] border border-[#FFD1B8] text-xs font-semibold inline-flex items-center gap-1 transition-colors"
