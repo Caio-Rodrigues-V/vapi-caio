@@ -228,8 +228,13 @@ export class DdmDebtProvider implements DebtProvider {
         const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
         const hasInstallments = (installments.length > 0 && Boolean(cashAmount)) || (Boolean(cashAmount) && cashAmount! > 0);
 
-        let skipReason: 'no_debt' | 'already_has_agreement' | 'no_online_agreement' | null = null;
-        if (calculation.FechaAcordo === false) {
+        const erroStr = String(findFirst(calculation, ['ERRO', 'erro', 'mensagem', 'msg', 'motivo']) || '').toLowerCase();
+        const isBlocked = erroStr.includes('bloqueado') || erroStr.includes('operador');
+
+        let skipReason: 'no_debt' | 'already_has_agreement' | 'no_online_agreement' | 'blocked_operator' | null = null;
+        if (isBlocked) {
+          skipReason = 'blocked_operator';
+        } else if (calculation.FechaAcordo === false) {
           const rawAcordos = Array.isArray(calculation.Acordos) ? calculation.Acordos : [];
           const hasActiveAgreement = rawAcordos.some((a: any) => (Array.isArray(a) ? a.length > 0 : Boolean(a)));
           skipReason = hasActiveAgreement ? 'already_has_agreement' : 'no_online_agreement';

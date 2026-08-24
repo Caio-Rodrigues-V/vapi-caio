@@ -218,8 +218,13 @@ class DdmDebtProvider {
                 const institution = findFirst(calculation, ['Cliente', 'Instituicao', 'instituicao']).replace(/\bNOVO\b/gi, '').trim() || null;
                 const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
                 const hasInstallments = (installments.length > 0 && Boolean(cashAmount)) || (Boolean(cashAmount) && cashAmount > 0);
+                const erroStr = String(findFirst(calculation, ['ERRO', 'erro', 'mensagem', 'msg', 'motivo']) || '').toLowerCase();
+                const isBlocked = erroStr.includes('bloqueado') || erroStr.includes('operador');
                 let skipReason = null;
-                if (calculation.FechaAcordo === false) {
+                if (isBlocked) {
+                    skipReason = 'blocked_operator';
+                }
+                else if (calculation.FechaAcordo === false) {
                     const rawAcordos = Array.isArray(calculation.Acordos) ? calculation.Acordos : [];
                     const hasActiveAgreement = rawAcordos.some((a) => (Array.isArray(a) ? a.length > 0 : Boolean(a)));
                     skipReason = hasActiveAgreement ? 'already_has_agreement' : 'no_online_agreement';

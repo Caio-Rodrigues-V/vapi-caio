@@ -1029,9 +1029,10 @@ function Campaigns() {
                               <X size={13} className="text-[#8B92A0]" />
                               {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado`}
                               {call.last_error === 'no_online_agreement' && `Acordo online não permitido`}
+                              {call.last_error === 'blocked_operator' && `Bloqueado na DDM (Transferir p/ operador)`}
                               {call.last_error === 'no_debt' && 'Sem débito em aberto'}
                               {call.last_error === 'cpf_missing' && 'CPF ausente'}
-                              {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
+                              {!['already_has_agreement', 'no_online_agreement', 'blocked_operator', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
                             </span>
                           ) : (
                             !call.decision && (
