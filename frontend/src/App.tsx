@@ -29,6 +29,9 @@ import {
   Menu,
   ArrowLeft,
   Eye,
+  Zap,
+  ShieldCheck,
+  Layers,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -554,6 +557,16 @@ function Campaigns() {
     }));
   }, [campaigns]);
 
+  // Funil de Conversão Operacional do Planejamento
+  const funnelData = useMemo(() => {
+    return [
+      { etapa: 'Base Importada', valor: stats.leads, fill: '#64748B' },
+      { etapa: 'Discados', valor: stats.calls, fill: '#38BDF8' },
+      { etapa: 'Atendidos (Alô)', valor: stats.answered, fill: '#10B981' },
+      { etapa: 'Formalizados', valor: stats.formalized, fill: '#FF5A0A' },
+    ];
+  }, [stats]);
+
   useEffect(() => {
     gsap.fromTo(
       '.gsap-card',
@@ -746,85 +759,54 @@ function Campaigns() {
         />
       </div>
 
-      {/* Seção de Gráficos Analíticos (Etapa 3) */}
+      {/* Seção do Painel do Planejamento & Operações (4 Cards em Grid 2x2) */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        {/* Gráfico 1: Status de Fila Geral ou Decisões da Campanha Selecionada */}
+        {/* Card 1: Funil de Conversão Operacional */}
         <div className="card-surface p-5 border border-glass flex flex-col justify-between min-h-[350px]">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Activity size={18} className="text-[#FF5A0A]" />
-              {selectedId ? `Resultados da Campanha #${selectedId}` : 'Distribuição de Status de Contatos Geral'}
+              <Layers size={18} className="text-[#FF5A0A]" />
+              Funil de Conversão do Disparo
             </h3>
-            <p className="text-xs text-[#94A3B8]">
-              {selectedId ? 'Proporção de acordos e agendamentos fechados nesta campanha' : 'Visualização geral dos contatos do banco'}
-            </p>
+            <p className="text-xs text-[#94A3B8]">Evolução do volume da base até a formalização do acordo</p>
           </div>
 
           <div className="h-60 mt-4 flex items-center justify-center">
-            {selectedId && selectedCampaignDecisions.length > 0 ? (
+            {stats.leads > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={selectedCampaignDecisions}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={85}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {selectedCampaignDecisions.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
+                <BarChart data={funnelData} layout="vertical" margin={{ top: 10, right: 20, left: 30, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
+                  <XAxis type="number" stroke="#94a3b8" fontSize={11} />
+                  <YAxis type="category" dataKey="etapa" stroke="#94a3b8" fontSize={10} width={110} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#101521', borderColor: 'rgba(148, 163, 184, 0.14)', borderRadius: '10px' }}
                     itemStyle={{ color: '#F8FAFC' }}
                   />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : !selectedId && chartStatusData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartStatusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={85}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {chartStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                  <Bar dataKey="valor" radius={[0, 6, 6, 0]}>
+                    {funnelData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#101521', borderColor: 'rgba(148, 163, 184, 0.14)', borderRadius: '10px' }}
-                    itemStyle={{ color: '#F8FAFC' }}
-                  />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                </PieChart>
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             ) : (
               <EmptyState
                 compact
-                title="Sem dados suficientes"
-                description="Processe a campanha para visualizar os gráficos analíticos de resultados."
+                title="Sem dados no funil"
+                description="Importe contatos para visualizar o funil de conversão da operação."
               />
             )}
           </div>
         </div>
 
-        {/* Gráfico 2: Desempenho Comparativo de Campanhas */}
+        {/* Card 2: Desempenho Comparativo por Campanha */}
         <div className="card-surface p-5 border border-glass flex flex-col justify-between min-h-[350px]">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <BarChart3 size={18} className="text-[#38BDF8]" />
-              Desempenho de Campanhas Recentes
+              Desempenho Comparativo por Campanha
             </h3>
-            <p className="text-xs text-[#94A3B8]">Contatos processados (Concluídos) em relação ao total importado</p>
+            <p className="text-xs text-[#94A3B8]">Contatos processados (Concluídos) em relação ao total importado por lote</p>
           </div>
 
           <div className="h-60 mt-4 flex items-center justify-center">
@@ -852,6 +834,102 @@ function Campaigns() {
                 onAction={() => setShowCreate(true)}
               />
             )}
+          </div>
+        </div>
+
+        {/* Card 3: Distribuição de Decisões de Atendimento */}
+        <div className="card-surface p-5 border border-glass flex flex-col justify-between min-h-[350px]">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Activity size={18} className="text-[#10B981]" />
+              Status de Resultados da Fila
+            </h3>
+            <p className="text-xs text-[#94A3B8]">Proporção de acordos, rechamadas e falhas no banco de contatos</p>
+          </div>
+
+          <div className="h-60 mt-4 flex items-center justify-center">
+            {chartStatusData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartStatusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {chartStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#101521', borderColor: 'rgba(148, 163, 184, 0.14)', borderRadius: '10px' }}
+                    itemStyle={{ color: '#F8FAFC' }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState
+                compact
+                title="Sem dados analíticos"
+                description="Inicie a discagem para gerar relatórios de classificação."
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Card 4: Indicadores de Infraestrutura & Capacidade do Planejamento */}
+        <div className="card-surface p-5 border border-glass flex flex-col justify-between min-h-[350px] space-y-4">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <ShieldCheck size={18} className="text-[#38BDF8]" />
+              Saúde da Operação & Pacing
+            </h3>
+            <p className="text-xs text-[#94A3B8]">Métricas operacionais de chamadas e controle do dialer</p>
+          </div>
+
+          <div className="space-y-2.5 flex-1 justify-center flex flex-col">
+            <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-xs text-[#94A3B8] font-medium flex items-center gap-1.5">
+                  <Zap size={13} className="text-[#FF5A0A]" />
+                  Pacing Delay
+                </span>
+                <p className="text-xs text-slate-400">Intervalo de segurança entre disparos</p>
+              </div>
+              <span className="px-2.5 py-1 rounded-md bg-[#FF5A0A]/10 text-[#FF5A0A] text-xs font-bold border border-[#FF5A0A]/20">
+                500 ms
+              </span>
+            </div>
+
+            <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-xs text-[#94A3B8] font-medium flex items-center gap-1.5">
+                  <RefreshCw size={13} className="text-[#10B981]" />
+                  Auto-Retry SIP 408
+                </span>
+                <p className="text-xs text-slate-400">Reagendamento automático de timeout</p>
+              </div>
+              <span className="px-2.5 py-1 rounded-md bg-[#10B981]/10 text-[#10B981] text-xs font-bold border border-[#10B981]/20">
+                15 mins
+              </span>
+            </div>
+
+            <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-xs text-[#94A3B8] font-medium flex items-center gap-1.5">
+                  <MessageSquare size={13} className="text-[#38BDF8]" />
+                  Fallback de Notificações
+                </span>
+                <p className="text-xs text-slate-400">Smart RCS / N8N Webhook</p>
+              </div>
+              <span className="px-2.5 py-1 rounded-md bg-[#38BDF8]/10 text-[#38BDF8] text-xs font-bold border border-[#38BDF8]/20">
+                Ativo
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -1043,29 +1121,66 @@ function Campaigns() {
             {/* Resumo de Métricas do Disparo (Item 05 da Planilha) */}
             {selectedCampaign && (
               <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
-                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
-                  <span className="text-[11px] text-slate-400 font-medium">Base / Importados</span>
+                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                  <span className="text-[11px] text-[#94A3B8] font-medium">Base / Importados</span>
                   <p className="text-base font-bold text-white mt-0.5">{Number(selectedCampaign.total_calls || 0).toLocaleString('pt-BR')}</p>
                 </div>
-                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
-                  <span className="text-[11px] text-slate-400 font-medium">Discados</span>
-                  <p className="text-base font-bold text-primary mt-0.5">{Number(selectedCampaign.completed_calls || 0).toLocaleString('pt-BR')}</p>
+                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                  <span className="text-[11px] text-[#94A3B8] font-medium">Discados</span>
+                  <p className="text-base font-bold text-[#38BDF8] mt-0.5">{Number(selectedCampaign.completed_calls || 0).toLocaleString('pt-BR')}</p>
                 </div>
-                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
-                  <span className="text-[11px] text-slate-400 font-medium">Atendidos</span>
-                  <p className="text-base font-bold text-emerald-400 mt-0.5">{Number(selectedCampaign.answered_calls || 0).toLocaleString('pt-BR')}</p>
+                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                  <span className="text-[11px] text-[#94A3B8] font-medium">Atendidos</span>
+                  <p className="text-base font-bold text-[#10B981] mt-0.5">{Number(selectedCampaign.answered_calls || 0).toLocaleString('pt-BR')}</p>
                 </div>
-                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
-                  <span className="text-[11px] text-slate-400 font-medium">Formalizados</span>
-                  <p className="text-base font-bold text-emerald-300 mt-0.5">{Number(selectedCampaign.formalized_calls || 0).toLocaleString('pt-BR')}</p>
+                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                  <span className="text-[11px] text-[#94A3B8] font-medium">Formalizados</span>
+                  <p className="text-base font-bold text-[#FF5A0A] mt-0.5">{Number(selectedCampaign.formalized_calls || 0).toLocaleString('pt-BR')}</p>
                 </div>
-                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
-                  <span className="text-[11px] text-slate-400 font-medium">Inválidos / Ignorados</span>
-                  <p className="text-base font-bold text-amber-400 mt-0.5">{Number(selectedCampaign.skipped_calls || 0).toLocaleString('pt-BR')}</p>
+                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                  <span className="text-[11px] text-[#94A3B8] font-medium">Inválidos / Ignorados</span>
+                  <p className="text-base font-bold text-[#F59E0B] mt-0.5">{Number(selectedCampaign.skipped_calls || 0).toLocaleString('pt-BR')}</p>
                 </div>
-                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
-                  <span className="text-[11px] text-slate-400 font-medium">Falhas</span>
-                  <p className="text-base font-bold text-rose-400 mt-0.5">{Number(selectedCampaign.failed_calls || 0).toLocaleString('pt-BR')}</p>
+                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                  <span className="text-[11px] text-[#94A3B8] font-medium">Falhas</span>
+                  <p className="text-base font-bold text-[#F43F5E] mt-0.5">{Number(selectedCampaign.failed_calls || 0).toLocaleString('pt-BR')}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Gráfico de Decisões da Campanha Selecionada */}
+            {selectedCampaignDecisions.length > 0 && (
+              <div className="w-full card-surface p-4 border border-glass flex flex-col md:flex-row items-center justify-between gap-4 my-2">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Activity size={16} className="text-[#FF5A0A]" />
+                    Classificação de Decisões do Acordo (IA)
+                  </h4>
+                  <p className="text-xs text-[#94A3B8]">Distribuição em tempo real das intenções dos contatos desta campanha</p>
+                </div>
+                <div className="h-44 w-full md:w-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={selectedCampaignDecisions}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={65}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {selectedCampaignDecisions.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#101521', borderColor: 'rgba(148, 163, 184, 0.14)', borderRadius: '10px' }}
+                        itemStyle={{ color: '#F8FAFC' }}
+                      />
+                      <Legend verticalAlign="bottom" height={28} iconType="circle" />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
             )}
