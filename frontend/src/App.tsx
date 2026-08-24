@@ -1804,13 +1804,13 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
         <div className="space-y-8">
           <div className="flex items-center justify-between py-1">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-[#FF5A0A]/15 border border-[#FF5A0A]/30 text-[#FF5A0A] shadow-md">
-                <PhoneCall size={20} />
+              <div className="bg-white px-2.5 py-1.5 rounded-xl shadow-md border border-[#94A3B8]/20 flex items-center justify-center">
+                <img
+                  src={`${basePath}/logo_ddm.jpg`}
+                  alt="Grupo DDM Logo"
+                  className="h-7 w-auto object-contain"
+                />
               </div>
-              <span className="font-bold text-white text-base tracking-wide flex flex-col">
-                Grupo DDM
-                <span className="text-[11px] text-slate-400 font-normal">Call Center IA</span>
-              </span>
             </div>
             <button
               type="button"
@@ -1878,7 +1878,9 @@ export default function App() {
               >
                 <Menu size={20} />
               </button>
-              <span className="font-bold text-white text-sm">Grupo DDM Call Center</span>
+              <div className="bg-white px-2 py-1 rounded-lg flex items-center">
+                <img src={`${basePath}/logo_ddm.jpg`} alt="Grupo DDM Logo" className="h-5 w-auto object-contain" />
+              </div>
             </div>
             <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse"></span>
           </header>
