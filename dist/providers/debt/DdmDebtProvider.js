@@ -62,35 +62,51 @@ function consolidateCalculation(raw) {
             continue;
         const row = item;
         const dados = row.Dados;
-        if (dados && typeof dados === 'object' && !Array.isArray(dados))
+        if (dados && typeof dados === 'object' && !Array.isArray(dados)) {
             Object.assign(consolidated, dados);
+        }
+        Object.assign(consolidated, row);
         const calculos = Array.isArray(row.Calculos) ? row.Calculos : [];
         for (const calc of calculos) {
             if (calc && typeof calc === 'object' && 'debitos' in calc)
                 debts.push(calc.debitos);
         }
-        const cash = row.PgtoAvista;
+        const cash = row.PgtoAvista || row.pgto_avista;
         if (cash && typeof cash === 'object' && !Array.isArray(cash)) {
             consolidated.PgtoAvista = cash;
             const cashRow = cash;
             installments.push({
-                ValorParcela: cashRow.ValorFinal ?? cashRow.ValorTotal ?? '0,00',
-                ValorFinal: cashRow.ValorFinal ?? cashRow.ValorTotal ?? '0,00',
+                ValorParcela: cashRow.ValorFinal ?? cashRow.ValorTotal ?? cashRow.valor ?? '0,00',
+                ValorFinal: cashRow.ValorFinal ?? cashRow.ValorTotal ?? cashRow.valor ?? '0,00',
             });
         }
-        if (row.PgtoParceladoBoleto && typeof row.PgtoParceladoBoleto === 'object') {
-            installments.push(row.PgtoParceladoBoleto);
+        else if (row.ValorFinal || row.ValorTotal || row.valor_total) {
+            const val = row.ValorFinal ?? row.ValorTotal ?? row.valor_total;
+            installments.push({
+                ValorParcela: val,
+                ValorFinal: val,
+            });
+        }
+        const boleto = row.PgtoParceladoBoleto || row.pgto_parcelado_boleto || row.ListaParcelas || row.parcelas;
+        if (Array.isArray(boleto)) {
+            for (const p of boleto) {
+                if (p && typeof p === 'object')
+                    installments.push(p);
+            }
+        }
+        else if (boleto && typeof boleto === 'object') {
+            installments.push(boleto);
         }
         if (row.PgtoParceladoCartao)
             consolidated.PgtoParceladoCartao = row.PgtoParceladoCartao;
     }
     consolidated.ListaParcelas = { Parcelas: installments };
     consolidated.ListaDebitos = { Debito: debts };
-    consolidated.TotalNominal = consolidated.nominal ?? consolidated.nominal_princ ??
-        (consolidated.PgtoAvista?.ValorTotal ?? '0,00');
-    consolidated.Cliente = consolidated.instituicao ?? consolidated.Cliente ?? '';
-    consolidated.NomeDev = consolidated.nome ?? consolidated.NomeDevedor ?? '';
-    consolidated.idcalc = consolidated.CalculoID ?? consolidated.iddev ?? '';
+    consolidated.TotalNominal = consolidated.nominal ?? consolidated.nominal_princ ?? consolidated.TotalNominal ??
+        (consolidated.PgtoAvista?.ValorTotal ?? consolidated.ValorTotal ?? '0,00');
+    consolidated.Cliente = consolidated.instituicao ?? consolidated.Cliente ?? consolidated.cliente ?? '';
+    consolidated.NomeDev = consolidated.nome ?? consolidated.NomeDevedor ?? consolidated.nomedev ?? '';
+    consolidated.idcalc = consolidated.CalculoID ?? consolidated.iddev ?? consolidated.idcalc ?? '';
     return consolidated;
 }
 class DdmDebtProvider {
@@ -183,10 +199,12 @@ class DdmDebtProvider {
                 const calculation = consolidateCalculation(rawCalculation);
                 const installmentContainer = getAny(calculation, ['ListaParcelas', 'lista_parcelas', 'parcelas']);
                 const rawInstallments = getAny(installmentContainer, ['Parcelas', 'Parcela', 'parcelas']);
-                const rows = Array.isArray(rawInstallments) ? rawInstallments : rawInstallments ? [rawInstallments] : [];
+                const rows = Array.isArray(rawInstallments) ? rawInstallments.flat(Infinity) : rawInstallments ? [rawInstallments] : [];
                 const installments = rows
                     .map((row, index) => {
-                    const amount = parseMoney(getAny(row, ['ValorParcela', 'valor_parcela', 'valor', 'ValorFinal']));
+                    if (!row || typeof row !== 'object')
+                        return null;
+                    const amount = parseMoney(getAny(row, ['ValorParcela', 'valor_parcela', 'valor', 'ValorFinal', 'ValorTotal']));
                     if (!amount || amount <= 0)
                         return null;
                     return {
@@ -196,10 +214,10 @@ class DdmDebtProvider {
                     };
                 })
                     .filter((item) => Boolean(item));
-                const cashAmount = installments[0]?.amount ?? null;
+                const cashAmount = installments[0]?.amount ?? parseMoney(getAny(calculation, ['ValorFinal', 'ValorTotal', 'valortotal', 'cashAmount'])) ?? null;
                 const institution = findFirst(calculation, ['Cliente', 'Instituicao', 'instituicao']).replace(/\bNOVO\b/gi, '').trim() || null;
                 const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
-                const hasInstallments = installments.length > 0 && Boolean(cashAmount);
+                const hasInstallments = (installments.length > 0 && Boolean(cashAmount)) || (Boolean(cashAmount) && cashAmount > 0);
                 let skipReason = null;
                 if (calculation.FechaAcordo === false) {
                     const rawAcordos = Array.isArray(calculation.Acordos) ? calculation.Acordos : [];
