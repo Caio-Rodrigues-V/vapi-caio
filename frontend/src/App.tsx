@@ -42,6 +42,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { prepareImportFile } from './lib/importFile';
+import { ThreeBackground } from './components/ThreeBackground';
 import './index.css';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -1771,15 +1772,15 @@ function Sidebar() {
   ] as const;
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 border-r border-glass bg-slate-950 text-slate-300 flex flex-col justify-between p-6">
+    <aside className="fixed left-0 top-0 h-screen w-64 border-r border-glass bg-slate-950/90 backdrop-blur-xl text-slate-300 flex flex-col justify-between p-6 z-20">
       <div className="space-y-8">
-        <div className="flex items-center gap-2.5 py-2">
-          <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
-            <PhoneCall size={20} />
+        <div className="flex items-center gap-3 py-2">
+          <div className="p-2.5 rounded-xl bg-[#FF5706]/15 border border-[#FF5706]/30 text-[#FF5706] shadow-lg shadow-[#FF5706]/10">
+            <PhoneCall size={22} />
           </div>
           <span className="font-extrabold text-white text-base tracking-wide flex flex-col">
-            UVA Call Center
-            <span className="text-[10px] text-slate-400 font-normal">Painel Grupo DDM</span>
+            Grupo DDM
+            <span className="text-[10px] text-slate-400 font-normal">Cobrança Automatizada IA</span>
           </span>
         </div>
 
@@ -1790,7 +1791,7 @@ function Sidebar() {
               to={path}
               className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
                 location.pathname === path
-                  ? 'bg-primary text-white shadow-lg shadow-primary/15'
+                  ? 'bg-[#FF5706] text-white shadow-lg shadow-[#FF5706]/20'
                   : 'hover:bg-slate-900/50 hover:text-white text-slate-400 border border-transparent hover:border-glass'
               }`}
             >
@@ -1801,11 +1802,11 @@ function Sidebar() {
         </nav>
       </div>
 
-      <div className="rounded-xl border border-glass bg-slate-900/30 p-4 space-y-2">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Versão da Operação</p>
+      <div className="rounded-xl border border-glass bg-slate-900/40 p-4 space-y-2">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ambiente de Operação</p>
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="text-xs font-semibold text-white">v2.1 (Vapi Direct)</span>
+          <span className="text-xs font-semibold text-white">v2.4 (Vapi + DDM Pay)</span>
         </div>
       </div>
     </aside>
@@ -1819,9 +1820,10 @@ export default function App() {
 
   return (
     <BrowserRouter basename={basePath || '/'}>
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex">
+      <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex relative overflow-hidden">
+        <ThreeBackground />
         <Sidebar />
-        <main className="ml-64 p-8 flex-1 min-w-0 max-w-[1600px] mx-auto space-y-6">
+        <main className="ml-64 p-8 flex-1 min-w-0 max-w-[1600px] mx-auto space-y-6 z-10 relative">
           <Routes>
             <Route path="/" element={<Campaigns />} />
             <Route path="/configuracoes" element={<Settings />} />
