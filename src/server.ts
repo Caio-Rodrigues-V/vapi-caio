@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import multer from 'multer';
 import fs from 'fs';
+import path from 'path';
 import { parse } from 'csv-parse';
 import pool from './db';
 import { classificarLigacao } from './services/llmClassifier';
@@ -143,6 +144,19 @@ app.post('/api/worker/start', (req: Request, res: Response) => {
 
   return res.status(202).json({ message: 'Dispatcher de campanhas acionado.' });
 });
+
+const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+const frontendIndex = path.join(frontendDist, 'index.html');
+
+if (fs.existsSync(frontendIndex)) {
+  app.use(express.static(frontendDist, { index: false }));
+  app.use((req: Request, res: Response, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api/')) {
+      return next();
+    }
+    return res.sendFile(frontendIndex);
+  });
+}
 
 if (require.main === module) {
   runPendingMigrations()

@@ -8,6 +8,7 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const cors_1 = __importDefault(require("cors"));
 const multer_1 = __importDefault(require("multer"));
 const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const csv_parse_1 = require("csv-parse");
 const db_1 = __importDefault(require("./db"));
 const phoneValidator_1 = require("./utils/phoneValidator");
@@ -127,6 +128,17 @@ app.post('/api/worker/start', (req, res) => {
     });
     return res.status(202).json({ message: 'Dispatcher de campanhas acionado.' });
 });
+const frontendDist = path_1.default.join(__dirname, '..', 'frontend', 'dist');
+const frontendIndex = path_1.default.join(frontendDist, 'index.html');
+if (fs_1.default.existsSync(frontendIndex)) {
+    app.use(express_1.default.static(frontendDist, { index: false }));
+    app.use((req, res, next) => {
+        if (req.method !== 'GET' || req.path.startsWith('/api/')) {
+            return next();
+        }
+        return res.sendFile(frontendIndex);
+    });
+}
 if (require.main === module) {
     (0, runMigrations_1.runPendingMigrations)()
         .then((results) => {
