@@ -51,6 +51,7 @@ import { FilterBar } from './components/ui/FilterBar';
 import { EmptyState } from './components/ui/EmptyState';
 import { ErrorState } from './components/ui/ErrorState';
 import { LiveClock } from './components/ui/LiveClock';
+import { Drawer } from './components/ui/Drawer';
 import { gsap } from 'gsap';
 import './index.css';
 
@@ -1570,213 +1571,191 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
   }, [call.transcript]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-4xl rounded-lg border border-[#1E293B] bg-[#111827] overflow-hidden flex flex-col max-h-[85vh]">
-        
-        {/* Header */}
-        <div className="bg-[#0B0F19] px-5 py-3.5 border-b border-[#1E293B] flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-              <PhoneCall size={16} className="text-[#FF5A0A]" />
-              Detalhes da Ligação #{call.id}
-            </h3>
-            <p className="text-xs text-slate-400">CPF: {call.cpf || '-'} | Telefone: {call.customer_number}</p>
+    <Drawer
+      isOpen={!!call}
+      onClose={onClose}
+      title={`Detalhes da Ligação #${call.id}`}
+      subtitle={`CPF: ${call.cpf || '-'} | Telefone: ${call.customer_number}`}
+    >
+      <div className="space-y-5">
+        {/* Informações Gerais */}
+        <div className="rounded-lg border border-[#1E293B] bg-[#0B0F19] p-4 space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[#FF5A0A]">Informações Gerais</h4>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <span className="text-slate-500 block text-[11px]">Status da Fila</span>
+              <span className="font-semibold text-slate-100 capitalize">
+                {call.status === 'skipped' ? 'Pulado' : call.status}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-500 block text-[11px]">Tentativas</span>
+              <span className="font-semibold text-slate-100">{call.attempts} / 5</span>
+            </div>
+            <div>
+              <span className="text-slate-500 block text-[11px]">Duração</span>
+              <span className="font-semibold text-slate-100">
+                {call.duration_seconds ? `${call.duration_seconds} segundos` : '-'}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-500 block text-[11px]">Acordo / Decisão</span>
+              <span className="font-semibold">
+                {call.decision === 'formalize' && <span className="text-emerald-400">Formalizado</span>}
+                {call.decision === 'schedule' && <span className="text-amber-400">Reagendado</span>}
+                {call.decision === 'zero' && (
+                  <span className="text-rose-400">
+                    {call.ended_reason === 'voicemail' 
+                      ? 'Caixa Postal' 
+                      : (!call.duration_seconds || call.duration_seconds === 0
+                          ? 'Não Atendido'
+                          : (call.duration_seconds <= 30 
+                              ? 'Atendeu e Desligou' 
+                              : 'Recusado/Sem Acordo'))}
+                  </span>
+                )}
+                {call.status === 'skipped' && (
+                  <span className="text-slate-400">
+                    {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
+                    {call.last_error === 'no_online_agreement' && `Acordo online não permitido${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
+                    {call.last_error === 'no_debt' && 'Sem débito em aberto'}
+                    {call.last_error === 'cpf_missing' && 'CPF ausente'}
+                    {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
+                  </span>
+                )}
+                {!call.decision && call.status !== 'skipped' && <span className="text-slate-400">Pendente</span>}
+              </span>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded-lg bg-[#1E293B] hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
-          >
-            <X size={16} />
-          </button>
         </div>
 
-        {/* Body */}
-        <div className="p-5 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-2 gap-5 min-h-0">
-          
-          {/* Left Column: Stats & Audio */}
-          <div className="space-y-4">
-            <div className="rounded-lg border border-[#1E293B] bg-[#0B0F19] p-4 space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#FF5A0A]">Informações Gerais</h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-slate-500 block text-xs">Status da Fila</span>
-                  <span className="font-semibold text-white capitalize">
-                    {call.status === 'skipped' ? 'Pulado' : call.status}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-xs">Tentativas</span>
-                  <span className="font-semibold text-white">{call.attempts} / 5</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-xs">Duração</span>
-                  <span className="font-semibold text-white">
-                    {call.duration_seconds ? `${call.duration_seconds} segundos` : '-'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-xs">Acordo / Decisão</span>
-                  <span className="font-semibold">
-                    {call.decision === 'formalize' && <span className="text-emerald-400">Formalizado</span>}
-                    {call.decision === 'schedule' && <span className="text-amber-400">Reagendado</span>}
-                    {call.decision === 'zero' && (
-                      <span className="text-rose-400">
-                        {call.ended_reason === 'voicemail' 
-                          ? 'Caixa Postal' 
-                          : (!call.duration_seconds || call.duration_seconds === 0
-                              ? 'Não Atendido'
-                              : (call.duration_seconds <= 30 
-                                  ? 'Atendeu e Desligou' 
-                                  : 'Recusado/Sem Acordo'))}
-                      </span>
-                    )}
-                    {call.status === 'skipped' && (
-                      <span className="text-slate-400">
-                        {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
-                        {call.last_error === 'no_online_agreement' && `Acordo online não permitido${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
-                        {call.last_error === 'no_debt' && 'Sem débito em aberto'}
-                        {call.last_error === 'cpf_missing' && 'CPF ausente'}
-                        {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
-                      </span>
-                    )}
-                    {!call.decision && call.status !== 'skipped' && <span className="text-slate-400">Pendente</span>}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Telefones deste CPF */}
-            <div className="rounded-xl border border-glass bg-slate-950/40 p-4 space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Telefones Cadastrados (CPF)</h4>
-              {loadingPhones ? (
-                <p className="text-xs text-slate-400 animate-pulse">Carregando telefones...</p>
-              ) : cpfPhones.length > 0 ? (
-                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                  {cpfPhones.map((item) => {
-                    const isCurrent = item.customer_number === call.customer_number;
-                    return (
-                      <div
-                        key={item.id}
-                        className={`flex items-center justify-between text-xs p-2 rounded-lg border ${
-                          isCurrent
-                            ? 'bg-primary/10 border-primary/40 text-primary font-bold'
-                            : 'bg-slate-900/40 border-glass text-slate-300'
-                        }`}
-                      >
-                        <span className="font-mono">{item.customer_number}</span>
-                        <div className="flex items-center gap-1.5">
-                          {item.attempts > 0 && (
-                            <span className="text-[10px] text-slate-400 bg-slate-950/60 px-1.5 py-0.5 rounded">
-                              {item.attempts} tent.
-                            </span>
-                          )}
-                          <span className={`capitalize px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                            item.status === 'completed'
-                              ? 'bg-emerald-500/10 text-emerald-400'
-                              : item.status === 'failed'
-                              ? 'bg-rose-500/10 text-rose-450'
-                              : item.status === 'skipped'
-                              ? 'bg-slate-800 text-slate-400'
-                              : 'bg-indigo-500/10 text-indigo-400'
-                          }`}>
-                            {item.status === 'skipped'
-                              ? 'Pulado'
-                              : item.status === 'completed'
-                              ? item.decision === 'formalize'
-                                ? 'Formalizado'
-                                : item.decision === 'schedule'
-                                ? 'Agendado'
-                                : 'S/ Acordo'
-                              : item.status}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-500">Nenhum outro telefone encontrado.</p>
-              )}
-            </div>
-
-            {/* Audio Player Card */}
-            {call.recording_url ? (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-semibold">
-                  <Volume2 size={14} /> Gravação do Áudio
-                </h4>
-                <audio 
-                  src={call.provider_call_id 
-                    ? apiUrl(`/calls/${call.provider_call_id}/recording?token=${getToken()}`) 
-                    : call.recording_url || undefined} 
-                  controls 
-                  className="w-full mt-2 rounded-lg" 
-                />
-              </div>
-            ) : (
-              <div className="rounded-xl border border-glass bg-slate-950/20 p-4 text-center text-slate-500 text-sm">
-                Nenhum áudio de gravação disponível para esta chamada.
-              </div>
-            )}
-
-            {/* Last Error if exists */}
-            {call.last_error && (
-              <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 space-y-1">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-rose-400">Erro Registrado</h4>
-                <p className="text-xs text-slate-300 font-mono break-all">{call.last_error}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Transcript */}
-          <div className="rounded-xl border border-glass bg-slate-950/30 p-4 flex flex-col h-full min-h-0">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5 border-b border-glass pb-2 mb-3 font-semibold">
-              <MessageSquare size={14} /> Transcrição da Conversa
-            </h4>
-            
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0 max-h-[40vh] md:max-h-none">
-              {bubbles.length > 0 ? (
-                bubbles.map((bubble, i) => (
+        {/* Telefones deste CPF */}
+        <div className="rounded-lg border border-[#1E293B] bg-[#0B0F19] p-4 space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[#FF5A0A]">Telefones Cadastrados (CPF)</h4>
+          {loadingPhones ? (
+            <p className="text-xs text-slate-400 animate-pulse">Carregando telefones...</p>
+          ) : cpfPhones.length > 0 ? (
+            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+              {cpfPhones.map((item) => {
+                const isCurrent = item.customer_number === call.customer_number;
+                return (
                   <div
-                    key={i}
-                    className={`flex flex-col ${bubble.isAssistant ? 'items-end' : 'items-start'}`}
+                    key={item.id}
+                    className={`flex items-center justify-between text-xs p-2 rounded-lg border ${
+                      isCurrent
+                        ? 'bg-[#FF5A0A]/10 border-[#FF5A0A]/40 text-[#FF5A0A] font-bold'
+                        : 'bg-[#111827] border-[#1E293B] text-slate-300'
+                    }`}
                   >
-                    <span className="text-[10px] text-slate-500 mb-0.5 px-1">{bubble.speaker}</span>
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm ${
-                        bubble.isAssistant
-                          ? 'bg-primary text-white rounded-tr-none font-medium'
-                          : 'bg-slate-800 text-slate-200 rounded-tl-none border border-glass'
-                      }`}
-                    >
-                      {bubble.text}
+                    <span className="font-mono">{item.customer_number}</span>
+                    <div className="flex items-center gap-1.5">
+                      {item.attempts > 0 && (
+                        <span className="text-[10px] text-slate-400 bg-[#0B0F19] px-1.5 py-0.5 rounded">
+                          {item.attempts} tent.
+                        </span>
+                      )}
+                      <span className={`capitalize px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                        item.status === 'completed'
+                          ? 'bg-emerald-500/10 text-emerald-400'
+                          : item.status === 'failed'
+                          ? 'bg-rose-500/10 text-rose-400'
+                          : item.status === 'skipped'
+                          ? 'bg-slate-800 text-slate-400'
+                          : 'bg-indigo-500/10 text-indigo-400'
+                      }`}>
+                        {item.status === 'skipped'
+                          ? 'Pulado'
+                          : item.status === 'completed'
+                          ? item.decision === 'formalize'
+                            ? 'Formalizado'
+                            : item.decision === 'schedule'
+                            ? 'Agendado'
+                            : 'S/ Acordo'
+                          : item.status}
+                      </span>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full py-10 text-center text-slate-500 text-sm gap-2">
-                  <FileText size={24} />
-                  <span>Nenhuma transcrição de texto disponível.</span>
-                </div>
-              )}
+                );
+              })}
             </div>
+          ) : (
+            <p className="text-xs text-slate-500">Nenhum outro telefone encontrado.</p>
+          )}
+        </div>
+
+        {/* Audio Player Card */}
+        {call.recording_url ? (
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-semibold">
+              <Volume2 size={14} /> Gravação do Áudio
+            </h4>
+            <audio 
+              src={call.provider_call_id 
+                ? apiUrl(`/calls/${call.provider_call_id}/recording?token=${getToken()}`) 
+                : call.recording_url || undefined} 
+              controls 
+              className="w-full mt-1 rounded-lg" 
+            />
+          </div>
+        ) : (
+          <div className="rounded-lg border border-[#1E293B] bg-[#0B0F19] p-3 text-center text-slate-500 text-xs">
+            Nenhum áudio de gravação disponível para esta chamada.
+          </div>
+        )}
+
+        {/* Last Error if exists */}
+        {call.last_error && (
+          <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3 space-y-1">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-400">Erro Registrado</h4>
+            <p className="text-xs text-slate-300 font-mono break-all">{call.last_error}</p>
+          </div>
+        )}
+
+        {/* Transcrição da Conversa */}
+        <div className="rounded-lg border border-[#1E293B] bg-[#0B0F19] p-4 space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5 border-b border-[#1E293B] pb-2 font-semibold">
+            <MessageSquare size={14} /> Transcrição da Conversa (Júlia IA)
+          </h4>
+          
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+            {bubbles.length > 0 ? (
+              bubbles.map((bubble, i) => (
+                <div
+                  key={i}
+                  className={`flex flex-col ${bubble.isAssistant ? 'items-end' : 'items-start'}`}
+                >
+                  <span className="text-[10px] text-slate-500 mb-0.5 px-1">{bubble.speaker}</span>
+                  <div
+                    className={`max-w-[85%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
+                      bubble.isAssistant
+                        ? 'bg-[#FF5A0A] text-white rounded-tr-none font-medium'
+                        : 'bg-[#1E293B] text-slate-200 rounded-tl-none border border-slate-700'
+                    }`}
+                  >
+                    {bubble.text}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-6 text-center text-slate-500 text-xs gap-1.5">
+                <FileText size={20} />
+                <span>Nenhuma transcrição de texto disponível.</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="bg-slate-950/40 px-6 py-4 border-t border-glass flex justify-end">
+        <div className="pt-2 flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-glass bg-slate-800 px-5 py-2 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition-all"
+            className="rounded-lg border border-[#1E293B] bg-[#0B0F19] px-4 py-2 text-slate-300 hover:bg-[#1E293B] text-xs font-semibold transition-colors"
           >
             Fechar Detalhes
           </button>
         </div>
-
       </div>
-    </div>
+    </Drawer>
   );
 }
 
