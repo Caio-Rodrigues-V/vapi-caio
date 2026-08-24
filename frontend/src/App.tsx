@@ -610,26 +610,26 @@ function Campaigns() {
     return (
       <div className="space-y-5">
         {/* Header da Aba Campanhas & Disparador */}
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-[#111827] p-4 border border-[#1E293B]">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)]">
           <div>
-            <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-              <Play size={20} className="text-[#FF5A0A]" />
+            <h2 className="text-xl font-extrabold text-[#18181B] flex items-center gap-2">
+              <Play size={20} className="text-[#D9480F]" />
               Campanhas & Disparador
             </h2>
-            <p className="text-xs text-slate-400">Gestão de lotes de cobrança, disparador automático Vapi e fila de contatos</p>
+            <p className="text-xs text-[#5F6570]">Gestão de lotes de cobrança, disparador automático Vapi e fila de contatos</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             {campaigns.length > 0 && (
-              <div className="flex items-center gap-2 bg-[#0B0F19] px-3 py-1.5 rounded-lg border border-[#1E293B]">
-                <span className="text-xs text-slate-400 font-medium hidden sm:inline">Campanha:</span>
+              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#E5E7EB] shadow-xs">
+                <span className="text-xs text-[#5F6570] font-medium hidden sm:inline">Campanha:</span>
                 <select
                   value={selectedId || ''}
                   onChange={(e) => setSelectedId(Number(e.target.value))}
-                  className="bg-transparent text-slate-100 text-xs font-semibold focus:outline-none cursor-pointer"
+                  className="bg-transparent text-[#18181B] text-xs font-semibold focus:outline-none cursor-pointer"
                 >
                   {campaigns.map((c) => (
-                    <option key={c.id} value={c.id} className="bg-[#0B0F19] text-slate-200">
+                    <option key={c.id} value={c.id} className="bg-white text-[#18181B]">
                       #{c.id} - {c.name} ({Number(c.total_leads || 0).toLocaleString('pt-BR')} CPFs)
                     </option>
                   ))}
@@ -640,7 +640,7 @@ function Campaigns() {
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="btn-click inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FF5A0A] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-lg transition-colors"
+              className="btn-click inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#D9480F] hover:bg-[#B9380B] text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
             >
               <Plus size={15} />
               Nova Campanha
@@ -649,22 +649,22 @@ function Campaigns() {
         </div>
 
         {/* Tabela de Controle Operacional de Campanhas */}
-        <div className="rounded-lg bg-[#111827] overflow-hidden border border-[#1E293B]">
-          <div className="border-b border-[#1E293B] bg-[#0B0F19] px-5 py-3.5 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-100">Lotes de Disparo</h3>
-            <span className="text-xs text-slate-400 font-medium">{campaigns.length} campanhas cadastradas</span>
+        <div className="rounded-xl bg-white overflow-hidden border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)]">
+          <div className="border-b border-[#E5E7EB] bg-[#FAFAFA] px-5 py-3.5 flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B]">Lotes de Disparo</h3>
+            <span className="text-xs text-[#5F6570] font-medium">{campaigns.length} campanhas cadastradas</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-[#0B0F19] text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-[#1E293B]">
+              <thead className="bg-[#FAFAFA] text-[11px] font-bold uppercase tracking-wider text-[#5F6570] border-b border-[#E5E7EB]">
                 <tr>
                   {['Campanha', 'Status', 'Fila/Pendentes', 'Ativas', 'Atendidas', 'Concluídas', 'Falhas', 'Ações Operacionais'].map((header) => (
                     <th key={header} className="px-5 py-3">{header}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E293B] text-xs text-slate-200">
+              <tbody className="divide-y divide-[#E5E7EB] text-xs text-[#18181B]">
                 {campaigns.map((campaign) => {
                   const deleteBlocked = campaign.status === 'running' || Number(campaign.active_calls || 0) > 0;
                   const isSelected = selectedId === campaign.id;
@@ -672,32 +672,32 @@ function Campaigns() {
                   return (
                     <tr
                       key={campaign.id}
-                      className={`hover:bg-[#1F2937] transition-colors ${isSelected ? 'bg-[#FF5A0A]/5 border-l-2 border-[#FF5A0A]' : ''}`}
+                      className={`hover:bg-[#FFF7F2] transition-colors ${isSelected ? 'bg-[#FFF1E8]/60 border-l-[3px] border-[#D9480F]' : ''}`}
                     >
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg border transition-colors ${isSelected ? 'bg-[#FF5A0A]/10 text-[#FF5A0A] border-[#FF5A0A]/30' : 'bg-[#0B0F19] text-slate-400 border-[#1E293B]'}`}>
+                          <div className={`p-2 rounded-lg border transition-colors ${isSelected ? 'bg-[#FFF1E8] text-[#B9380B] border-[#FFD1B8]' : 'bg-[#FAFAFA] text-[#5F6570] border-[#E5E7EB]'}`}>
                             <Layers size={15} />
                           </div>
                           <div>
                             <button
                               onClick={() => setSelectedId(campaign.id)}
-                              className="font-bold text-slate-100 hover:text-[#FF5A0A] transition-colors text-left block text-xs"
+                              className="font-bold text-[#18181B] hover:text-[#D9480F] transition-colors text-left block text-xs"
                             >
                               {campaign.name}
                             </button>
-                            <p className="text-[11px] text-slate-400 mt-0.5">
+                            <p className="text-[11px] text-[#5F6570] mt-0.5">
                               {Number(campaign.total_leads || 0).toLocaleString('pt-BR')} CPFs • {Number(campaign.total_calls || 0).toLocaleString('pt-BR')} números
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-3.5"><StatusBadge status={campaign.status} /></td>
-                      <td className="px-5 py-3.5 font-medium text-sky-400">{Number(campaign.pending_calls || 0)}</td>
-                      <td className="px-5 py-3.5 font-medium text-emerald-400">{Number(campaign.active_calls || 0)}</td>
-                      <td className="px-5 py-3.5 font-semibold text-emerald-400">{Number(campaign.answered_calls || 0)}</td>
-                      <td className="px-5 py-3.5 font-medium text-[#FF5A0A]">{Number(campaign.completed_calls || 0)}</td>
-                      <td className="px-5 py-3.5 font-medium text-rose-400">{Number(campaign.failed_calls || 0)}</td>
+                      <td className="px-5 py-3.5 font-medium text-[#0369A1]">{Number(campaign.pending_calls || 0)}</td>
+                      <td className="px-5 py-3.5 font-medium text-[#15803D]">{Number(campaign.active_calls || 0)}</td>
+                      <td className="px-5 py-3.5 font-semibold text-[#15803D]">{Number(campaign.answered_calls || 0)}</td>
+                      <td className="px-5 py-3.5 font-medium text-[#D9480F]">{Number(campaign.completed_calls || 0)}</td>
+                      <td className="px-5 py-3.5 font-medium text-[#B91C1C]">{Number(campaign.failed_calls || 0)}</td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1.5">
                           {campaign.status !== 'running' ? (
@@ -706,7 +706,7 @@ function Campaigns() {
                               title="Iniciar campanha"
                               aria-label={`Iniciar campanha ${campaign.name}`}
                               onClick={() => void changeStatus(campaign.id, 'running')}
-                              className="btn-click rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 p-1.5 text-emerald-400 border border-emerald-500/20"
+                              className="btn-click rounded-lg bg-[#ECFDF3] hover:bg-[#DCFCE7] p-1.5 text-[#15803D] border border-[#DCFCE7]"
                             >
                               <Play size={14} />
                             </button>
@@ -716,7 +716,7 @@ function Campaigns() {
                               title="Pausar campanha"
                               aria-label={`Pausar campanha ${campaign.name}`}
                               onClick={() => void changeStatus(campaign.id, 'paused')}
-                              className="btn-click rounded-lg bg-amber-500/10 hover:bg-amber-500/20 p-1.5 text-amber-400 border border-amber-500/20"
+                              className="btn-click rounded-lg bg-[#FFF7ED] hover:bg-[#FED7AA] p-1.5 text-[#B45309] border border-[#FED7AA]"
                             >
                               <Pause size={14} />
                             </button>
@@ -725,7 +725,7 @@ function Campaigns() {
                           <label
                             title="Importar contatos (CSV / Excel)"
                             aria-label={`Importar contatos para ${campaign.name}`}
-                            className="btn-click cursor-pointer rounded-lg bg-[#0B0F19] border border-[#1E293B] hover:bg-[#1E293B] p-1.5 text-slate-300"
+                            className="btn-click cursor-pointer rounded-lg bg-[#FAFAFA] border border-[#E5E7EB] hover:bg-[#E5E7EB] p-1.5 text-[#5F6570]"
                           >
                             <UploadCloud size={14} />
                             <input
@@ -742,8 +742,8 @@ function Campaigns() {
                             onClick={() => setSelectedId(campaign.id)}
                             className={`btn-click rounded-lg px-2.5 py-1 border text-xs font-semibold flex items-center gap-1 transition-colors ${
                               isSelected
-                                ? 'bg-[#FF5A0A] text-white border-[#FF5A0A]'
-                                : 'bg-[#FF5A0A]/10 text-[#FF5A0A] border-[#FF5A0A]/20 hover:bg-[#FF5A0A]/20'
+                                ? 'bg-[#D9480F] text-white border-[#D9480F]'
+                                : 'bg-[#FFF1E8] text-[#B9380B] border-[#FFD1B8] hover:bg-[#FFD1B8]'
                             }`}
                           >
                             <Eye size={13} />
@@ -754,7 +754,7 @@ function Campaigns() {
                             type="button"
                             title="Editar configurações"
                             onClick={() => setEditingCampaign(campaign)}
-                            className="btn-click rounded-lg bg-sky-500/10 hover:bg-sky-500/20 p-1.5 text-sky-400 border border-sky-500/20"
+                            className="btn-click rounded-lg bg-[#F0F9FF] hover:bg-[#BAE6FD] p-1.5 text-[#0369A1] border border-[#BAE6FD]"
                           >
                             <SettingsIcon size={14} />
                           </button>
@@ -764,7 +764,7 @@ function Campaigns() {
                             title={deleteBlocked ? 'Pause a campanha para excluir' : 'Excluir campanha'}
                             disabled={deleteBlocked || deletingId === campaign.id}
                             onClick={() => void deleteCampaign(campaign)}
-                            className="btn-click rounded-lg bg-rose-500/10 hover:bg-rose-500/20 p-1.5 text-rose-400 border border-rose-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="btn-click rounded-lg bg-[#FEF2F2] hover:bg-[#FCA5A5]/30 p-1.5 text-[#B91C1C] border border-[#FCA5A5] disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -793,20 +793,20 @@ function Campaigns() {
 
         {/* Visão de Contatos da Campanha Selecionada */}
         {selectedCampaign && (
-          <div className="rounded-lg bg-[#111827] p-5 border border-[#1E293B] space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#1E293B] pb-4">
+          <div className="rounded-xl bg-white p-5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E7EB] pb-4">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="space-y-1">
-                  <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider block">Fila da Campanha Selecionada</span>
-                  <div className="flex items-center gap-2 bg-[#0B0F19] px-3 py-1.5 rounded-lg border border-[#1E293B]">
-                    <Layers size={15} className="text-[#FF5A0A]" />
+                  <span className="text-[11px] text-[#5F6570] font-bold uppercase tracking-wider block">Fila da Campanha Selecionada</span>
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#E5E7EB]">
+                    <Layers size={15} className="text-[#D9480F]" />
                     <select
                       value={selectedId || ''}
                       onChange={(e) => setSelectedId(Number(e.target.value))}
-                      className="bg-transparent text-slate-100 text-xs font-semibold focus:outline-none cursor-pointer pr-2"
+                      className="bg-transparent text-[#18181B] text-xs font-semibold focus:outline-none cursor-pointer pr-2"
                     >
                       {campaigns.map((c) => (
-                        <option key={c.id} value={c.id} className="bg-[#0B0F19] text-slate-200 font-normal">
+                        <option key={c.id} value={c.id} className="bg-white text-[#18181B] font-normal">
                           Campanha #{c.id}: {c.name} ({Number(c.total_leads || 0).toLocaleString('pt-BR')} CPFs)
                         </option>
                       ))}
@@ -821,7 +821,7 @@ function Campaigns() {
                   type="button"
                   disabled={loading}
                   onClick={() => void loadCalls(selectedCampaign.id, callsPage)}
-                  className="btn-click flex items-center gap-1.5 rounded-lg border border-[#1E293B] bg-[#0B0F19] px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-[#1E293B]"
+                  className="btn-click flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-semibold text-[#5F6570] hover:bg-[#FAFAFA] hover:text-[#18181B] shadow-xs"
                 >
                   <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
                   Atualizar Fila
@@ -831,41 +831,41 @@ function Campaigns() {
 
             {/* 6 Metric Cards da Campanha */}
             <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="rounded-lg bg-[#0B0F19] p-3 border border-[#1E293B]">
-                <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wider block">Base / Importados</span>
-                <p className="text-base font-bold text-slate-100 mt-0.5">{Number(selectedCampaign.total_calls || 0).toLocaleString('pt-BR')}</p>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Base / Importados</span>
+                <p className="text-base font-bold text-[#18181B] mt-0.5">{Number(selectedCampaign.total_calls || 0).toLocaleString('pt-BR')}</p>
               </div>
-              <div className="rounded-lg bg-[#0B0F19] p-3 border border-[#1E293B]">
-                <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wider block">Discados</span>
-                <p className="text-base font-bold text-sky-400 mt-0.5">{Number(selectedCampaign.completed_calls || 0).toLocaleString('pt-BR')}</p>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Discados</span>
+                <p className="text-base font-bold text-[#0369A1] mt-0.5">{Number(selectedCampaign.completed_calls || 0).toLocaleString('pt-BR')}</p>
               </div>
-              <div className="rounded-lg bg-[#0B0F19] p-3 border border-[#1E293B]">
-                <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wider block">Atendidos</span>
-                <p className="text-base font-bold text-emerald-400 mt-0.5">{Number(selectedCampaign.answered_calls || 0).toLocaleString('pt-BR')}</p>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Atendidos</span>
+                <p className="text-base font-bold text-[#15803D] mt-0.5">{Number(selectedCampaign.answered_calls || 0).toLocaleString('pt-BR')}</p>
               </div>
-              <div className="rounded-lg bg-[#0B0F19] p-3 border border-[#1E293B]">
-                <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wider block">Formalizados</span>
-                <p className="text-base font-bold text-[#FF5A0A] mt-0.5">{Number(selectedCampaign.formalized_calls || 0).toLocaleString('pt-BR')}</p>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Formalizados</span>
+                <p className="text-base font-bold text-[#D9480F] mt-0.5">{Number(selectedCampaign.formalized_calls || 0).toLocaleString('pt-BR')}</p>
               </div>
-              <div className="rounded-lg bg-[#0B0F19] p-3 border border-[#1E293B]">
-                <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wider block">Inválidos / Ignorados</span>
-                <p className="text-base font-bold text-amber-400 mt-0.5">{Number(selectedCampaign.skipped_calls || 0).toLocaleString('pt-BR')}</p>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Inválidos / Ignorados</span>
+                <p className="text-base font-bold text-[#B45309] mt-0.5">{Number(selectedCampaign.skipped_calls || 0).toLocaleString('pt-BR')}</p>
               </div>
-              <div className="rounded-lg bg-[#0B0F19] p-3 border border-[#1E293B]">
-                <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wider block">Falhas</span>
-                <p className="text-base font-bold text-rose-400 mt-0.5">{Number(selectedCampaign.failed_calls || 0).toLocaleString('pt-BR')}</p>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Falhas</span>
+                <p className="text-base font-bold text-[#B91C1C] mt-0.5">{Number(selectedCampaign.failed_calls || 0).toLocaleString('pt-BR')}</p>
               </div>
             </div>
 
             {/* Gráfico de Decisões da Campanha Selecionada */}
             {selectedCampaignDecisions.length > 0 && (
-              <div className="w-full rounded-lg bg-[#0B0F19] p-4 border border-[#1E293B] flex flex-col md:flex-row items-center justify-between gap-4 my-2">
+              <div className="w-full rounded-lg bg-[#FAFAFA] p-4 border border-[#E5E7EB] flex flex-col md:flex-row items-center justify-between gap-4 my-2">
                 <div className="space-y-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                    <Activity size={14} className="text-[#FF5A0A]" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
+                    <Activity size={14} className="text-[#D9480F]" />
                     Classificação de Decisões do Acordo (IA)
                   </h4>
-                  <p className="text-xs text-slate-400">Distribuição em tempo real das intenções dos contatos desta campanha</p>
+                  <p className="text-xs text-[#5F6570]">Distribuição em tempo real das intenções dos contatos desta campanha</p>
                 </div>
                 <div className="h-40 w-full md:w-80">
                   <ResponsiveContainer width="100%" height="100%">
@@ -884,8 +884,8 @@ function Campaigns() {
                         ))}
                       </Pie>
                       <Tooltip
-                        contentStyle={{ backgroundColor: '#0B0F19', borderColor: '#1E293B', borderRadius: '8px' }}
-                        itemStyle={{ color: '#F8FAFC' }}
+                        contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderRadius: '8px', color: '#18181B', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.06)' }}
+                        itemStyle={{ color: '#18181B' }}
                       />
                       <Legend verticalAlign="bottom" height={28} iconType="circle" />
                     </PieChart>
@@ -897,7 +897,7 @@ function Campaigns() {
             {/* Filtros e Tabela de Contatos */}
             <div className="space-y-3 pt-1">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2 bg-[#0B0F19] px-3 py-1.5 rounded-lg border border-[#1E293B]">
+                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#E5E7EB] shadow-xs">
                   <input
                     type="text"
                     placeholder="Buscar CPF, Telefone ou Nome..."
@@ -909,7 +909,7 @@ function Campaigns() {
                         setSearchQuery(searchInput);
                       }
                     }}
-                    className="bg-transparent text-xs text-slate-100 placeholder-slate-500 focus:outline-none w-48 sm:w-60"
+                    className="bg-transparent text-xs text-[#18181B] placeholder-[#8B92A0] focus:outline-none w-48 sm:w-60"
                   />
                   {searchInput && (
                     <button
@@ -919,7 +919,7 @@ function Campaigns() {
                         setCallsPage(1);
                         setSearchQuery('');
                       }}
-                      className="text-[10px] text-slate-400 hover:text-white bg-slate-800 px-1.5 py-0.5 rounded"
+                      className="text-[10px] text-[#5F6570] hover:text-[#18181B] bg-[#FAFAFA] border border-[#E5E7EB] px-1.5 py-0.5 rounded"
                     >
                       Limpar
                     </button>
@@ -927,8 +927,8 @@ function Campaigns() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs text-slate-400 flex items-center gap-1">
-                    <Filter size={12} />
+                  <span className="text-xs text-[#5F6570] font-semibold flex items-center gap-1">
+                    <Filter size={12} className="text-[#D9480F]" />
                     Filtrar:
                   </span>
                   {[
@@ -950,8 +950,8 @@ function Campaigns() {
                       }}
                       className={`rounded-lg px-2.5 py-1 text-xs font-medium border transition-colors ${
                         decisionFilter === f.value
-                          ? 'bg-[#FF5A0A] text-white border-[#FF5A0A]'
-                          : 'bg-[#0B0F19] text-slate-300 border-[#1E293B] hover:bg-[#1E293B]'
+                          ? 'bg-[#FFF1E8] text-[#B9380B] border-[#FFD1B8] font-bold'
+                          : 'bg-white text-[#5F6570] border-[#E5E7EB] hover:bg-[#F8F9FB] hover:text-[#18181B]'
                       }`}
                     >
                       {f.label}
@@ -962,7 +962,7 @@ function Campaigns() {
                     type="button"
                     disabled={exporting}
                     onClick={exportToCsv}
-                    className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5 ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-[#DCFCE7] bg-[#ECFDF3] text-[#15803D] hover:bg-[#DCFCE7] transition-colors flex items-center gap-1.5 ml-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
                   >
                     <Download size={12} className={exporting ? 'animate-spin' : ''} />
                     {exporting ? 'Exportando...' : 'Exportar CSV'}
@@ -971,43 +971,43 @@ function Campaigns() {
               </div>
 
               {/* Tabela de Contatos */}
-              <div className="overflow-x-auto rounded-lg border border-[#1E293B]">
+              <div className="overflow-x-auto rounded-xl border border-[#E5E7EB]">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-[#0B0F19] text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-[#1E293B]">
+                  <thead className="bg-[#FAFAFA] text-[11px] font-bold uppercase tracking-wider text-[#5F6570] border-b border-[#E5E7EB]">
                     <tr>
                       {['Telefone', 'CPF', 'Status', 'Tentativas', 'Acordo / Decisão', 'Última Atualização', 'Ações'].map((header) => (
                         <th key={header} className="px-5 py-3">{header}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1E293B] text-xs text-slate-200">
+                  <tbody className="divide-y divide-[#E5E7EB] text-xs text-[#18181B]">
                     {filteredCalls.map((call) => (
                       <tr
                         key={call.id}
                         onClick={() => setSelectedCall(call)}
-                        className="hover:bg-[#1F2937] cursor-pointer transition-colors"
+                        className="hover:bg-[#FFF7F2] cursor-pointer transition-colors"
                       >
-                        <td className="px-5 py-3 font-semibold text-slate-100">{call.customer_number}</td>
-                        <td className="px-5 py-3 text-slate-400 font-mono">{call.cpf || '-'}</td>
+                        <td className="px-5 py-3 font-bold text-[#18181B]">{call.customer_number}</td>
+                        <td className="px-5 py-3 text-[#5F6570] font-mono">{call.cpf || '-'}</td>
                         <td className="px-5 py-3"><StatusBadge status={call.status} /></td>
                         <td className="px-5 py-3">
-                          <span className="inline-flex items-center justify-center rounded bg-[#0B0F19] px-2 py-0.5 text-xs font-semibold text-slate-300 border border-[#1E293B]">
+                          <span className="inline-flex items-center justify-center rounded bg-[#FAFAFA] px-2 py-0.5 text-xs font-semibold text-[#5F6570] border border-[#E5E7EB]">
                             {call.attempts} / 5
                           </span>
                         </td>
                         <td className="px-5 py-3 font-semibold">
                           {call.decision === 'formalize' && (
-                            <span className="text-emerald-400 flex items-center gap-1">
+                            <span className="text-[#15803D] flex items-center gap-1 font-bold">
                               <CheckCircle2 size={13} /> Formalizado
                             </span>
                           )}
                           {call.decision === 'schedule' && (
-                            <span className="text-amber-400 flex items-center gap-1">
+                            <span className="text-[#B45309] flex items-center gap-1 font-bold">
                               <AlertCircle size={13} /> Reagendado
                             </span>
                           )}
                           {call.decision === 'zero' && (
-                            <span className="text-rose-400 flex items-center gap-1">
+                            <span className="text-[#B91C1C] flex items-center gap-1 font-bold">
                               <XCircle size={13} />
                               {call.ended_reason === 'voicemail' 
                                 ? 'Caixa Postal' 
@@ -1019,8 +1019,8 @@ function Campaigns() {
                             </span>
                           )}
                           {call.status === 'skipped' ? (
-                            <span className="text-slate-400 font-normal flex items-center gap-1">
-                              <X size={13} className="text-slate-500" />
+                            <span className="text-[#5F6570] font-normal flex items-center gap-1">
+                              <X size={13} className="text-[#8B92A0]" />
                               {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado`}
                               {call.last_error === 'no_online_agreement' && `Acordo online não permitido`}
                               {call.last_error === 'no_debt' && 'Sem débito em aberto'}
@@ -1029,11 +1029,11 @@ function Campaigns() {
                             </span>
                           ) : (
                             !call.decision && (
-                              <span className="text-slate-500 font-normal">Aguardando</span>
+                              <span className="text-[#8B92A0] font-normal">Aguardando</span>
                             )
                           )}
                         </td>
-                        <td className="px-5 py-3 text-slate-400 text-xs">
+                        <td className="px-5 py-3 text-[#5F6570] text-xs">
                           {call.updated_at ? new Date(call.updated_at).toLocaleString('pt-BR') : '-'}
                         </td>
                         <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
@@ -1043,12 +1043,12 @@ function Campaigns() {
                               title="Desligar chamada"
                               disabled={!!terminatingCallId}
                               onClick={(event) => void terminateCall(call.provider_call_id!, event)}
-                              className="btn-click rounded bg-rose-500/10 hover:bg-rose-500/20 p-1 text-rose-400 border border-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="btn-click rounded bg-[#FEF2F2] hover:bg-[#FCA5A5]/30 p-1 text-[#B91C1C] border border-[#FCA5A5] disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               <PhoneOff size={13} className={terminatingCallId === call.provider_call_id ? 'animate-pulse' : ''} />
                             </button>
                           ) : (
-                            <span className="text-slate-600 text-xs">-</span>
+                            <span className="text-[#8B92A0] text-xs">-</span>
                           )}
                         </td>
                       </tr>
@@ -1586,32 +1586,32 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
     >
       <div className="space-y-5">
         {/* Informações Gerais */}
-        <div className="rounded-lg border border-[#1E293B] bg-[#0B0F19] p-4 space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-[#FF5A0A]">Informações Gerais</h4>
+        <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4 space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[#D9480F]">Informações Gerais</h4>
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <span className="text-slate-500 block text-[11px]">Status da Fila</span>
-              <span className="font-semibold text-slate-100 capitalize">
+              <span className="text-[#5F6570] block text-[11px]">Status da Fila</span>
+              <span className="font-bold text-[#18181B] capitalize">
                 {call.status === 'skipped' ? 'Pulado' : call.status}
               </span>
             </div>
             <div>
-              <span className="text-slate-500 block text-[11px]">Tentativas</span>
-              <span className="font-semibold text-slate-100">{call.attempts} / 5</span>
+              <span className="text-[#5F6570] block text-[11px]">Tentativas</span>
+              <span className="font-bold text-[#18181B]">{call.attempts} / 5</span>
             </div>
             <div>
-              <span className="text-slate-500 block text-[11px]">Duração</span>
-              <span className="font-semibold text-slate-100">
+              <span className="text-[#5F6570] block text-[11px]">Duração</span>
+              <span className="font-bold text-[#18181B]">
                 {call.duration_seconds ? `${call.duration_seconds} segundos` : '-'}
               </span>
             </div>
             <div>
-              <span className="text-slate-500 block text-[11px]">Acordo / Decisão</span>
-              <span className="font-semibold">
-                {call.decision === 'formalize' && <span className="text-emerald-400">Formalizado</span>}
-                {call.decision === 'schedule' && <span className="text-amber-400">Reagendado</span>}
+              <span className="text-[#5F6570] block text-[11px]">Acordo / Decisão</span>
+              <span className="font-bold">
+                {call.decision === 'formalize' && <span className="text-[#15803D]">Formalizado</span>}
+                {call.decision === 'schedule' && <span className="text-[#B45309]">Reagendado</span>}
                 {call.decision === 'zero' && (
-                  <span className="text-rose-400">
+                  <span className="text-[#B91C1C]">
                     {call.ended_reason === 'voicemail' 
                       ? 'Caixa Postal' 
                       : (!call.duration_seconds || call.duration_seconds === 0
@@ -1622,7 +1622,7 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                   </span>
                 )}
                 {call.status === 'skipped' && (
-                  <span className="text-slate-400">
+                  <span className="text-[#5F6570]">
                     {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
                     {call.last_error === 'no_online_agreement' && `Acordo online não permitido${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
                     {call.last_error === 'no_debt' && 'Sem débito em aberto'}
@@ -1630,17 +1630,17 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                     {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
                   </span>
                 )}
-                {!call.decision && call.status !== 'skipped' && <span className="text-slate-400">Pendente</span>}
+                {!call.decision && call.status !== 'skipped' && <span className="text-[#8B92A0]">Pendente</span>}
               </span>
             </div>
           </div>
         </div>
 
         {/* Telefones deste CPF */}
-        <div className="rounded-lg border border-[#1E293B] bg-[#0B0F19] p-4 space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-[#FF5A0A]">Telefones Cadastrados (CPF)</h4>
+        <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4 space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[#D9480F]">Telefones Cadastrados (CPF)</h4>
           {loadingPhones ? (
-            <p className="text-xs text-slate-400 animate-pulse">Carregando telefones...</p>
+            <p className="text-xs text-[#5F6570] animate-pulse">Carregando telefones...</p>
           ) : cpfPhones.length > 0 ? (
             <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
               {cpfPhones.map((item) => {
@@ -1648,27 +1648,27 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                 return (
                   <div
                     key={item.id}
-                    className={`flex items-center justify-between text-xs p-2 rounded-lg border ${
+                    className={`flex items-center justify-between text-xs p-2.5 rounded-lg border ${
                       isCurrent
-                        ? 'bg-[#FF5A0A]/10 border-[#FF5A0A]/40 text-[#FF5A0A] font-bold'
-                        : 'bg-[#111827] border-[#1E293B] text-slate-300'
+                        ? 'bg-[#FFF1E8] border-[#FFD1B8] text-[#B9380B] font-bold'
+                        : 'bg-white border-[#E5E7EB] text-[#18181B]'
                     }`}
                   >
                     <span className="font-mono">{item.customer_number}</span>
                     <div className="flex items-center gap-1.5">
                       {item.attempts > 0 && (
-                        <span className="text-[10px] text-slate-400 bg-[#0B0F19] px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] text-[#5F6570] bg-[#FAFAFA] border border-[#E5E7EB] px-1.5 py-0.5 rounded">
                           {item.attempts} tent.
                         </span>
                       )}
-                      <span className={`capitalize px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                      <span className={`capitalize px-1.5 py-0.5 rounded text-[10px] font-bold ${
                         item.status === 'completed'
-                          ? 'bg-emerald-500/10 text-emerald-400'
+                          ? 'bg-[#ECFDF3] text-[#15803D]'
                           : item.status === 'failed'
-                          ? 'bg-rose-500/10 text-rose-400'
+                          ? 'bg-[#FEF2F2] text-[#B91C1C]'
                           : item.status === 'skipped'
-                          ? 'bg-slate-800 text-slate-400'
-                          : 'bg-indigo-500/10 text-indigo-400'
+                          ? 'bg-[#FAFAFA] text-[#5F6570]'
+                          : 'bg-[#F0F9FF] text-[#0369A1]'
                       }`}>
                         {item.status === 'skipped'
                           ? 'Pulado'
@@ -1686,14 +1686,14 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
               })}
             </div>
           ) : (
-            <p className="text-xs text-slate-500">Nenhum outro telefone encontrado.</p>
+            <p className="text-xs text-[#8B92A0]">Nenhum outro telefone encontrado.</p>
           )}
         </div>
 
         {/* Audio Player Card */}
         {call.recording_url ? (
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-semibold">
+          <div className="rounded-xl border border-[#DCFCE7] bg-[#ECFDF3] p-4 space-y-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#15803D] flex items-center gap-1.5 font-bold">
               <Volume2 size={14} /> Gravação do Áudio
             </h4>
             <audio 
@@ -1705,22 +1705,22 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
             />
           </div>
         ) : (
-          <div className="rounded-lg border border-[#1E293B] bg-[#0B0F19] p-3 text-center text-slate-500 text-xs">
+          <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-3 text-center text-[#8B92A0] text-xs">
             Nenhum áudio de gravação disponível para esta chamada.
           </div>
         )}
 
         {/* Last Error if exists */}
         {call.last_error && (
-          <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3 space-y-1">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-400">Erro Registrado</h4>
-            <p className="text-xs text-slate-300 font-mono break-all">{call.last_error}</p>
+          <div className="rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] p-3 space-y-1">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#B91C1C]">Erro Registrado</h4>
+            <p className="text-xs text-[#18181B] font-mono break-all">{call.last_error}</p>
           </div>
         )}
 
         {/* Transcrição da Conversa */}
-        <div className="rounded-lg border border-[#1E293B] bg-[#0B0F19] p-4 space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5 border-b border-[#1E293B] pb-2 font-semibold">
+        <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4 space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[#0369A1] flex items-center gap-1.5 border-b border-[#E5E7EB] pb-2 font-bold">
             <MessageSquare size={14} /> Transcrição da Conversa (Júlia IA)
           </h4>
           
@@ -1731,12 +1731,12 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                   key={i}
                   className={`flex flex-col ${bubble.isAssistant ? 'items-end' : 'items-start'}`}
                 >
-                  <span className="text-[10px] text-slate-500 mb-0.5 px-1">{bubble.speaker}</span>
+                  <span className="text-[10px] text-[#5F6570] mb-0.5 px-1">{bubble.speaker}</span>
                   <div
                     className={`max-w-[85%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
                       bubble.isAssistant
-                        ? 'bg-[#FF5A0A] text-white rounded-tr-none font-medium'
-                        : 'bg-[#1E293B] text-slate-200 rounded-tl-none border border-slate-700'
+                        ? 'bg-[#FFF1E8] text-[#B9380B] border border-[#FFD1B8] rounded-tr-none font-semibold'
+                        : 'bg-white text-[#18181B] rounded-tl-none border border-[#E5E7EB]'
                     }`}
                   >
                     {bubble.text}
@@ -1744,7 +1744,7 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
                 </div>
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center py-6 text-center text-slate-500 text-xs gap-1.5">
+              <div className="flex flex-col items-center justify-center py-6 text-center text-[#8B92A0] text-xs gap-1.5">
                 <FileText size={20} />
                 <span>Nenhuma transcrição de texto disponível.</span>
               </div>
@@ -1756,7 +1756,7 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-[#1E293B] bg-[#0B0F19] px-4 py-2 text-slate-300 hover:bg-[#1E293B] text-xs font-semibold transition-colors"
+            className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-2 text-[#5F6570] hover:bg-[#FAFAFA] hover:text-[#18181B] text-xs font-semibold transition-colors shadow-xs"
           >
             Fechar Detalhes
           </button>
@@ -1868,38 +1868,38 @@ function CreateCampaign({
   const assistantOptions = vapiConfig?.assistants || (vapiConfig ? [vapiConfig.assistant] : []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
       <form
         onSubmit={submit}
-        className="w-full max-w-lg space-y-4 rounded-lg border border-[#1E293B] bg-[#111827] p-5"
+        className="w-full max-w-lg space-y-4 rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-2xl text-[#18181B]"
       >
-        <h3 className="text-base font-bold text-slate-100 border-b border-[#1E293B] pb-3">
+        <h3 className="text-base font-bold text-[#18181B] border-b border-[#E5E7EB] pb-3">
           {campaign ? 'Editar Configurações da Campanha' : 'Criar Nova Campanha'}
         </h3>
 
         <div className="space-y-1">
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Nome da Campanha</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6570]">Nome da Campanha</label>
           <input
             name="name"
             required
             defaultValue={campaign?.name}
             placeholder="Ex: Cobrança UVA Vencidos Julho"
-            className="mt-1 w-full rounded-lg border border-[#1E293B] bg-[#0B0F19] px-3 py-2 text-slate-100 focus:outline-none focus:border-[#FF5A0A] text-xs font-medium"
+            className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs font-medium transition-all"
           />
         </div>
 
-        <div className="rounded-lg border border-[#1E293B] bg-[#0B0F19] p-4 space-y-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#FF5A0A]">Agente de Voz & Carteira</p>
-          {loadingConfig && <p className="text-xs text-slate-400">Verificando dados Vapi...</p>}
-          {configError && <p className="text-xs text-rose-400">{configError}</p>}
+        <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] p-4 space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#D9480F]">Agente de Voz & Carteira</p>
+          {loadingConfig && <p className="text-xs text-[#5F6570]">Verificando dados Vapi...</p>}
+          {configError && <p className="text-xs text-[#B91C1C]">{configError}</p>}
           {vapiConfig && (
             <div className="space-y-3 text-xs">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-300">Selecionar Assistente Virtual (Carteira)</label>
+                <label className="block text-xs font-semibold text-[#18181B]">Selecionar Assistente Virtual (Carteira)</label>
                 <select
                   value={selectedAssistantId}
                   onChange={(e) => setSelectedAssistantId(e.target.value)}
-                  className="w-full rounded-lg border border-[#1E293B] bg-[#111827] px-3 py-2 text-slate-100 focus:outline-none focus:border-[#FF5A0A] text-xs font-semibold"
+                  className="w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs font-semibold cursor-pointer transition-all"
                 >
                   {assistantOptions.map((ast) => (
                     <option key={ast.id} value={ast.id}>
@@ -1912,20 +1912,20 @@ function CreateCampaign({
 
               {selectedAssistantId === 'custom' && (
                 <div className="space-y-1 pt-1">
-                  <label className="block text-xs font-semibold text-slate-300">ID do Assistente Vapi</label>
+                  <label className="block text-xs font-semibold text-[#18181B]">ID do Assistente Vapi</label>
                   <input
                     value={customAssistantId}
                     onChange={(e) => setCustomAssistantId(e.target.value)}
                     required={selectedAssistantId === 'custom'}
                     placeholder="Cole o ID da Vapi (ex: 15190261-096d-47fe-bbbe-cbfe8dceb2ae)"
-                    className="w-full rounded-lg border border-[#1E293B] bg-[#0B0F19] px-3 py-2 text-slate-100 focus:outline-none focus:border-[#FF5A0A] text-xs font-mono"
+                    className="w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs font-mono transition-all"
                   />
                 </div>
               )}
 
-              <div className="pt-2 border-t border-[#1E293B] flex justify-between items-center text-[11px] text-slate-400">
+              <div className="pt-2 border-t border-[#E5E7EB] flex justify-between items-center text-[11px] text-[#5F6570]">
                 <span>Telefone de Saída Vapi:</span>
-                <strong className="font-semibold text-slate-200">{vapiConfig.phoneNumber.number}</strong>
+                <strong className="font-semibold text-[#18181B]">{vapiConfig.phoneNumber.number}</strong>
               </div>
             </div>
           )}
@@ -1933,44 +1933,44 @@ function CreateCampaign({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Limitar Concorrência</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6570]">Limitar Concorrência</label>
             <input
               name="maxConcurrent"
               required
               defaultValue={campaign ? String(campaign.max_concurrent) : '10'}
               min="1"
               type="number"
-              className="mt-1 w-full rounded-lg border border-[#1E293B] bg-[#0B0F19] px-3 py-2 text-slate-100 focus:outline-none focus:border-[#FF5A0A] text-xs"
+              className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs transition-all"
             />
-            <p className="text-[10px] text-slate-500 mt-1 leading-normal">
+            <p className="text-[10px] text-[#8B92A0] mt-1 leading-normal">
               Recomendado: <b>30</b> chamadas simultâneas.
             </p>
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Máximo Tentativas</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6570]">Máximo Tentativas</label>
             <input
               name="maxAttempts"
               required
               defaultValue={campaign ? String(campaign.max_attempts ?? 5) : '5'}
               min="1"
               type="number"
-              className="mt-1 w-full rounded-lg border border-[#1E293B] bg-[#0B0F19] px-3 py-2 text-slate-100 focus:outline-none focus:border-[#FF5A0A] text-xs"
+              className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs transition-all"
             />
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-[#1E293B]">
+        <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E7EB]">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-[#1E293B] bg-[#0B0F19] px-3.5 py-2 text-slate-300 hover:bg-[#1E293B] text-xs font-semibold transition-colors"
+            className="rounded-lg border border-[#E5E7EB] bg-white px-3.5 py-2 text-[#5F6570] hover:bg-[#FAFAFA] hover:text-[#18181B] text-xs font-semibold transition-colors shadow-xs"
           >
             Cancelar
           </button>
           <button
             disabled={saving || loadingConfig || !vapiConfig}
-            className="rounded-lg bg-[#FF5A0A] hover:bg-[#EA580C] px-4 py-2 text-white font-semibold text-xs transition-colors disabled:opacity-40"
+            className="rounded-lg bg-[#D9480F] hover:bg-[#B9380B] px-4 py-2 text-white font-semibold text-xs transition-colors disabled:opacity-40 shadow-xs"
           >
             {saving ? 'Salvando...' : campaign ? 'Salvar Alterações' : 'Iniciar Campanha'}
           </button>
@@ -1984,25 +1984,25 @@ function Settings() {
   const [token, setToken] = useState(getToken());
 
   return (
-    <div className="max-w-xl rounded-lg bg-[#111827] border border-[#1E293B] p-5 space-y-5">
-      <div className="border-b border-[#1E293B] pb-3.5">
-        <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-          <SettingsIcon size={20} className="text-[#FF5A0A]" />
+    <div className="max-w-xl rounded-xl bg-white border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] p-6 space-y-5 text-[#18181B]">
+      <div className="border-b border-[#E5E7EB] pb-3.5">
+        <h2 className="text-lg font-extrabold text-[#18181B] flex items-center gap-2">
+          <SettingsIcon size={20} className="text-[#D9480F]" />
           Configurações do Painel
         </h2>
-        <p className="text-xs text-slate-400">Gerencie tokens e acessos administrativos deste navegador</p>
+        <p className="text-xs text-[#5F6570]">Gerencie tokens e acessos administrativos deste navegador</p>
       </div>
 
       <div className="space-y-2">
-        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Token Administrativo (API Bearer)</label>
+        <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6570]">Token Administrativo (API Bearer)</label>
         <input
           value={token}
           type="password"
           onChange={(event) => setToken(event.target.value)}
           placeholder="Cole seu token de autenticação administrativa aqui"
-          className="mt-1 w-full rounded-lg border border-[#1E293B] bg-[#0B0F19] px-3 py-2 text-slate-100 focus:outline-none focus:border-[#FF5A0A] text-xs font-mono"
+          className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs font-mono transition-all"
         />
-        <p className="text-[11px] text-slate-500">Este token é salvo no armazenamento local do seu navegador para assinar as requisições.</p>
+        <p className="text-[11px] text-[#8B92A0]">Este token é salvo no armazenamento local do seu navegador para assinar as requisições.</p>
       </div>
 
       <button
@@ -2011,7 +2011,7 @@ function Settings() {
           localStorage.setItem('callcenter_api_token', token);
           window.alert('Token administrativo salvo com sucesso neste navegador!');
         }}
-        className="btn-click rounded-lg bg-[#FF5A0A] hover:bg-[#EA580C] px-4 py-2 font-semibold text-xs text-white transition-colors"
+        className="btn-click rounded-lg bg-[#D9480F] hover:bg-[#B9380B] px-4 py-2 font-semibold text-xs text-white transition-colors shadow-xs"
       >
         Salvar Configurações
       </button>
