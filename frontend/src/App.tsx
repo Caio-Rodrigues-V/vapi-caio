@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   BarChart3,
   FileText,
@@ -27,7 +27,6 @@ import {
   Award,
   Calendar,
   Menu,
-  ArrowLeft,
   Eye,
   Zap,
   ShieldCheck,
@@ -217,6 +216,12 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function Campaigns() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const isCampaignRoute = location.pathname.startsWith('/campanhas');
+
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -407,6 +412,21 @@ function Campaigns() {
     }
   }, [selectedId, decisionFilter, callsPage, searchQuery]);
 
+  // Sincroniza a campanha selecionada via URL (/campanhas?id=X)
+  useEffect(() => {
+    const urlId = searchParams.get('id');
+    if (urlId) {
+      const parsedId = Number(urlId);
+      if (!isNaN(parsedId) && parsedId !== selectedId) {
+        setSelectedId(parsedId);
+      }
+    } else if (isCampaignRoute && !selectedId && campaigns.length > 0) {
+      setSelectedId(campaigns[0].id);
+    } else if (!isCampaignRoute && selectedId !== null) {
+      setSelectedId(null);
+    }
+  }, [searchParams, isCampaignRoute, campaigns, selectedId]);
+
   const selectedCampaign = campaigns.find(c => c.id === selectedId);
 
   // Helper para formatar segundos em mm:ss
@@ -585,6 +605,454 @@ function Campaigns() {
     const diffHours = Math.floor(diffMin / 60);
     return `Sincronizado há ${diffHours}h atrás`;
   };
+
+  // Rota /campanhas -> Renderiza a aba operacional "Campanhas & Disparador"
+  if (isCampaignRoute) {
+    return (
+      <div className="space-y-6 animate-slide-in">
+        {/* Header da Aba Campanhas & Disparador */}
+        <div className="flex flex-wrap items-center justify-between gap-4 card-surface p-5 border border-glass shadow-lg">
+          <div>
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Play size={22} className="text-[#FF5A0A]" />
+              Campanhas & Disparador
+            </h2>
+            <p className="text-xs text-[#94A3B8]">Gestão de lotes de cobrança, disparador automático Vapi e fila de contatos</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="btn-click inline-flex items-center gap-2 px-4 py-2.5 bg-[#FF5A0A] hover:bg-[#E04B00] text-white text-xs font-bold rounded-xl shadow-lg shadow-[#FF5A0A]/20 transition-all"
+          >
+            <Plus size={16} />
+            Nova Campanha
+          </button>
+        </div>
+
+        {/* Tabela de Controle Operacional de Campanhas */}
+        <div className="card-surface overflow-hidden border border-glass shadow-lg">
+          <div className="border-b border-glass bg-[#0A0E1A] px-6 py-4 flex items-center justify-between">
+            <h3 className="text-base font-bold text-white">Lotes de Disparo</h3>
+            <span className="text-xs text-[#94A3B8] font-medium">{campaigns.length} campanhas cadastradas</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-[#0A0E1A] text-xs font-semibold uppercase tracking-wider text-[#94A3B8] border-b border-glass">
+                <tr>
+                  {['Campanha', 'Status', 'Fila/Pendentes', 'Ativas', 'Atendidas', 'Concluídas', 'Falhas', 'Ações Operacionais'].map((header) => (
+                    <th key={header} className="px-6 py-3.5">{header}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-glass text-sm text-slate-300">
+                {campaigns.map((campaign) => {
+                  const deleteBlocked = campaign.status === 'running' || Number(campaign.active_calls || 0) > 0;
+                  const isSelected = selectedId === campaign.id;
+
+                  return (
+                    <tr
+                      key={campaign.id}
+                      className={`hover:bg-[#151C2B]/50 transition-all ${isSelected ? 'bg-[#FF5A0A]/5 hover:bg-[#FF5A0A]/10' : ''}`}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <button
+                            onClick={() => setSelectedId(campaign.id)}
+                            className="flex items-center gap-1 font-bold text-white hover:text-[#FF5A0A] transition-all text-left"
+                          >
+                            {campaign.name}
+                            <ChevronRight size={14} className={`text-slate-500 transition-transform ${isSelected ? 'rotate-90 text-[#FF5A0A]' : ''}`} />
+                          </button>
+                          <p className="text-[11px] text-[#94A3B8] mt-0.5">
+                            {Number(campaign.total_leads || 0).toLocaleString('pt-BR')} CPFs • {Number(campaign.total_calls || 0).toLocaleString('pt-BR')} números
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4"><StatusBadge status={campaign.status} /></td>
+                      <td className="px-6 py-4 font-medium text-[#38BDF8]">{Number(campaign.pending_calls || 0)}</td>
+                      <td className="px-6 py-4 font-medium text-[#10B981]">{Number(campaign.active_calls || 0)}</td>
+                      <td className="px-6 py-4 font-semibold text-[#10B981]">{Number(campaign.answered_calls || 0)}</td>
+                      <td className="px-6 py-4 font-medium text-[#FF5A0A]">{Number(campaign.completed_calls || 0)}</td>
+                      <td className="px-6 py-4 font-medium text-[#F43F5E]">{Number(campaign.failed_calls || 0)}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {campaign.status !== 'running' ? (
+                            <button
+                              type="button"
+                              title="Iniciar campanha"
+                              aria-label={`Iniciar campanha ${campaign.name}`}
+                              onClick={() => void changeStatus(campaign.id, 'running')}
+                              className="btn-click rounded-lg bg-[#10B981]/10 hover:bg-[#10B981]/20 p-2 text-[#10B981] border border-[#10B981]/20"
+                            >
+                              <Play size={15} />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              title="Pausar campanha"
+                              aria-label={`Pausar campanha ${campaign.name}`}
+                              onClick={() => void changeStatus(campaign.id, 'paused')}
+                              className="btn-click rounded-lg bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 p-2 text-[#F59E0B] border border-[#F59E0B]/20"
+                            >
+                              <Pause size={15} />
+                            </button>
+                          )}
+
+                          <label
+                            title="Importar contatos (CSV / Excel)"
+                            aria-label={`Importar contatos para ${campaign.name}`}
+                            className="btn-click cursor-pointer rounded-lg bg-[#151C2B] border border-glass hover:bg-[#1A2334] p-2 text-slate-200"
+                          >
+                            <UploadCloud size={15} />
+                            <input
+                              className="hidden"
+                              type="file"
+                              accept=".csv,.xlsx,.xls"
+                              onChange={(event) => void importFile(campaign.id, event.target.files?.[0])}
+                            />
+                          </label>
+
+                          <button
+                            type="button"
+                            title="Ver Fila de Contatos"
+                            onClick={() => setSelectedId(campaign.id)}
+                            className={`btn-click rounded-lg p-2 border text-xs font-semibold flex items-center gap-1 transition-all ${
+                              isSelected
+                                ? 'bg-[#FF5A0A] text-white border-[#FF5A0A]'
+                                : 'bg-[#FF5A0A]/10 text-[#FF5A0A] border-[#FF5A0A]/20 hover:bg-[#FF5A0A]/20'
+                            }`}
+                          >
+                            <Eye size={14} />
+                            <span className="hidden sm:inline">Ver Fila</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            title="Editar configurações"
+                            onClick={() => setEditingCampaign(campaign)}
+                            className="btn-click rounded-lg bg-[#38BDF8]/10 hover:bg-[#38BDF8]/20 p-2 text-[#38BDF8] border border-[#38BDF8]/20"
+                          >
+                            <SettingsIcon size={15} />
+                          </button>
+
+                          <button
+                            type="button"
+                            title={deleteBlocked ? 'Pause a campanha para excluir' : 'Excluir campanha'}
+                            disabled={deleteBlocked || deletingId === campaign.id}
+                            onClick={() => void deleteCampaign(campaign)}
+                            className="btn-click rounded-lg bg-[#F43F5E]/10 hover:bg-[#F43F5E]/20 p-2 text-[#F43F5E] border border-[#F43F5E]/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {!campaigns.length && (
+                  <tr>
+                    <td colSpan={8} className="p-4">
+                      <EmptyState
+                        title="Nenhuma campanha cadastrada"
+                        description="Crie uma nova campanha para iniciar o disparo automatizado."
+                        actionLabel="Nova Campanha"
+                        onAction={() => setShowCreate(true)}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Visão de Contatos da Campanha Selecionada */}
+        {selectedCampaign && (
+          <div className="card-surface p-5 border border-glass shadow-lg space-y-4 animate-slide-in">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-glass pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  Fila de Contatos — Campanha #{selectedCampaign.id}: "{selectedCampaign.name}"
+                </h3>
+                <p className="text-xs text-[#94A3B8]">
+                  {selectedCampaign.completed_calls || 0} discadas de {selectedCampaign.total_calls || 0} contatos importados
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <StatusBadge status={selectedCampaign.status} />
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => void loadCalls(selectedCampaign.id, callsPage)}
+                  className="btn-click flex items-center gap-2 rounded-xl border border-glass bg-[#151C2B] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#1A2334]"
+                >
+                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                  Atualizar Fila
+                </button>
+              </div>
+            </div>
+
+            {/* 6 Metric Cards da Campanha */}
+            <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                <span className="text-[11px] text-[#94A3B8] font-medium">Base / Importados</span>
+                <p className="text-base font-bold text-white mt-0.5">{Number(selectedCampaign.total_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                <span className="text-[11px] text-[#94A3B8] font-medium">Discados</span>
+                <p className="text-base font-bold text-[#38BDF8] mt-0.5">{Number(selectedCampaign.completed_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                <span className="text-[11px] text-[#94A3B8] font-medium">Atendidos</span>
+                <p className="text-base font-bold text-[#10B981] mt-0.5">{Number(selectedCampaign.answered_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                <span className="text-[11px] text-[#94A3B8] font-medium">Formalizados</span>
+                <p className="text-base font-bold text-[#FF5A0A] mt-0.5">{Number(selectedCampaign.formalized_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                <span className="text-[11px] text-[#94A3B8] font-medium">Inválidos / Ignorados</span>
+                <p className="text-base font-bold text-[#F59E0B] mt-0.5">{Number(selectedCampaign.skipped_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
+                <span className="text-[11px] text-[#94A3B8] font-medium">Falhas</span>
+                <p className="text-base font-bold text-[#F43F5E] mt-0.5">{Number(selectedCampaign.failed_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+            </div>
+
+            {/* Gráfico de Decisões da Campanha Selecionada */}
+            {selectedCampaignDecisions.length > 0 && (
+              <div className="w-full card-surface p-4 border border-glass flex flex-col md:flex-row items-center justify-between gap-4 my-2">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Activity size={16} className="text-[#FF5A0A]" />
+                    Classificação de Decisões do Acordo (IA)
+                  </h4>
+                  <p className="text-xs text-[#94A3B8]">Distribuição em tempo real das intenções dos contatos desta campanha</p>
+                </div>
+                <div className="h-44 w-full md:w-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={selectedCampaignDecisions}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={65}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {selectedCampaignDecisions.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#101521', borderColor: 'rgba(148, 163, 184, 0.14)', borderRadius: '10px' }}
+                        itemStyle={{ color: '#F8FAFC' }}
+                      />
+                      <Legend verticalAlign="bottom" height={28} iconType="circle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Filtros e Tabela de Contatos */}
+            <div className="space-y-4 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 bg-[#050814] px-3 py-1.5 rounded-xl border border-glass">
+                  <input
+                    type="text"
+                    placeholder="Buscar CPF, Telefone ou Nome..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setCallsPage(1);
+                        setSearchQuery(searchInput);
+                      }
+                    }}
+                    className="bg-transparent text-xs text-white placeholder-[#94A3B8] focus:outline-none w-48 sm:w-60"
+                  />
+                  {searchInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchInput('');
+                        setCallsPage(1);
+                        setSearchQuery('');
+                      }}
+                      className="text-[10px] text-slate-400 hover:text-white bg-slate-800 px-1.5 py-0.5 rounded"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-[#94A3B8] flex items-center gap-1">
+                    <Filter size={12} />
+                    Filtrar por:
+                  </span>
+                  {[
+                    { label: 'Todos', value: 'all' },
+                    { label: 'Em Linha', value: 'active' },
+                    { label: 'Formalizado', value: 'formalize' },
+                    { label: 'Agendado', value: 'schedule' },
+                    { label: 'Atendidas', value: 'answered' },
+                    { label: 'Sem Acordo', value: 'zero' },
+                    { label: 'Sem Débito', value: 'no_debt' },
+                    { label: 'Pendente', value: 'pending' },
+                  ].map(f => (
+                    <button
+                      key={f.value}
+                      type="button"
+                      onClick={() => {
+                        setCallsPage(1);
+                        setDecisionFilter(f.value);
+                      }}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${
+                        decisionFilter === f.value
+                          ? 'bg-[#FF5A0A] text-white border-[#FF5A0A]/50 shadow-md'
+                          : 'bg-[#050814] text-slate-300 border-glass hover:bg-[#151C2B]'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    disabled={exporting}
+                    onClick={exportToCsv}
+                    className="rounded-lg px-3 py-1.5 text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1.5 ml-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Download size={13} className={exporting ? 'animate-spin' : ''} />
+                    {exporting ? 'Exportando...' : 'Exportar CSV'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabela de Contatos */}
+              <div className="overflow-x-auto rounded-xl border border-glass">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-[#0A0E1A] text-xs font-bold uppercase tracking-wider text-[#94A3B8] border-b border-glass">
+                    <tr>
+                      {['Telefone', 'CPF', 'Status', 'Tentativas', 'Acordo / Decisão', 'Última Atualização', 'Ações'].map((header) => (
+                        <th key={header} className="px-6 py-3">{header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-glass text-slate-300">
+                    {filteredCalls.map((call) => (
+                      <tr
+                        key={call.id}
+                        onClick={() => setSelectedCall(call)}
+                        className="hover:bg-[#151C2B]/60 cursor-pointer transition-all"
+                      >
+                        <td className="px-6 py-3.5 font-medium text-white">{call.customer_number}</td>
+                        <td className="px-6 py-3.5 text-[#94A3B8] font-mono">{call.cpf || '-'}</td>
+                        <td className="px-6 py-3.5"><StatusBadge status={call.status} /></td>
+                        <td className="px-6 py-3.5">
+                          <span className="inline-flex items-center justify-center rounded-md bg-[#050814] px-2 py-0.5 text-xs font-semibold text-slate-200 border border-glass">
+                            {call.attempts} / 5
+                          </span>
+                        </td>
+                        <td className="px-6 py-3.5 font-semibold">
+                          {call.decision === 'formalize' && (
+                            <span className="text-[#10B981] flex items-center gap-1">
+                              <CheckCircle2 size={14} /> Formalizado
+                            </span>
+                          )}
+                          {call.decision === 'schedule' && (
+                            <span className="text-[#F59E0B] flex items-center gap-1">
+                              <AlertCircle size={14} /> Reagendado
+                            </span>
+                          )}
+                          {call.decision === 'zero' && (
+                            <span className="text-[#F43F5E] flex items-center gap-1">
+                              <XCircle size={14} />
+                              {call.ended_reason === 'voicemail' 
+                                ? 'Caixa Postal' 
+                                : (!call.duration_seconds || call.duration_seconds === 0
+                                    ? 'Não Atendido'
+                                    : (call.duration_seconds <= 30 
+                                        ? 'Atendeu e Desligou' 
+                                        : 'Recusado/Sem Acordo'))}
+                            </span>
+                          )}
+                          {call.status === 'skipped' ? (
+                            <span className="text-slate-400 font-normal flex items-center gap-1">
+                              <X size={14} className="text-slate-500" />
+                              {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado`}
+                              {call.last_error === 'no_online_agreement' && `Acordo online não permitido`}
+                              {call.last_error === 'no_debt' && 'Sem débito em aberto'}
+                              {call.last_error === 'cpf_missing' && 'CPF ausente'}
+                              {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
+                            </span>
+                          ) : (
+                            !call.decision && (
+                              <span className="text-slate-500 font-normal">Aguardando</span>
+                            )
+                          )}
+                        </td>
+                        <td className="px-6 py-3.5 text-[#94A3B8] text-xs">
+                          {call.updated_at ? new Date(call.updated_at).toLocaleString('pt-BR') : '-'}
+                        </td>
+                        <td className="px-6 py-3.5" onClick={(e) => e.stopPropagation()}>
+                          {['reserved', 'queued', 'in_progress', 'answered'].includes(call.status) && call.provider_call_id ? (
+                            <button
+                              type="button"
+                              title="Desligar chamada"
+                              disabled={!!terminatingCallId}
+                              onClick={(event) => void terminateCall(call.provider_call_id!, event)}
+                              className="btn-click rounded-lg bg-rose-500/10 hover:bg-rose-500/20 p-1.5 text-rose-400 border border-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <PhoneOff size={13} className={terminatingCallId === call.provider_call_id ? 'animate-pulse' : ''} />
+                            </button>
+                          ) : (
+                            <span className="text-slate-600 text-xs">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {!filteredCalls.length && (
+                      <tr>
+                        <td colSpan={7} className="p-4">
+                          <EmptyState
+                            title="Nenhum contato encontrado"
+                            description="Tente alterar os filtros de busca para encontrar o contato desejado."
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Criar/Editar e Detalhes */}
+        {showCreate && (
+          <CreateCampaign onClose={() => setShowCreate(false)} onCreated={() => load()} />
+        )}
+
+        {editingCampaign && (
+          <CreateCampaign campaign={editingCampaign} onClose={() => setEditingCampaign(null)} onCreated={() => load()} />
+        )}
+
+        {selectedCall && (
+          <CallDetailsModal call={selectedCall} onClose={() => setSelectedCall(null)} />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -934,20 +1402,20 @@ function Campaigns() {
         </div>
       </div>
 
-      {/* Tabela de Campanhas Ativas (Etapa 3) */}
+      {/* Resumo Executivo de Campanhas (Métricas Apenas) */}
       <div className="card-surface overflow-hidden border border-glass shadow-lg">
         <div className="border-b border-glass bg-[#0A0E1A] px-6 py-4 flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-white">Lista de Campanhas</h3>
-            <p className="text-xs text-[#94A3B8]">Gerenciamento de status, importação e ações de discagem</p>
+            <h3 className="text-base font-bold text-white">Relatório de Campanhas</h3>
+            <p className="text-xs text-[#94A3B8]">Resumo de volume e desempenho dos lotes de disparo</p>
           </div>
           <button
             type="button"
-            onClick={() => setShowCreate(true)}
-            className="btn-click inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FF5A0A] hover:bg-[#E04B00] text-white text-xs font-bold rounded-xl"
+            onClick={() => navigate('/campanhas')}
+            className="btn-click inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FF5A0A] hover:bg-[#E04B00] text-white text-xs font-bold rounded-xl shadow-md transition-all"
           >
-            <Plus size={14} />
-            Nova Campanha
+            <Play size={14} />
+            Ir para Campanhas & Disparador
           </button>
         </div>
 
@@ -955,127 +1423,49 @@ function Campaigns() {
           <table className="w-full text-left">
             <thead className="bg-[#0A0E1A] text-xs font-semibold uppercase tracking-wider text-[#94A3B8] border-b border-glass">
               <tr>
-                {['Campanha', 'Status', 'Fila/Pendentes', 'Ativas', 'Atendidas', 'Concluídas', 'Falhas', 'Ações'].map((header) => (
+                {['Campanha', 'Status', 'CPFs', 'Fila/Pendentes', 'Ativas', 'Atendidas', 'Concluídas', 'Falhas', 'Ação'].map((header) => (
                   <th key={header} className="px-6 py-3.5">{header}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-glass text-sm text-slate-300">
-              {campaigns.map((campaign) => {
-                const deleteBlocked = campaign.status === 'running'
-                  || Number(campaign.active_calls || 0) > 0;
-                const isSelected = selectedId === campaign.id;
-
-                return (
-                  <tr
-                    key={campaign.id}
-                    className={`hover:bg-[#151C2B]/50 transition-all ${isSelected ? 'bg-[#FF5A0A]/5 hover:bg-[#FF5A0A]/10' : ''}`}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <button
-                          onClick={() => void loadCalls(campaign.id)}
-                          className="flex items-center gap-1 font-bold text-white hover:text-[#FF5A0A] transition-all text-left"
-                        >
-                          {campaign.name}
-                          <ChevronRight size={14} className={`text-slate-500 transition-transform ${isSelected ? 'rotate-90 text-[#FF5A0A]' : ''}`} />
-                        </button>
-                        <p className="text-[11px] text-[#94A3B8] mt-0.5">
-                          {Number(campaign.total_leads || 0).toLocaleString('pt-BR')} CPFs • {Number(campaign.total_calls || 0).toLocaleString('pt-BR')} números
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4"><StatusBadge status={campaign.status} /></td>
-                    <td className="px-6 py-4 font-medium text-[#38BDF8]">{Number(campaign.pending_calls || 0)}</td>
-                    <td className="px-6 py-4 font-medium text-[#10B981]">{Number(campaign.active_calls || 0)}</td>
-                    <td className="px-6 py-4 font-semibold text-[#10B981]">{Number(campaign.answered_calls || 0)}</td>
-                    <td className="px-6 py-4 font-medium text-[#FF5A0A]">{Number(campaign.completed_calls || 0)}</td>
-                    <td className="px-6 py-4 font-medium text-[#F43F5E]">{Number(campaign.failed_calls || 0)}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        {campaign.status !== 'running' ? (
-                          <button
-                            type="button"
-                            title="Iniciar campanha"
-                            aria-label={`Iniciar campanha ${campaign.name}`}
-                            onClick={() => void changeStatus(campaign.id, 'running')}
-                            className="btn-click rounded-lg bg-[#10B981]/10 hover:bg-[#10B981]/20 p-2 text-[#10B981] border border-[#10B981]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
-                          >
-                            <Play size={15} />
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            title="Pausar campanha"
-                            aria-label={`Pausar campanha ${campaign.name}`}
-                            onClick={() => void changeStatus(campaign.id, 'paused')}
-                            className="btn-click rounded-lg bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 p-2 text-[#F59E0B] border border-[#F59E0B]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F59E0B]"
-                          >
-                            <Pause size={15} />
-                          </button>
-                        )}
-
-                        <label
-                          title="Importar contatos (CSV / Excel)"
-                          aria-label={`Importar contatos para ${campaign.name}`}
-                          className="btn-click cursor-pointer rounded-lg bg-[#151C2B] border border-glass hover:bg-[#1A2334] p-2 text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A0A]"
-                        >
-                          <UploadCloud size={15} />
-                          <input
-                            className="hidden"
-                            type="file"
-                            accept=".csv,.xlsx,.xls"
-                            onChange={(event) => void importFile(campaign.id, event.target.files?.[0])}
-                          />
-                        </label>
-
-                        <button
-                          type="button"
-                          title="Ver Contatos da Campanha"
-                          aria-label={`Ver Contatos da Campanha ${campaign.name}`}
-                          onClick={() => void loadCalls(campaign.id)}
-                          className="btn-click rounded-lg bg-[#FF5A0A]/10 hover:bg-[#FF5A0A]/20 p-2 text-[#FF5A0A] border border-[#FF5A0A]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A0A] flex items-center gap-1 text-xs font-semibold"
-                        >
-                          <Eye size={14} />
-                          <span className="hidden sm:inline">Contatos</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          title="Editar configurações"
-                          aria-label={`Editar configurações da campanha ${campaign.name}`}
-                          onClick={() => setEditingCampaign(campaign)}
-                          className="btn-click rounded-lg bg-[#38BDF8]/10 hover:bg-[#38BDF8]/20 p-2 text-[#38BDF8] border border-[#38BDF8]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]"
-                        >
-                          <SettingsIcon size={15} />
-                        </button>
-
-                        <button
-                          type="button"
-                          title={deleteBlocked
-                            ? 'Pause a campanha e aguarde as chamadas ativas'
-                            : 'Excluir campanha'}
-                          aria-label={`Excluir campanha ${campaign.name}`}
-                          disabled={deleteBlocked || deletingId === campaign.id}
-                          onClick={() => void deleteCampaign(campaign)}
-                          className="btn-click rounded-lg bg-[#F43F5E]/10 hover:bg-[#F43F5E]/20 p-2 text-[#F43F5E] border border-[#F43F5E]/20 disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F43F5E]"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+              {campaigns.map((campaign) => (
+                <tr
+                  key={campaign.id}
+                  className="hover:bg-[#151C2B]/50 transition-all"
+                >
+                  <td className="px-6 py-4 font-bold text-white">
+                    {campaign.name}
+                  </td>
+                  <td className="px-6 py-4"><StatusBadge status={campaign.status} /></td>
+                  <td className="px-6 py-4 text-slate-300 font-medium">{Number(campaign.total_leads || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-6 py-4 font-medium text-[#38BDF8]">{Number(campaign.pending_calls || 0)}</td>
+                  <td className="px-6 py-4 font-medium text-[#10B981]">{Number(campaign.active_calls || 0)}</td>
+                  <td className="px-6 py-4 font-semibold text-[#10B981]">{Number(campaign.answered_calls || 0)}</td>
+                  <td className="px-6 py-4 font-medium text-[#FF5A0A]">{Number(campaign.completed_calls || 0)}</td>
+                  <td className="px-6 py-4 font-medium text-[#F43F5E]">{Number(campaign.failed_calls || 0)}</td>
+                  <td className="px-6 py-4">
+                    <button
+                      type="button"
+                      title="Ver Fila de Contatos no Disparador"
+                      onClick={() => navigate(`/campanhas?id=${campaign.id}`)}
+                      className="btn-click rounded-xl bg-[#FF5A0A]/10 hover:bg-[#FF5A0A]/20 px-3 py-1.5 text-[#FF5A0A] border border-[#FF5A0A]/20 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                    >
+                      <Eye size={14} />
+                      Ver Fila
+                    </button>
+                  </td>
+                </tr>
+              ))}
 
               {!campaigns.length && (
                 <tr>
-                  <td colSpan={8} className="p-4">
+                  <td colSpan={9} className="p-4">
                     <EmptyState
                       title="Nenhuma campanha cadastrada"
-                      description="Crie uma nova campanha de cobrança para iniciar o disparo automatizado."
-                      actionLabel="Nova Campanha"
-                      onAction={() => setShowCreate(true)}
+                      description="Acesse a aba Campanhas & Disparador para criar sua primeira campanha."
+                      actionLabel="Ir para Campanhas"
+                      onAction={() => navigate('/campanhas')}
                     />
                   </td>
                 </tr>
@@ -1085,321 +1475,15 @@ function Campaigns() {
         </div>
       </div>
 
-      {/* Monitor de Chamadas da Campanha Selecionada (Visão Dedicada) */}
-      {selectedId && (
-        <div className="card-surface border border-glass shadow-2xl overflow-hidden animate-slide-in space-y-4">
-          <div className="bg-[#0A0E1A] px-6 py-4 border-b border-glass flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setSelectedId(null)}
-                className="btn-click inline-flex items-center gap-2 px-3.5 py-2 bg-[#FF5A0A] hover:bg-[#E04B00] text-white text-xs font-bold rounded-xl shadow-md transition-all"
-              >
-                <ArrowLeft size={16} />
-                Voltar ao Painel Geral
-              </button>
-              <div className="h-6 w-px bg-[#94A3B8]/20 hidden sm:block"></div>
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  Contatos da Campanha #{selectedId}
-                  {selectedCampaign && (
-                    <span className="text-xs font-normal px-2 py-0.5 rounded-md bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20 font-semibold">
-                      {selectedCampaign.answered_calls || 0} Atendidas
-                    </span>
-                  )}
-                </h3>
-                <p className="text-xs text-[#94A3B8]">
-                  {selectedCampaign ? (
-                    `${selectedCampaign.completed_calls || 0} discadas de ${selectedCampaign.total_calls || 0} contatos importados`
-                  ) : (
-                    'Total de contatos importados e status de discagem'
-                  )}
-                </p>
-              </div>
-            </div>
-
-            {/* Resumo de Métricas do Disparo (Item 05 da Planilha) */}
-            {selectedCampaign && (
-              <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
-                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
-                  <span className="text-[11px] text-[#94A3B8] font-medium">Base / Importados</span>
-                  <p className="text-base font-bold text-white mt-0.5">{Number(selectedCampaign.total_calls || 0).toLocaleString('pt-BR')}</p>
-                </div>
-                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
-                  <span className="text-[11px] text-[#94A3B8] font-medium">Discados</span>
-                  <p className="text-base font-bold text-[#38BDF8] mt-0.5">{Number(selectedCampaign.completed_calls || 0).toLocaleString('pt-BR')}</p>
-                </div>
-                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
-                  <span className="text-[11px] text-[#94A3B8] font-medium">Atendidos</span>
-                  <p className="text-base font-bold text-[#10B981] mt-0.5">{Number(selectedCampaign.answered_calls || 0).toLocaleString('pt-BR')}</p>
-                </div>
-                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
-                  <span className="text-[11px] text-[#94A3B8] font-medium">Formalizados</span>
-                  <p className="text-base font-bold text-[#FF5A0A] mt-0.5">{Number(selectedCampaign.formalized_calls || 0).toLocaleString('pt-BR')}</p>
-                </div>
-                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
-                  <span className="text-[11px] text-[#94A3B8] font-medium">Inválidos / Ignorados</span>
-                  <p className="text-base font-bold text-[#F59E0B] mt-0.5">{Number(selectedCampaign.skipped_calls || 0).toLocaleString('pt-BR')}</p>
-                </div>
-                <div className="rounded-xl bg-[#050814] p-3 border border-[#94A3B8]/14">
-                  <span className="text-[11px] text-[#94A3B8] font-medium">Falhas</span>
-                  <p className="text-base font-bold text-[#F43F5E] mt-0.5">{Number(selectedCampaign.failed_calls || 0).toLocaleString('pt-BR')}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Gráfico de Decisões da Campanha Selecionada */}
-            {selectedCampaignDecisions.length > 0 && (
-              <div className="w-full card-surface p-4 border border-glass flex flex-col md:flex-row items-center justify-between gap-4 my-2">
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Activity size={16} className="text-[#FF5A0A]" />
-                    Classificação de Decisões do Acordo (IA)
-                  </h4>
-                  <p className="text-xs text-[#94A3B8]">Distribuição em tempo real das intenções dos contatos desta campanha</p>
-                </div>
-                <div className="h-44 w-full md:w-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={selectedCampaignDecisions}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={45}
-                        outerRadius={65}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {selectedCampaignDecisions.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#101521', borderColor: 'rgba(148, 163, 184, 0.14)', borderRadius: '10px' }}
-                        itemStyle={{ color: '#F8FAFC' }}
-                      />
-                      <Legend verticalAlign="bottom" height={28} iconType="circle" />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
-
-            {/* Filtros de Decisão do Acordo */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 mr-3 bg-slate-950/20 px-2 py-1 rounded-lg border border-glass">
-                <input
-                  type="text"
-                  placeholder="Buscar CPF, Telefone ou Nome..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setCallsPage(1);
-                      setSearchQuery(searchInput);
-                    }
-                  }}
-                  className="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none w-44 sm:w-52"
-                />
-                {searchInput && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearchInput('');
-                      setCallsPage(1);
-                      setSearchQuery('');
-                    }}
-                    className="text-[10px] text-slate-400 hover:text-white bg-slate-800 px-1.5 py-0.5 rounded transition-all"
-                  >
-                    Limpar
-                  </button>
-                )}
-              </div>
-
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Filter size={12} />
-                Filtrar por:
-              </span>
-              {[
-                { label: 'Todos', value: 'all' },
-                { label: 'Em Linha', value: 'active' },
-                { label: 'Formalizado', value: 'formalize' },
-                { label: 'Agendado', value: 'schedule' },
-                { label: 'Atendidas', value: 'answered' },
-                { label: 'Sem Acordo', value: 'zero' },
-                { label: 'Sem Débito', value: 'no_debt' },
-                { label: 'Pendente', value: 'pending' },
-              ].map(f => (
-                <button
-                  key={f.value}
-                  type="button"
-                  onClick={() => {
-                    setCallsPage(1);
-                    setDecisionFilter(f.value);
-                  }}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${
-                    decisionFilter === f.value
-                      ? 'bg-primary text-white border-primary/50 shadow-md shadow-primary/10'
-                      : 'bg-slate-800/60 text-slate-300 border-glass hover:bg-slate-800'
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-
-              <button
-                type="button"
-                disabled={exporting}
-                onClick={exportToCsv}
-                className="rounded-lg px-3 py-1.5 text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1.5 ml-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download size={13} className={exporting ? 'animate-spin' : ''} />
-                {exporting ? 'Exportando...' : 'Exportar CSV'}
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto max-h-[60vh]">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-900/60 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-glass sticky top-0 backdrop-blur-md">
-                <tr>
-                  {['Telefone', 'CPF', 'Status', 'Tentativas', 'Acordo / Decisão', 'Última Atualização', 'Ações'].map((header) => (
-                    <th key={header} className="px-6 py-3">{header}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-glass text-slate-300">
-                {filteredCalls.map((call) => (
-                  <tr
-                    key={call.id}
-                    onClick={() => setSelectedCall(call)}
-                    className="hover:bg-slate-900/20 cursor-pointer transition-all"
-                  >
-                    <td className="px-6 py-3.5 font-medium">{call.customer_number}</td>
-                    <td className="px-6 py-3.5 text-slate-400 font-mono">{call.cpf || '-'}</td>
-                    <td className="px-6 py-3.5"><StatusBadge status={call.status} /></td>
-                    <td className="px-6 py-3.5">
-                      <span className="inline-flex items-center justify-center rounded-md bg-slate-800/80 px-2 py-0.5 text-xs font-semibold text-slate-200">
-                        {call.attempts} / 5
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 font-semibold">
-                      {call.decision === 'formalize' && (
-                        <span className="text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 size={14} /> Formalizado
-                        </span>
-                      )}
-                      {call.decision === 'schedule' && (
-                        <span className="text-amber-400 flex items-center gap-1">
-                          <AlertCircle size={14} /> Reagendado
-                        </span>
-                      )}
-                      {call.decision === 'zero' && (
-                        <span className="text-rose-400 flex items-center gap-1">
-                          <XCircle size={14} />
-                          {call.ended_reason === 'voicemail' 
-                            ? 'Caixa Postal' 
-                            : (!call.duration_seconds || call.duration_seconds === 0
-                                ? 'Não Atendido'
-                                : (call.duration_seconds <= 30 
-                                    ? 'Atendeu e Desligou' 
-                                    : 'Recusado/Sem Acordo'))}
-                        </span>
-                      )}
-                      {call.status === 'skipped' ? (
-                        <span className="text-slate-400 font-normal flex items-center gap-1">
-                          <X size={14} className="text-slate-500" />
-                          {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
-                          {call.last_error === 'no_online_agreement' && `Acordo online não permitido${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
-                          {call.last_error === 'no_debt' && 'Sem débito em aberto'}
-                          {call.last_error === 'cpf_missing' && 'CPF ausente'}
-                          {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
-                        </span>
-                      ) : (
-                        !call.decision && (
-                          <span className="text-slate-500 font-normal">Aguardando</span>
-                        )
-                      )}
-                    </td>
-                    <td className="px-6 py-3.5 text-slate-400 text-xs">
-                      {call.updated_at ? new Date(call.updated_at).toLocaleString('pt-BR') : '-'}
-                    </td>
-                    <td className="px-6 py-3.5" onClick={(e) => e.stopPropagation()}>
-                      {['reserved', 'queued', 'in_progress', 'answered'].includes(call.status) && call.provider_call_id ? (
-                        <button
-                          type="button"
-                          title="Desligar chamada"
-                          disabled={!!terminatingCallId}
-                          onClick={(event) => void terminateCall(call.provider_call_id!, event)}
-                          className="btn-click rounded-lg bg-rose-500/10 hover:bg-rose-500/20 p-1.5 text-rose-400 border border-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <PhoneOff size={13} className={terminatingCallId === call.provider_call_id ? 'animate-pulse' : ''} />
-                        </button>
-                      ) : (
-                        <span className="text-slate-600 text-xs">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-
-                {!filteredCalls.length && (
-                  <tr>
-                    <td colSpan={7} className="p-4">
-                      <EmptyState
-                        title="Nenhum contato encontrado"
-                        description="Não existem contatos ou chamadas cadastradas correspondentes ao filtro selecionado nesta campanha."
-                        actionLabel="Limpar Filtros"
-                        onAction={() => {
-                          setDecisionFilter('all');
-                          setSearchInput('');
-                          setSearchQuery('');
-                        }}
-                      />
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Paginação */}
-          <div className="flex items-center justify-between px-6 py-3 border-t border-glass bg-slate-900/40">
-            <button
-              type="button"
-              onClick={() => setCallsPage(p => Math.max(1, p - 1))}
-              disabled={callsPage === 1}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-glass disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              Anterior
-            </button>
-            <span className="text-xs text-slate-400 font-semibold">Página {callsPage}</span>
-            <button
-              type="button"
-              onClick={() => setCallsPage(p => p + 1)}
-              disabled={calls.length < 100}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-glass disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              Próxima
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal - Criação de Campanhas Premium */}
+      {/* Modal - Criar e Editar Campanhas */}
       {showCreate && (
         <CreateCampaign onClose={() => setShowCreate(false)} onCreated={() => load()} />
       )}
 
-      {/* Modal - Edição de Campanhas */}
       {editingCampaign && (
-        <CreateCampaign
-          campaign={editingCampaign}
-          onClose={() => setEditingCampaign(null)}
-          onCreated={() => load()}
-        />
+        <CreateCampaign campaign={editingCampaign} onClose={() => setEditingCampaign(null)} onCreated={() => load()} />
       )}
 
-      {/* Modal - Detalhes e Transcrição da Ligação */}
       {selectedCall && (
         <CallDetailsModal call={selectedCall} onClose={() => setSelectedCall(null)} />
       )}
