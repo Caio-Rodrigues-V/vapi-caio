@@ -758,9 +758,9 @@ function Campaigns() {
             </p>
           </div>
 
-          <div className="h-60 mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              {selectedId && selectedCampaignDecisions.length > 0 ? (
+          <div className="h-60 mt-4 flex items-center justify-center">
+            {selectedId && selectedCampaignDecisions.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={selectedCampaignDecisions}
@@ -781,7 +781,9 @@ function Campaigns() {
                   />
                   <Legend verticalAlign="bottom" height={36} iconType="circle" />
                 </PieChart>
-              ) : !selectedId && chartStatusData.length > 0 ? (
+              </ResponsiveContainer>
+            ) : !selectedId && chartStatusData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={chartStatusData}
@@ -802,15 +804,14 @@ function Campaigns() {
                   />
                   <Legend verticalAlign="bottom" height={36} iconType="circle" />
                 </PieChart>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <EmptyState
-                    title="Sem dados suficientes"
-                    description="Processea campanha para visualizar gráficos analíticos de resultados."
-                  />
-                </div>
-              )}
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState
+                compact
+                title="Sem dados suficientes"
+                description="Processe a campanha para visualizar os gráficos analíticos de resultados."
+              />
+            )}
           </div>
         </div>
 
@@ -824,7 +825,7 @@ function Campaigns() {
             <p className="text-xs text-[#94A3B8]">Contatos processados (Concluídos) em relação ao total importado</p>
           </div>
 
-          <div className="h-60 mt-4">
+          <div className="h-60 mt-4 flex items-center justify-center">
             {chartCampaignPerformance.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartCampaignPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -841,14 +842,13 @@ function Campaigns() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <EmptyState
-                  title="Sem campanhas ativas"
-                  description="Crie uma nova campanha para visualizar o histórico comparativo."
-                  actionLabel="Nova Campanha"
-                  onAction={() => setShowCreate(true)}
-                />
-              </div>
+              <EmptyState
+                compact
+                title="Sem campanhas ativas"
+                description="Crie uma nova campanha para visualizar o histórico comparativo."
+                actionLabel="Nova Campanha"
+                onAction={() => setShowCreate(true)}
+              />
             )}
           </div>
         </div>
