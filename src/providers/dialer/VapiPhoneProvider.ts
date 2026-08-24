@@ -44,7 +44,7 @@ export class VapiPhoneProvider implements DialerProvider {
     if (input.firstMessage?.trim()) {
       overrides.firstMessage = input.firstMessage.trim();
       overrides.firstMessageMode = 'assistant-speaks-first';
-      overrides.silenceTimeoutSeconds = 12;
+      overrides.silenceTimeoutSeconds = 20;
       overrides.maxDurationSeconds = 600;
     }
     if (input.variableValues && Object.keys(input.variableValues).length > 0) {

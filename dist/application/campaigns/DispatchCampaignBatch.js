@@ -117,7 +117,7 @@ class DispatchCampaignBatch {
                 const sanitizedVariableValues = Object.fromEntries(Object.entries(variableValues).filter(([, value]) => value !== ''));
                 const firstName = (customerName || '').trim().split(/\s+/)[0] || '';
                 const instName = String(debtMetadata.institution || 'DDM').trim();
-                const firstMessage = `Oi, ${firstName || 'tudo bem'}. Aqui é a Júlia, da assessoria financeira da ${instName}. Tudo bem com você? Antes de prosseguirmos com os detalhes por segurança, você pode me confirmar apenas os três primeiros números do seu CPF?`;
+                const firstMessage = `Oi, ${firstName || 'tudo bem'}. Aqui é a Júlia, da assessoria financeira da ${instName}. Por segurança, pode me confirmar apenas os três primeiros números do seu CPF?`;
                 const providerResult = await this.dialer.startCall({
                     customerNumber: call.customerNumber,
                     customerName: customerName || undefined,
