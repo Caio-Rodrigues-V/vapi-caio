@@ -27,6 +27,8 @@ import {
   Award,
   Calendar,
   Menu,
+  ArrowLeft,
+  Eye,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -951,6 +953,17 @@ function Campaigns() {
 
                         <button
                           type="button"
+                          title="Ver Contatos da Campanha"
+                          aria-label={`Ver Contatos da Campanha ${campaign.name}`}
+                          onClick={() => void loadCalls(campaign.id)}
+                          className="btn-click rounded-lg bg-[#FF5A0A]/10 hover:bg-[#FF5A0A]/20 p-2 text-[#FF5A0A] border border-[#FF5A0A]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A0A] flex items-center gap-1 text-xs font-semibold"
+                        >
+                          <Eye size={14} />
+                          <span className="hidden sm:inline">Contatos</span>
+                        </button>
+
+                        <button
+                          type="button"
                           title="Editar configurações"
                           aria-label={`Editar configurações da campanha ${campaign.name}`}
                           onClick={() => setEditingCampaign(campaign)}
@@ -994,26 +1007,37 @@ function Campaigns() {
         </div>
       </div>
 
-      {/* Monitor de Chamadas da Campanha Selecionada */}
+      {/* Monitor de Chamadas da Campanha Selecionada (Visão Dedicada) */}
       {selectedId && (
-        <div className="rounded-2xl bg-glass border-glass shadow-2xl overflow-hidden animate-slide-in">
-          <div className="bg-slate-900/40 px-6 py-5 border-b border-glass flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                Contatos da Campanha #{selectedId}
-                {selectedCampaign && (
-                  <span className="text-xs font-normal px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    {selectedCampaign.answered_calls || 0} Atendidas
-                  </span>
-                )}
-              </h3>
-              <p className="text-xs text-slate-400">
-                {selectedCampaign ? (
-                  `${selectedCampaign.completed_calls || 0} discadas de ${selectedCampaign.total_calls || 0} contatos importados`
-                ) : (
-                  'Total de contatos importados e status de discagem'
-                )}
-              </p>
+        <div className="card-surface border border-glass shadow-2xl overflow-hidden animate-slide-in space-y-4">
+          <div className="bg-[#0A0E1A] px-6 py-4 border-b border-glass flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                className="btn-click inline-flex items-center gap-2 px-3.5 py-2 bg-[#FF5A0A] hover:bg-[#E04B00] text-white text-xs font-bold rounded-xl shadow-md transition-all"
+              >
+                <ArrowLeft size={16} />
+                Voltar ao Painel Geral
+              </button>
+              <div className="h-6 w-px bg-[#94A3B8]/20 hidden sm:block"></div>
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  Contatos da Campanha #{selectedId}
+                  {selectedCampaign && (
+                    <span className="text-xs font-normal px-2 py-0.5 rounded-md bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20 font-semibold">
+                      {selectedCampaign.answered_calls || 0} Atendidas
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-[#94A3B8]">
+                  {selectedCampaign ? (
+                    `${selectedCampaign.completed_calls || 0} discadas de ${selectedCampaign.total_calls || 0} contatos importados`
+                  ) : (
+                    'Total de contatos importados e status de discagem'
+                  )}
+                </p>
+              </div>
             </div>
 
             {/* Resumo de Métricas do Disparo (Item 05 da Planilha) */}
