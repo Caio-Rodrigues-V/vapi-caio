@@ -1269,7 +1269,7 @@ function Campaigns() {
       {/* Seção do Painel do Planejamento & Operações (4 Cards em Grid 2x2) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Card 1: Funil de Conversão Operacional */}
-        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] flex flex-col justify-between">
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] transition-all duration-250 ease-in-out hover:border-[#D9480F] hover:shadow-[0_4px_14px_-2px_rgba(217,72,15,0.12)] hover:-translate-y-0.5 flex flex-col justify-between">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
               <Layers size={15} className="text-[#D9480F]" />
@@ -1307,7 +1307,7 @@ function Campaigns() {
         </div>
 
         {/* Card 2: Desempenho Comparativo por Campanha */}
-        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] flex flex-col justify-between">
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] transition-all duration-250 ease-in-out hover:border-[#D9480F] hover:shadow-[0_4px_14px_-2px_rgba(217,72,15,0.12)] hover:-translate-y-0.5 flex flex-col justify-between">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
               <BarChart3 size={15} className="text-[#0369A1]" />
@@ -1345,7 +1345,7 @@ function Campaigns() {
         </div>
 
         {/* Card 3: Distribuição de Decisões de Atendimento */}
-        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] flex flex-col justify-between">
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] transition-all duration-250 ease-in-out hover:border-[#D9480F] hover:shadow-[0_4px_14px_-2px_rgba(217,72,15,0.12)] hover:-translate-y-0.5 flex flex-col justify-between">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
               <Activity size={15} className="text-[#15803D]" />
@@ -1389,7 +1389,7 @@ function Campaigns() {
         </div>
 
         {/* Card 4: Indicadores de Infraestrutura & Capacidade do Planejamento */}
-        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] flex flex-col justify-between space-y-3">
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] transition-all duration-250 ease-in-out hover:border-[#D9480F] hover:shadow-[0_4px_14px_-2px_rgba(217,72,15,0.12)] hover:-translate-y-0.5 flex flex-col justify-between space-y-3">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
               <ShieldCheck size={15} className="text-[#0369A1]" />
