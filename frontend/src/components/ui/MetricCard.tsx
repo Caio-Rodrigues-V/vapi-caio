@@ -31,7 +31,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden rounded-lg bg-[#111827] border border-[#1E293B] p-4 flex items-center justify-between transition-all duration-150 hover:border-slate-700 ${
+      className={`relative overflow-hidden rounded-lg bg-[#101828] border border-[#1F242F] p-4 flex items-center justify-between transition-colors duration-150 hover:border-[#344054] ${
         onClick ? 'cursor-pointer' : ''
       }`}
     >
@@ -53,7 +53,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         )}
       </div>
 
-      <div className="p-2 rounded-lg bg-slate-800/60 text-slate-400 border border-slate-700/50 flex-shrink-0 ml-3">
+      <div className="p-2 rounded-lg bg-[#1D2939] text-slate-400 border border-[#344054]/50 flex-shrink-0 ml-3">
         <Icon size={18} />
       </div>
     </div>

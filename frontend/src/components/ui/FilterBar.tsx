@@ -29,7 +29,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   activeFiltersCount,
 }) => {
   return (
-    <div className="rounded-lg bg-[#111827] p-3 border border-[#1E293B] space-y-2.5">
+    <div className="rounded-lg bg-[#101828] p-3 border border-[#1F242F] space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Lado Esquerdo: Seleção de Campanha & Período */}
         <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
@@ -47,7 +47,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <select
             value={selectedCampaignId ?? ''}
             onChange={(e) => onSelectCampaign(e.target.value ? Number(e.target.value) : null)}
-            className="bg-[#0B0F19] text-slate-200 border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-xs font-medium cursor-pointer max-w-[240px] truncate focus:outline-none focus:border-[#FF5A0A]"
+            className="bg-[#0C111D] text-slate-200 border border-[#1F242F] rounded-lg px-2.5 py-1.5 text-xs font-medium cursor-pointer max-w-[240px] truncate focus:outline-none focus:border-[#FF5A0A]"
           >
             <option value="">Todas as Campanhas</option>
             {campaigns.map((c) => (
@@ -58,7 +58,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </select>
 
           {/* Selector de Período */}
-          <div className="flex items-center gap-1 bg-[#0B0F19] p-0.5 rounded-lg border border-[#1E293B]">
+          <div className="flex items-center gap-1 bg-[#0C111D] p-0.5 rounded-lg border border-[#1F242F]">
             {[
               { id: 'today', label: 'Hoje' },
               { id: '7d', label: '7D' },
@@ -81,7 +81,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </div>
 
           {/* Selector de Status da Chamada */}
-          <div className="flex items-center gap-1 bg-[#0B0F19] p-0.5 rounded-lg border border-[#1E293B]">
+          <div className="flex items-center gap-1 bg-[#0C111D] p-0.5 rounded-lg border border-[#1F242F]">
             {[
               { id: 'all', label: 'Todos' },
               { id: 'formalize', label: 'Formalizado' },
@@ -113,7 +113,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               placeholder="Buscar CPF, Telefone..."
               value={searchInput}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="bg-[#0B0F19] text-slate-200 border border-[#1E293B] rounded-lg pl-8 pr-3 py-1.5 text-xs w-44 sm:w-56 focus:outline-none focus:border-[#FF5A0A]"
+              className="bg-[#0C111D] text-slate-200 border border-[#1F242F] rounded-lg pl-8 pr-3 py-1.5 text-xs w-44 sm:w-56 focus:outline-none focus:border-[#FF5A0A]"
             />
           </div>
 
@@ -121,7 +121,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <button
               type="button"
               onClick={onClearFilters}
-              className="btn-click px-2.5 py-1.5 text-xs font-semibold text-slate-400 hover:text-white bg-[#1E293B] hover:bg-slate-700 rounded-lg border border-slate-700/50 flex items-center gap-1"
+              className="btn-click px-2.5 py-1.5 text-xs font-semibold text-slate-400 hover:text-white bg-[#1D2939] hover:bg-slate-700 rounded-lg border border-[#344054]/50 flex items-center gap-1"
             >
               <RotateCcw size={12} />
               Limpar

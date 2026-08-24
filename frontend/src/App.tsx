@@ -498,10 +498,10 @@ function Campaigns() {
   // Agregações de chamadas para gráficos
   const chartStatusData = useMemo(() => {
     return [
-      { name: 'Pendente', value: stats.pending, color: '#6366F1' },     // Indigo
-      { name: 'Em Linha', value: stats.active, color: '#A855F7' },      // Violet
-      { name: 'Concluído', value: stats.completed, color: '#22C55E' },   // Green
-      { name: 'Falhado', value: stats.failed, color: '#EF4444' },       // Rose
+      { name: 'Pendente', value: stats.pending, color: '#334155' },     // Slate 700
+      { name: 'Em Linha', value: stats.active, color: '#38BDF8' },      // Sky 400
+      { name: 'Concluído', value: stats.completed, color: '#10B981' },   // Emerald 500
+      { name: 'Falhado', value: stats.failed, color: '#EF4444' },       // Rose 500
     ].filter(item => item.value > 0);
   }, [stats]);
 
@@ -519,10 +519,10 @@ function Campaigns() {
     );
 
     return [
-      { name: 'Formalizado', value: decisions.formalize || 0, color: '#FF5706' }, // Orange DDM
+      { name: 'Formalizado', value: decisions.formalize || 0, color: '#FF5A0A' }, // Orange DDM
       { name: 'Agendado', value: decisions.schedule || 0, color: '#F59E0B' },     // Amber
       { name: 'Sem Acordo', value: decisions.zero || 0, color: '#EF4444' },       // Rose
-      { name: 'Pendente/Outros', value: decisions.no_decision || 0, color: '#64748B' }, // Slate
+      { name: 'Pendente/Outros', value: decisions.no_decision || 0, color: '#334155' }, // Slate 700
     ].filter(item => item.value > 0);
   }, [selectedId, calls]);
 
@@ -1260,26 +1260,26 @@ function Campaigns() {
       </div>
 
       {/* Seção do Painel do Planejamento & Operações (4 Cards em Grid 2x2) */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Card 1: Funil de Conversão Operacional */}
-        <div className="rounded-lg bg-[#111827] p-5 border border-[#1E293B] flex flex-col justify-between min-h-[350px]">
+        <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-              <Layers size={16} className="text-[#FF5A0A]" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <Layers size={15} className="text-[#FF5A0A]" />
               Funil de Conversão do Disparo
             </h3>
-            <p className="text-xs text-slate-400">Evolução do volume da base até a formalização do acordo</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Evolução do volume da base até a formalização do acordo</p>
           </div>
 
-          <div className="h-60 mt-4 flex items-center justify-center">
+          <div className="h-44 mt-3 flex items-center justify-center">
             {stats.leads > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={funnelData} layout="vertical" margin={{ top: 10, right: 20, left: 30, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-                  <XAxis type="number" stroke="#64748B" fontSize={11} />
-                  <YAxis type="category" dataKey="etapa" stroke="#94A3B8" fontSize={11} width={110} />
+                <BarChart data={funnelData} layout="vertical" margin={{ top: 5, right: 15, left: 20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1F242F" />
+                  <XAxis type="number" stroke="#64748B" fontSize={10} />
+                  <YAxis type="category" dataKey="etapa" stroke="#94A3B8" fontSize={10} width={100} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0F19', borderColor: '#1E293B', borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: '#0C111D', borderColor: '#1F242F', borderRadius: '6px' }}
                     itemStyle={{ color: '#F8FAFC' }}
                   />
                   <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
@@ -1300,27 +1300,27 @@ function Campaigns() {
         </div>
 
         {/* Card 2: Desempenho Comparativo por Campanha */}
-        <div className="rounded-lg bg-[#111827] p-5 border border-[#1E293B] flex flex-col justify-between min-h-[350px]">
+        <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-              <BarChart3 size={16} className="text-sky-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <BarChart3 size={15} className="text-sky-400" />
               Desempenho Comparativo por Campanha
             </h3>
-            <p className="text-xs text-slate-400">Contatos processados (Concluídos) em relação ao total importado por lote</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Contatos processados (Concluídos) em relação ao total importado por lote</p>
           </div>
 
-          <div className="h-60 mt-4 flex items-center justify-center">
+          <div className="h-44 mt-3 flex items-center justify-center">
             {chartCampaignPerformance.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartCampaignPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-                  <XAxis dataKey="name" stroke="#94A3B8" fontSize={11} />
-                  <YAxis stroke="#64748B" fontSize={11} />
+                <BarChart data={chartCampaignPerformance} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1F242F" />
+                  <XAxis dataKey="name" stroke="#94A3B8" fontSize={10} />
+                  <YAxis stroke="#64748B" fontSize={10} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0F19', borderColor: '#1E293B', borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: '#0C111D', borderColor: '#1F242F', borderRadius: '6px' }}
                     itemStyle={{ color: '#F8FAFC' }}
                   />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: '11px' }} />
                   <Bar dataKey="Concluídas" fill="#10B981" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Total" fill="#334155" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -1338,25 +1338,25 @@ function Campaigns() {
         </div>
 
         {/* Card 3: Distribuição de Decisões de Atendimento */}
-        <div className="rounded-lg bg-[#111827] p-5 border border-[#1E293B] flex flex-col justify-between min-h-[350px]">
+        <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-              <Activity size={16} className="text-emerald-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <Activity size={15} className="text-emerald-400" />
               Status de Resultados da Fila
             </h3>
-            <p className="text-xs text-slate-400">Proporção de acordos, rechamadas e falhas no banco de contatos</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Proporção de acordos, rechamadas e falhas no banco de contatos</p>
           </div>
 
-          <div className="h-60 mt-4 flex items-center justify-center">
+          <div className="h-44 mt-3 flex items-center justify-center">
             {chartStatusData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={chartStatusData}
                     cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={75}
+                    cy="45%"
+                    innerRadius={40}
+                    outerRadius={62}
                     paddingAngle={2}
                     dataKey="value"
                   >
@@ -1365,10 +1365,10 @@ function Campaigns() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0F19', borderColor: '#1E293B', borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: '#0C111D', borderColor: '#1F242F', borderRadius: '6px' }}
                     itemStyle={{ color: '#F8FAFC' }}
                   />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                  <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -1382,51 +1382,51 @@ function Campaigns() {
         </div>
 
         {/* Card 4: Indicadores de Infraestrutura & Capacidade do Planejamento */}
-        <div className="rounded-lg bg-[#111827] p-5 border border-[#1E293B] flex flex-col justify-between min-h-[350px] space-y-4">
+        <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between space-y-3">
           <div>
-            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-              <ShieldCheck size={16} className="text-sky-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <ShieldCheck size={15} className="text-sky-400" />
               Saúde da Operação & Pacing
             </h3>
-            <p className="text-xs text-slate-400">Métricas operacionais de chamadas e controle do dialer</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Métricas operacionais de chamadas e controle do dialer</p>
           </div>
 
-          <div className="space-y-2.5 flex-1 justify-center flex flex-col">
-            <div className="rounded-lg bg-[#0B0F19] p-3 border border-[#1E293B] flex items-center justify-between">
+          <div className="space-y-2 flex-1 justify-center flex flex-col">
+            <div className="rounded-lg bg-[#0C111D] p-2.5 border border-[#1F242F] flex items-center justify-between">
               <div className="space-y-0.5">
                 <span className="text-xs text-slate-300 font-medium flex items-center gap-1.5">
                   <Zap size={13} className="text-[#FF5A0A]" />
                   Pacing Delay
                 </span>
-                <p className="text-xs text-slate-400">Intervalo de segurança entre disparos</p>
+                <p className="text-[11px] text-slate-400">Intervalo de segurança entre disparos</p>
               </div>
-              <span className="px-2.5 py-1 rounded bg-[#FF5A0A]/10 text-[#FF5A0A] text-xs font-semibold border border-[#FF5A0A]/20">
+              <span className="px-2 py-0.5 rounded bg-[#FF5A0A]/10 text-[#FF5A0A] text-xs font-semibold border border-[#FF5A0A]/20">
                 500 ms
               </span>
             </div>
 
-            <div className="rounded-lg bg-[#0B0F19] p-3 border border-[#1E293B] flex items-center justify-between">
+            <div className="rounded-lg bg-[#0C111D] p-2.5 border border-[#1F242F] flex items-center justify-between">
               <div className="space-y-0.5">
                 <span className="text-xs text-slate-300 font-medium flex items-center gap-1.5">
                   <RefreshCw size={13} className="text-emerald-400" />
                   Auto-Retry SIP 408
                 </span>
-                <p className="text-xs text-slate-400">Reagendamento automático de timeout</p>
+                <p className="text-[11px] text-slate-400">Reagendamento automático de timeout</p>
               </div>
-              <span className="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
+              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
                 15 mins
               </span>
             </div>
 
-            <div className="rounded-lg bg-[#0B0F19] p-3 border border-[#1E293B] flex items-center justify-between">
+            <div className="rounded-lg bg-[#0C111D] p-2.5 border border-[#1F242F] flex items-center justify-between">
               <div className="space-y-0.5">
                 <span className="text-xs text-slate-300 font-medium flex items-center gap-1.5">
                   <MessageSquare size={13} className="text-sky-400" />
                   Fallback de Notificações
                 </span>
-                <p className="text-xs text-slate-400">Smart RCS / N8N Webhook</p>
+                <p className="text-[11px] text-slate-400">Smart RCS / N8N Webhook</p>
               </div>
-              <span className="px-2.5 py-1 rounded bg-sky-500/10 text-sky-400 text-xs font-semibold border border-sky-500/20">
+              <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 text-xs font-semibold border border-sky-500/20">
                 Ativo
               </span>
             </div>
@@ -1435,11 +1435,11 @@ function Campaigns() {
       </div>
 
       {/* Resumo Executivo de Campanhas (Métricas Apenas) */}
-      <div className="rounded-lg bg-[#111827] overflow-hidden border border-[#1E293B]">
-        <div className="border-b border-[#1E293B] bg-[#0B0F19] px-5 py-3.5 flex items-center justify-between">
+      <div className="rounded-lg bg-[#101828] overflow-hidden border border-[#1F242F]">
+        <div className="border-b border-[#1F242F] bg-[#0C111D] px-5 py-3.5 flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-slate-100">Relatório de Campanhas</h3>
-            <p className="text-xs text-slate-400">Resumo de volume e desempenho dos lotes de disparo</p>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-100">Relatório de Campanhas</h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">Resumo de volume e desempenho dos lotes de disparo</p>
           </div>
           <button
             type="button"
@@ -1453,14 +1453,14 @@ function Campaigns() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#0B0F19] text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-[#1E293B]">
+            <thead className="bg-[#0C111D] text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-[#1F242F]">
               <tr>
                 {['Campanha', 'Status', 'CPFs', 'Fila/Pendentes', 'Ativas', 'Atendidas', 'Concluídas', 'Falhas', 'Ação'].map((header) => (
-                  <th key={header} className="px-5 py-3">{header}</th>
+                  <th key={header} className="px-5 py-2.5">{header}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1E293B] text-xs text-slate-200">
+            <tbody className="divide-y divide-[#1F242F] text-xs text-slate-200">
               {campaigns.map((campaign) => (
                 <tr
                   key={campaign.id}
@@ -2031,7 +2031,7 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
       )}
 
       <aside
-        className={`fixed left-0 top-0 h-screen w-60 border-r border-[#1E293B] bg-[#0B0F19] text-slate-300 flex flex-col justify-between p-5 z-50 transition-transform duration-200 ${
+        className={`fixed left-0 top-0 h-screen w-60 border-r border-[#1F242F] bg-[#0C111D] text-slate-300 flex flex-col justify-between p-5 z-50 transition-transform duration-200 ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -2067,7 +2067,7 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
                   className={`flex items-center gap-3 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
                     isActive
                       ? 'bg-[#FF5A0A]/10 text-[#FF5A0A] border-l-2 border-[#FF5A0A]'
-                      : 'hover:bg-[#1E293B] hover:text-slate-100 text-slate-400'
+                      : 'hover:bg-[#1D2939] hover:text-slate-100 text-slate-400'
                   }`}
                 >
                   <Icon size={16} />
@@ -2078,7 +2078,7 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
           </nav>
         </div>
 
-        <div className="rounded-lg border border-[#1E293B] bg-[#111827] p-3 space-y-1.5">
+        <div className="rounded-lg border border-[#1F242F] bg-[#101828] p-3 space-y-1.5">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ambiente de Operação</p>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
