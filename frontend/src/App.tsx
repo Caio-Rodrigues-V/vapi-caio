@@ -43,6 +43,7 @@ import {
 } from 'recharts';
 import { prepareImportFile } from './lib/importFile';
 import { ThreeBackground } from './components/ThreeBackground';
+import { gsap } from 'gsap';
 import './index.css';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -552,6 +553,14 @@ function Campaigns() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    gsap.fromTo(
+      '.gsap-card',
+      { opacity: 0, y: 20, scale: 0.95 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.06, ease: 'power2.out' }
+    );
+  }, [selectedId, campaigns.length]);
+
   const getRelativeTime = (lastDate: Date | null, currentDate: Date) => {
     if (!lastDate) return 'Aguardando sincronismo...';
     const diffSec = Math.max(0, Math.floor((currentDate.getTime() - lastDate.getTime()) / 1000));
@@ -740,7 +749,7 @@ function Campaigns() {
         ].map((item, idx) => (
           <div
             key={idx}
-            className={`relative overflow-hidden rounded-2xl bg-glass border-glass p-6 bg-gradient-to-br ${item.bg} flex items-center justify-between transition-all duration-300 bg-glass-hover`}
+            className={`gsap-card relative overflow-hidden rounded-2xl bg-glass border-glass p-6 bg-gradient-to-br ${item.bg} flex items-center justify-between transition-all duration-300 bg-glass-hover shadow-lg hover:-translate-y-1`}
           >
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{item.label}</p>
