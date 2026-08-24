@@ -44,6 +44,10 @@ import {
 } from 'recharts';
 import { prepareImportFile } from './lib/importFile';
 import { ThreeBackground } from './components/ThreeBackground';
+import { MetricCard } from './components/ui/MetricCard';
+import { FilterBar } from './components/ui/FilterBar';
+import { EmptyState } from './components/ui/EmptyState';
+import { ErrorState } from './components/ui/ErrorState';
 import { gsap } from 'gsap';
 import './index.css';
 
@@ -223,6 +227,7 @@ function Campaigns() {
   const [terminatingCallId, setTerminatingCallId] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [period, setPeriod] = useState<string>('all');
 
   async function terminateCall(providerCallId: string, event: React.MouseEvent) {
     event.stopPropagation(); // Prevent opening modal
@@ -575,203 +580,175 @@ function Campaigns() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner de Monitoramento */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-glass border-glass p-6 shadow-2xl">
-        <div className="space-y-2">
-          <h2 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+      {/* Header Compacto da Operação */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl card-surface p-5 border border-glass shadow-lg">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             Dashboard
-            <span className="text-gradient">DDM Call Center</span>
+            <span className="text-[#FF5A0A]">DDM Call Center</span>
           </h2>
-          <p className="text-slate-400 text-sm">Operação automatizada de acordos e discagem via Vapi</p>
-          
+          <p className="text-[#94A3B8] text-xs">Operação automatizada de acordos e discagem via Vapi</p>
+
           <div className="flex flex-wrap items-center gap-3 text-xs pt-1">
-            <div className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-emerald-400 font-medium">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <div className="flex items-center gap-1.5 rounded-lg bg-[#10B981]/10 border border-[#10B981]/20 px-2.5 py-0.5 text-[#10B981] font-medium">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse"></span>
               <span>Tempo Real</span>
-              <span className="text-slate-400 font-mono text-[11px] ml-1">[{now.toLocaleTimeString('pt-BR')}]</span>
+              <span className="text-[#94A3B8] font-mono text-[11px] ml-1">[{now.toLocaleTimeString('pt-BR')}]</span>
             </div>
 
             {lastUpdatedAt && (
-              <p className="text-slate-400 flex items-center gap-1.5 font-medium">
-                <RefreshCw size={12} className="text-slate-500" />
+              <p className="text-[#94A3B8] flex items-center gap-1.5 font-medium text-xs">
+                <RefreshCw size={12} className="text-[#64748B]" />
                 {getRelativeTime(lastUpdatedAt, now)}
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2.5">
           <button
             type="button"
             disabled={loading}
             onClick={() => void load()}
-            className="btn-click flex items-center gap-2 rounded-xl border border-glass bg-slate-800/40 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="btn-click flex items-center gap-2 rounded-xl border border-glass bg-[#151C2B] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#1A2334] disabled:opacity-50"
           >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             {loading ? 'Sincronizando...' : 'Sincronizar'}
           </button>
 
           <a
             href="/modelo_importacao.csv"
             download="modelo_importacao.csv"
-            className="btn-click flex items-center gap-2 rounded-xl border border-glass bg-slate-800/40 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800"
+            className="btn-click flex items-center gap-2 rounded-xl border border-glass bg-[#151C2B] px-3.5 py-2 text-xs font-semibold text-[#94A3B8] hover:bg-[#1A2334] hover:text-white"
           >
-            <Download size={16} />
+            <Download size={14} />
             Planilha Modelo
           </a>
 
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="btn-click flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary-hover shadow-lg shadow-primary/20"
+            className="btn-click flex items-center gap-2 rounded-xl bg-[#FF5A0A] px-4 py-2 text-xs font-bold text-white hover:bg-[#E04B00] shadow-md shadow-[#FF5A0A]/20"
           >
-            <Plus size={16} />
+            <Plus size={15} />
             Nova Campanha
           </button>
         </div>
       </div>
 
+      {/* Tratamento de Erro */}
       {error && (
-        <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-450 flex items-center gap-2">
-          <AlertCircle size={16} />
-          {error}
-        </div>
+        <ErrorState
+          title="Erro de Conexão com o Servidor"
+          message={error}
+          onRetry={() => void load()}
+        />
       )}
 
-      {/* Seletor/Indicador de Estatísticas Ativas (Dropdown de Filtro) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-glass border-glass rounded-xl px-4 py-2.5 shadow-sm gap-2">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-primary animate-pulse"></span>
-          <span className="text-xs font-semibold text-slate-300">
-            {selectedId && selectedCampaign
-              ? `Estatísticas da Campanha #${selectedId}: "${selectedCampaign.name}"`
-              : 'Estatísticas de Visão Geral (Soma de Todas as Campanhas)'}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="campaign-select" className="text-xs text-slate-400 font-medium whitespace-nowrap">
-            Selecionar Campanha:
-          </label>
-          <select
-            id="campaign-select"
-            value={selectedId ?? ''}
-            onChange={(e) => setSelectedId(e.target.value ? Number(e.target.value) : null)}
-            className="bg-slate-900/90 text-xs font-semibold text-slate-200 border border-slate-700/80 rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer max-w-[320px] truncate"
-          >
-            <option value="">Todas as Campanhas (Visão Geral)</option>
-            {campaigns.map((c) => (
-              <option key={c.id} value={c.id}>
-                #{c.id} - {c.name}
-              </option>
-            ))}
-          </select>
-          {selectedId && (
-            <button
-              type="button"
-              onClick={() => setSelectedId(null)}
-              className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-all"
-            >
-              <X size={12} />
-              Geral
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Barra de Filtros Dedicada (Etapa 2) */}
+      <FilterBar
+        selectedCampaignId={selectedId}
+        campaigns={campaigns}
+        onSelectCampaign={(id) => setSelectedId(id)}
+        period={period}
+        onSelectPeriod={(p) => setPeriod(p)}
+        statusFilter={decisionFilter}
+        onSelectStatusFilter={(s) => setDecisionFilter(s)}
+        searchInput={searchInput}
+        onSearchChange={(val) => setSearchInput(val)}
+        onClearFilters={() => {
+          setSelectedId(null);
+          setPeriod('all');
+          setDecisionFilter('all');
+          setSearchInput('');
+          setSearchQuery('');
+        }}
+        activeFiltersCount={
+          (selectedId ? 1 : 0) +
+          (period !== 'all' ? 1 : 0) +
+          (decisionFilter !== 'all' ? 1 : 0) +
+          (searchInput ? 1 : 0)
+        }
+      />
 
-      {/* Cartões de Indicadores de Performance (KPIs Principais) */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          {
-            label: 'Taxa de Alô (% Atendimento)',
-            value: `${stats.pickupRate}%`,
-            description: `${stats.answered.toLocaleString('pt-BR')} chamadas atendidas`,
-            icon: PhoneCall,
-            color: 'text-emerald-400',
-            bg: 'from-emerald-500/10 to-emerald-500/2',
-          },
-          {
-            label: 'Conversão (Formalizados)',
-            value: `${stats.conversionRate}%`,
-            description: `${stats.formalized.toLocaleString('pt-BR')} acordos fechados`,
-            icon: Award,
-            color: 'text-orange-400',
-            bg: 'from-orange-500/10 to-orange-500/2',
-          },
-          {
-            label: 'Duração Média (AHT)',
-            value: stats.avgDurationFormatted,
-            description: 'tempo médio de conversa',
-            icon: Clock,
-            color: 'text-cyan-400',
-            bg: 'from-cyan-500/10 to-cyan-500/2',
-          },
-          {
-            label: 'Retornos Agendados',
-            value: stats.scheduled,
-            description: 'pedidos de rechamada',
-            icon: Calendar,
-            color: 'text-amber-400',
-            bg: 'from-amber-500/10 to-amber-500/2',
-          },
-          {
-            label: 'Total de Leads (CPFs)',
-            value: stats.leads,
-            description: `${stats.calls.toLocaleString('pt-BR')} telefones cadastrados`,
-            icon: FileText,
-            color: 'text-indigo-400',
-            bg: 'from-indigo-500/10 to-indigo-500/2',
-          },
-          {
-            label: 'Chamadas Ativas',
-            value: stats.active,
-            description: 'em linha simultaneamente',
-            icon: Activity,
-            color: 'text-emerald-400',
-            bg: 'from-emerald-500/10 to-emerald-500/2',
-            glow: stats.active > 0 ? 'indicator-glow' : '',
-            pulse: stats.active > 0,
-          },
-          {
-            label: 'Finalizados (Fila)',
-            value: stats.completed,
-            description: 'processados na fila',
-            icon: CheckCircle2,
-            color: 'text-primary',
-            bg: 'from-orange-500/10 to-orange-500/2',
-          },
-          {
-            label: 'Não Atendidos / Erros',
-            value: stats.failed,
-            description: 'falhas ou indisponíveis',
-            icon: XCircle,
-            color: 'text-rose-400',
-            bg: 'from-rose-500/10 to-rose-500/2',
-          },
-        ].map((item, idx) => (
-          <div
-            key={idx}
-            className={`gsap-card relative overflow-hidden rounded-2xl bg-glass border-glass p-6 bg-gradient-to-br ${item.bg} flex items-center justify-between transition-all duration-300 bg-glass-hover shadow-lg hover:-translate-y-1`}
-          >
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{item.label}</p>
-              <div className="flex items-center gap-2">
-                <p className="text-3xl font-extrabold text-white">{item.value}</p>
-                {item.pulse && (
-                  <span className="flex h-3 w-3 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className={`relative inline-flex rounded-full h-3 w-3 bg-emerald-500 ${item.glow}`}></span>
-                  </span>
-                )}
-              </div>
-              {'description' in item && item.description && (
-                <p className="text-[11px] text-slate-400 font-medium">{item.description}</p>
-              )}
-            </div>
-            <div className={`p-3 rounded-xl bg-slate-900/40 border border-glass ${item.color}`}>
-              <item.icon size={24} />
-            </div>
-          </div>
-        ))}
+      {/* Cartões de Indicadores de Performance (KPIs Principais & Secundários) */}
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Prioridade 1 */}
+        <MetricCard
+          title="Taxa de Alô (% Atendimento)"
+          value={`${stats.pickupRate}%`}
+          description={`${stats.answered.toLocaleString('pt-BR')} chamadas atendidas`}
+          icon={PhoneCall}
+          semanticColor="success"
+          priority={1}
+          loading={loading}
+        />
+        <MetricCard
+          title="Conversão (Formalizados)"
+          value={`${stats.conversionRate}%`}
+          description={`${stats.formalized.toLocaleString('pt-BR')} acordos fechados`}
+          icon={Award}
+          semanticColor="primary"
+          priority={1}
+          loading={loading}
+        />
+        <MetricCard
+          title="Chamadas Ativas"
+          value={stats.active}
+          description="em linha simultaneamente"
+          icon={Activity}
+          semanticColor="info"
+          priority={1}
+          pulse={stats.active > 0}
+          loading={loading}
+        />
+        <MetricCard
+          title="Finalizados (Fila)"
+          value={stats.completed}
+          description="processados na fila"
+          icon={CheckCircle2}
+          semanticColor="success"
+          priority={1}
+          loading={loading}
+        />
+
+        {/* Prioridade 2 */}
+        <MetricCard
+          title="Duração Média (AHT)"
+          value={stats.avgDurationFormatted}
+          description="tempo médio de conversa"
+          icon={Clock}
+          semanticColor="neutral"
+          priority={2}
+          loading={loading}
+        />
+        <MetricCard
+          title="Retornos Agendados"
+          value={stats.scheduled}
+          description="pedidos de rechamada"
+          icon={Calendar}
+          semanticColor="warning"
+          priority={2}
+          loading={loading}
+        />
+        <MetricCard
+          title="Não Atendidos / Erros"
+          value={stats.failed}
+          description="falhas ou indisponíveis"
+          icon={XCircle}
+          semanticColor="danger"
+          priority={2}
+          loading={loading}
+        />
+        <MetricCard
+          title="Total de Leads (CPFs)"
+          value={stats.leads}
+          description={`${stats.calls.toLocaleString('pt-BR')} telefones cadastrados`}
+          icon={FileText}
+          semanticColor="neutral"
+          priority={2}
+          loading={loading}
+        />
       </div>
 
       {/* Seção de Gráficos Analíticos */}
@@ -1209,8 +1186,17 @@ function Campaigns() {
 
                 {!filteredCalls.length && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-slate-500">
-                      Nenhum contato encontrado para o filtro selecionado.
+                    <td colSpan={7} className="p-4">
+                      <EmptyState
+                        title="Nenhum contato encontrado"
+                        description="Não existem contatos ou chamadas cadastradas correspondentes ao filtro selecionado nesta campanha."
+                        actionLabel="Limpar Filtros"
+                        onAction={() => {
+                          setDecisionFilter('all');
+                          setSearchInput('');
+                          setSearchQuery('');
+                        }}
+                      />
                     </td>
                   </tr>
                 )}
