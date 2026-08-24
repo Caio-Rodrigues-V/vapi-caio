@@ -917,8 +917,9 @@ function Campaigns() {
                           <button
                             type="button"
                             title="Iniciar campanha"
+                            aria-label={`Iniciar campanha ${campaign.name}`}
                             onClick={() => void changeStatus(campaign.id, 'running')}
-                            className="btn-click rounded-lg bg-[#10B981]/10 hover:bg-[#10B981]/20 p-2 text-[#10B981] border border-[#10B981]/20"
+                            className="btn-click rounded-lg bg-[#10B981]/10 hover:bg-[#10B981]/20 p-2 text-[#10B981] border border-[#10B981]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
                           >
                             <Play size={15} />
                           </button>
@@ -926,8 +927,9 @@ function Campaigns() {
                           <button
                             type="button"
                             title="Pausar campanha"
+                            aria-label={`Pausar campanha ${campaign.name}`}
                             onClick={() => void changeStatus(campaign.id, 'paused')}
-                            className="btn-click rounded-lg bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 p-2 text-[#F59E0B] border border-[#F59E0B]/20"
+                            className="btn-click rounded-lg bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 p-2 text-[#F59E0B] border border-[#F59E0B]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F59E0B]"
                           >
                             <Pause size={15} />
                           </button>
@@ -935,7 +937,8 @@ function Campaigns() {
 
                         <label
                           title="Importar contatos (CSV / Excel)"
-                          className="btn-click cursor-pointer rounded-lg bg-[#151C2B] border border-glass hover:bg-[#1A2334] p-2 text-slate-200"
+                          aria-label={`Importar contatos para ${campaign.name}`}
+                          className="btn-click cursor-pointer rounded-lg bg-[#151C2B] border border-glass hover:bg-[#1A2334] p-2 text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A0A]"
                         >
                           <UploadCloud size={15} />
                           <input
@@ -949,8 +952,9 @@ function Campaigns() {
                         <button
                           type="button"
                           title="Editar configurações"
+                          aria-label={`Editar configurações da campanha ${campaign.name}`}
                           onClick={() => setEditingCampaign(campaign)}
-                          className="btn-click rounded-lg bg-[#38BDF8]/10 hover:bg-[#38BDF8]/20 p-2 text-[#38BDF8] border border-[#38BDF8]/20"
+                          className="btn-click rounded-lg bg-[#38BDF8]/10 hover:bg-[#38BDF8]/20 p-2 text-[#38BDF8] border border-[#38BDF8]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]"
                         >
                           <SettingsIcon size={15} />
                         </button>
@@ -960,9 +964,10 @@ function Campaigns() {
                           title={deleteBlocked
                             ? 'Pause a campanha e aguarde as chamadas ativas'
                             : 'Excluir campanha'}
+                          aria-label={`Excluir campanha ${campaign.name}`}
                           disabled={deleteBlocked || deletingId === campaign.id}
                           onClick={() => void deleteCampaign(campaign)}
-                          className="btn-click rounded-lg bg-[#F43F5E]/10 hover:bg-[#F43F5E]/20 p-2 text-[#F43F5E] border border-[#F43F5E]/20 disabled:cursor-not-allowed disabled:opacity-30"
+                          className="btn-click rounded-lg bg-[#F43F5E]/10 hover:bg-[#F43F5E]/20 p-2 text-[#F43F5E] border border-[#F43F5E]/20 disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F43F5E]"
                         >
                           <Trash2 size={15} />
                         </button>
