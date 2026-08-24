@@ -53,8 +53,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         )}
       </div>
 
-      <div className="p-2.5 rounded-lg bg-[#1D2939] text-[#FF5A0A] border border-[#FF5A0A]/20 flex-shrink-0 ml-3">
-        <Icon size={18} />
+      <div className="p-2.5 rounded-lg bg-white text-[#FF5A0A] border border-slate-200 shadow-sm flex-shrink-0 ml-3">
+        <Icon size={18} strokeWidth={2.5} />
       </div>
     </div>
   );

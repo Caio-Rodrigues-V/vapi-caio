@@ -2066,7 +2066,7 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
                   onClick={onClose}
                   className={`flex items-center gap-3 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
                     isActive
-                      ? 'bg-[#FF5A0A]/10 text-[#FF5A0A] border-l-2 border-[#FF5A0A]'
+                      ? 'bg-white text-[#FF5A0A] font-extrabold shadow-sm border-l-4 border-[#FF5A0A]'
                       : 'hover:bg-[#1D2939] hover:text-slate-100 text-slate-400'
                   }`}
                 >

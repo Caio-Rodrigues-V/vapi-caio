@@ -71,7 +71,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 onClick={() => onSelectPeriod(p.id)}
                 className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
                   period === p.id
-                    ? 'bg-[#FF5A0A] text-white font-semibold'
+                    ? 'bg-white text-[#FF5A0A] font-extrabold shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -94,7 +94,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 onClick={() => onSelectStatusFilter(s.id)}
                 className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
                   statusFilter === s.id
-                    ? 'bg-[#FF5A0A] text-white font-semibold'
+                    ? 'bg-white text-[#FF5A0A] font-extrabold shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
