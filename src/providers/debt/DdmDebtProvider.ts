@@ -179,7 +179,9 @@ export class DdmDebtProvider implements DebtProvider {
       if (!debtorId) continue;
 
       const system = String((debtor as Record<string, unknown>).sistema ?? '').trim().toLowerCase();
-      const client = system === 'cruzeirodosul' ? 'cruzeiro' : 'ddm';
+      const instRaw = String((debtor as Record<string, unknown>).instituicao ?? (debtor as Record<string, unknown>).cliente ?? '').trim().toLowerCase();
+      const isCruzeiro = system.includes('cruzeiro') || instRaw.includes('cruzeiro');
+      const client = isCruzeiro ? 'cruzeiro' : 'ddm';
 
       try {
         const calcToken = client === 'cruzeiro' ? (process.env.DDM_TOKEN_CRUZEIRO || this.token) : this.token;
@@ -238,15 +240,19 @@ export class DdmDebtProvider implements DebtProvider {
 
         lastResult = result;
 
-        // Se encontrou dívidas ativas para este devedor
+        // Se encontrou dívidas ativas para este devedor (UVA ou Cruzeiro do Sul)
         if (result.hasDebt) {
           const instUpper = (result.institution || '').toUpperCase();
-          const isTargetUva = instUpper.includes('VEIGA') || instUpper.includes('ALMEIDA') || instUpper.includes('UVA');
-          if (isTargetUva) {
-            // Se for específico da UVA, retorna imediatamente!
+          const isTargetInst = instUpper.includes('VEIGA') ||
+            instUpper.includes('ALMEIDA') ||
+            instUpper.includes('UVA') ||
+            instUpper.includes('CRUZEIRO');
+
+          if (isTargetInst) {
+            // Se for uma das instituições alvo (UVA ou Cruzeiro do Sul), retorna imediatamente!
             return result;
           } else {
-            // Se for outra instituição (ex: UNISUAM), salva como fallback e continua a busca por UVA
+            // Se for outra instituição, salva como fallback
             if (!fallbackResult) {
               fallbackResult = result;
             }

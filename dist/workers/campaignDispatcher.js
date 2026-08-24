@@ -35,6 +35,7 @@ async function runCampaignDispatcher() {
     });
     const assistantResolver = new AssistantResolver_1.AssistantResolver({
         uvaAssistantId: requiredEnv('VAPI_ASSISTANT_ID_UVA'),
+        cruzeiroAssistantId: process.env.VAPI_ASSISTANT_ID_CRUZEIRO,
     });
     const retryPolicy = new RetryPolicy_1.RetryPolicy({
         baseDelayMs: envInt('WORKER_RETRY_BASE_MS', 60_000),
