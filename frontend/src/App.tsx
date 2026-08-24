@@ -1009,6 +1009,36 @@ function Campaigns() {
               </p>
             </div>
 
+            {/* Resumo de Métricas do Disparo (Item 05 da Planilha) */}
+            {selectedCampaign && (
+              <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
+                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
+                  <span className="text-[11px] text-slate-400 font-medium">Base / Importados</span>
+                  <p className="text-base font-bold text-white mt-0.5">{Number(selectedCampaign.total_calls || 0).toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
+                  <span className="text-[11px] text-slate-400 font-medium">Discados</span>
+                  <p className="text-base font-bold text-primary mt-0.5">{Number(selectedCampaign.completed_calls || 0).toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
+                  <span className="text-[11px] text-slate-400 font-medium">Atendidos</span>
+                  <p className="text-base font-bold text-emerald-400 mt-0.5">{Number(selectedCampaign.answered_calls || 0).toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
+                  <span className="text-[11px] text-slate-400 font-medium">Formalizados</span>
+                  <p className="text-base font-bold text-emerald-300 mt-0.5">{Number(selectedCampaign.formalized_calls || 0).toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
+                  <span className="text-[11px] text-slate-400 font-medium">Inválidos / Ignorados</span>
+                  <p className="text-base font-bold text-amber-400 mt-0.5">{Number(selectedCampaign.skipped_calls || 0).toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="rounded-xl bg-slate-950/40 p-3 border border-glass">
+                  <span className="text-[11px] text-slate-400 font-medium">Falhas</span>
+                  <p className="text-base font-bold text-rose-400 mt-0.5">{Number(selectedCampaign.failed_calls || 0).toLocaleString('pt-BR')}</p>
+                </div>
+              </div>
+            )}
+
             {/* Filtros de Decisão do Acordo */}
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-2 mr-3 bg-slate-950/20 px-2 py-1 rounded-lg border border-glass">
