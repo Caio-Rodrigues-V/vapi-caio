@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  HelpCircle,
   Settings as SettingsIcon,
   ChevronRight,
   Filter,
@@ -751,16 +750,16 @@ function Campaigns() {
         />
       </div>
 
-      {/* Seção de Gráficos Analíticos */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* Seção de Gráficos Analíticos (Etapa 3) */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Gráfico 1: Status de Fila Geral ou Decisões da Campanha Selecionada */}
-        <div className="rounded-2xl bg-glass border-glass p-6 flex flex-col justify-between min-h-[350px]">
+        <div className="card-surface p-5 border border-glass flex flex-col justify-between min-h-[350px]">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Activity size={18} className="text-primary" />
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Activity size={18} className="text-[#FF5A0A]" />
               {selectedId ? `Resultados da Campanha #${selectedId}` : 'Distribuição de Status de Contatos Geral'}
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#94A3B8]">
               {selectedId ? 'Proporção de acordos e agendamentos fechados nesta campanha' : 'Visualização geral dos contatos do banco'}
             </p>
           </div>
@@ -783,8 +782,8 @@ function Campaigns() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0F19', borderColor: '#334155', borderRadius: '8px' }}
-                    itemStyle={{ color: '#fff' }}
+                    contentStyle={{ backgroundColor: '#101521', borderColor: 'rgba(148, 163, 184, 0.14)', borderRadius: '10px' }}
+                    itemStyle={{ color: '#F8FAFC' }}
                   />
                   <Legend verticalAlign="bottom" height={36} iconType="circle" />
                 </PieChart>
@@ -804,15 +803,17 @@ function Campaigns() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0F19', borderColor: '#334155', borderRadius: '8px' }}
-                    itemStyle={{ color: '#fff' }}
+                    contentStyle={{ backgroundColor: '#101521', borderColor: 'rgba(148, 163, 184, 0.14)', borderRadius: '10px' }}
+                    itemStyle={{ color: '#F8FAFC' }}
                   />
                   <Legend verticalAlign="bottom" height={36} iconType="circle" />
                 </PieChart>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-slate-500 text-sm gap-2">
-                  <HelpCircle size={32} />
-                  <span>Sem dados suficientes para gerar gráfico de resultados.</span>
+                <div className="flex items-center justify-center h-full">
+                  <EmptyState
+                    title="Sem dados suficientes"
+                    description="Processea campanha para visualizar gráficos analíticos de resultados."
+                  />
                 </div>
               )}
             </ResponsiveContainer>
@@ -820,54 +821,68 @@ function Campaigns() {
         </div>
 
         {/* Gráfico 2: Desempenho Comparativo de Campanhas */}
-        <div className="rounded-2xl bg-glass border-glass p-6 flex flex-col justify-between min-h-[350px]">
+        <div className="card-surface p-5 border border-glass flex flex-col justify-between min-h-[350px]">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <BarChart3 size={18} className="text-indigo-400" />
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <BarChart3 size={18} className="text-[#38BDF8]" />
               Desempenho de Campanhas Recentes
             </h3>
-            <p className="text-xs text-slate-400">Contatos processados (Concluídos) em relação ao total importado</p>
+            <p className="text-xs text-[#94A3B8]">Contatos processados (Concluídos) em relação ao total importado</p>
           </div>
 
           <div className="h-60 mt-4">
             {chartCampaignPerformance.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartCampaignPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
                   <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
                   <YAxis stroke="#94a3b8" fontSize={11} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0F19', borderColor: '#334155', borderRadius: '8px' }}
-                    itemStyle={{ color: '#fff' }}
+                    contentStyle={{ backgroundColor: '#101521', borderColor: 'rgba(148, 163, 184, 0.14)', borderRadius: '10px' }}
+                    itemStyle={{ color: '#F8FAFC' }}
                   />
                   <Legend />
-                  <Bar dataKey="Concluídas" fill="#22C55E" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Total" fill="rgba(255,255,255,0.15)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Concluídas" fill="#10B981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Total" fill="rgba(148, 163, 184, 0.2)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500 text-sm gap-2">
-                <HelpCircle size={32} />
-                <span>Crie e processe campanhas para visualizar dados de desempenho.</span>
+              <div className="flex items-center justify-center h-full">
+                <EmptyState
+                  title="Sem campanhas ativas"
+                  description="Crie uma nova campanha para visualizar o histórico comparativo."
+                  actionLabel="Nova Campanha"
+                  onAction={() => setShowCreate(true)}
+                />
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Tabela de Campanhas Ativas */}
-      <div className="overflow-hidden rounded-2xl bg-glass border-glass shadow-2xl">
-        <div className="border-b border-glass bg-slate-900/40 px-6 py-4">
-          <h3 className="text-lg font-bold text-white">Lista de Campanhas</h3>
-          <p className="text-xs text-slate-400">Gerenciamento de status, importação e ações das filas</p>
+      {/* Tabela de Campanhas Ativas (Etapa 3) */}
+      <div className="card-surface overflow-hidden border border-glass shadow-lg">
+        <div className="border-b border-glass bg-[#0A0E1A] px-6 py-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-white">Lista de Campanhas</h3>
+            <p className="text-xs text-[#94A3B8]">Gerenciamento de status, importação e ações de discagem</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="btn-click inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FF5A0A] hover:bg-[#E04B00] text-white text-xs font-bold rounded-xl"
+          >
+            <Plus size={14} />
+            Nova Campanha
+          </button>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-slate-900/60 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-glass">
+            <thead className="bg-[#0A0E1A] text-xs font-semibold uppercase tracking-wider text-[#94A3B8] border-b border-glass">
               <tr>
                 {['Campanha', 'Status', 'Fila/Pendentes', 'Ativas', 'Atendidas', 'Concluídas', 'Falhas', 'Ações'].map((header) => (
-                  <th key={header} className="px-6 py-4">{header}</th>
+                  <th key={header} className="px-6 py-3.5">{header}</th>
                 ))}
               </tr>
             </thead>
@@ -880,28 +895,28 @@ function Campaigns() {
                 return (
                   <tr
                     key={campaign.id}
-                    className={`hover:bg-slate-900/20 transition-all ${isSelected ? 'bg-primary/5 hover:bg-primary/10' : ''}`}
+                    className={`hover:bg-[#151C2B]/50 transition-all ${isSelected ? 'bg-[#FF5A0A]/5 hover:bg-[#FF5A0A]/10' : ''}`}
                   >
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <button
                           onClick={() => void loadCalls(campaign.id)}
-                          className="flex items-center gap-1 font-bold text-white hover:text-primary transition-all text-left"
+                          className="flex items-center gap-1 font-bold text-white hover:text-[#FF5A0A] transition-all text-left"
                         >
                           {campaign.name}
-                          <ChevronRight size={14} className={`text-slate-500 transition-transform ${isSelected ? 'rotate-90 text-primary' : ''}`} />
+                          <ChevronRight size={14} className={`text-slate-500 transition-transform ${isSelected ? 'rotate-90 text-[#FF5A0A]' : ''}`} />
                         </button>
-                        <p className="text-[10px] text-slate-400 mt-0.5 ml-0.5">
+                        <p className="text-[11px] text-[#94A3B8] mt-0.5">
                           {Number(campaign.total_leads || 0).toLocaleString('pt-BR')} CPFs • {Number(campaign.total_calls || 0).toLocaleString('pt-BR')} números
                         </p>
                       </div>
                     </td>
                     <td className="px-6 py-4"><StatusBadge status={campaign.status} /></td>
-                    <td className="px-6 py-4 font-medium text-indigo-300">{Number(campaign.pending_calls || 0)}</td>
-                    <td className="px-6 py-4 font-medium text-emerald-400">{Number(campaign.active_calls || 0)}</td>
-                    <td className="px-6 py-4 font-semibold text-emerald-300">{Number(campaign.answered_calls || 0)}</td>
-                    <td className="px-6 py-4 font-medium text-primary">{Number(campaign.completed_calls || 0)}</td>
-                    <td className="px-6 py-4 font-medium text-rose-400">{Number(campaign.failed_calls || 0)}</td>
+                    <td className="px-6 py-4 font-medium text-[#38BDF8]">{Number(campaign.pending_calls || 0)}</td>
+                    <td className="px-6 py-4 font-medium text-[#10B981]">{Number(campaign.active_calls || 0)}</td>
+                    <td className="px-6 py-4 font-semibold text-[#10B981]">{Number(campaign.answered_calls || 0)}</td>
+                    <td className="px-6 py-4 font-medium text-[#FF5A0A]">{Number(campaign.completed_calls || 0)}</td>
+                    <td className="px-6 py-4 font-medium text-[#F43F5E]">{Number(campaign.failed_calls || 0)}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         {campaign.status !== 'running' ? (
@@ -909,7 +924,7 @@ function Campaigns() {
                             type="button"
                             title="Iniciar campanha"
                             onClick={() => void changeStatus(campaign.id, 'running')}
-                            className="btn-click rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 p-2 text-emerald-400 border border-emerald-500/20"
+                            className="btn-click rounded-lg bg-[#10B981]/10 hover:bg-[#10B981]/20 p-2 text-[#10B981] border border-[#10B981]/20"
                           >
                             <Play size={15} />
                           </button>
@@ -918,7 +933,7 @@ function Campaigns() {
                             type="button"
                             title="Pausar campanha"
                             onClick={() => void changeStatus(campaign.id, 'paused')}
-                            className="btn-click rounded-lg bg-amber-500/10 hover:bg-amber-500/20 p-2 text-amber-400 border border-amber-500/20"
+                            className="btn-click rounded-lg bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 p-2 text-[#F59E0B] border border-[#F59E0B]/20"
                           >
                             <Pause size={15} />
                           </button>
@@ -926,7 +941,7 @@ function Campaigns() {
 
                         <label
                           title="Importar contatos (CSV / Excel)"
-                          className="btn-click cursor-pointer rounded-lg bg-slate-800 border border-glass hover:bg-slate-700 p-2 text-slate-200"
+                          className="btn-click cursor-pointer rounded-lg bg-[#151C2B] border border-glass hover:bg-[#1A2334] p-2 text-slate-200"
                         >
                           <UploadCloud size={15} />
                           <input
@@ -941,7 +956,7 @@ function Campaigns() {
                           type="button"
                           title="Editar configurações"
                           onClick={() => setEditingCampaign(campaign)}
-                          className="btn-click rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 p-2 text-indigo-400 border border-indigo-500/20"
+                          className="btn-click rounded-lg bg-[#38BDF8]/10 hover:bg-[#38BDF8]/20 p-2 text-[#38BDF8] border border-[#38BDF8]/20"
                         >
                           <SettingsIcon size={15} />
                         </button>
@@ -953,7 +968,7 @@ function Campaigns() {
                             : 'Excluir campanha'}
                           disabled={deleteBlocked || deletingId === campaign.id}
                           onClick={() => void deleteCampaign(campaign)}
-                          className="btn-click rounded-lg bg-rose-500/10 hover:bg-rose-500/20 p-2 text-rose-400 border border-rose-500/20 disabled:cursor-not-allowed disabled:opacity-30"
+                          className="btn-click rounded-lg bg-[#F43F5E]/10 hover:bg-[#F43F5E]/20 p-2 text-[#F43F5E] border border-[#F43F5E]/20 disabled:cursor-not-allowed disabled:opacity-30"
                         >
                           <Trash2 size={15} />
                         </button>
@@ -965,8 +980,13 @@ function Campaigns() {
 
               {!campaigns.length && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                    {loading ? 'Carregando registros...' : 'Nenhuma campanha cadastrada.'}
+                  <td colSpan={8} className="p-4">
+                    <EmptyState
+                      title="Nenhuma campanha cadastrada"
+                      description="Crie uma nova campanha de cobrança para iniciar o disparo automatizado."
+                      actionLabel="Nova Campanha"
+                      onAction={() => setShowCreate(true)}
+                    />
                   </td>
                 </tr>
               )}
