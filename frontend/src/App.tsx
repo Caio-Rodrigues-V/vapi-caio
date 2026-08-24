@@ -154,8 +154,8 @@ function StatusBadge({ status }: { status: string }) {
   
   if (normalized === 'running') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 border border-emerald-500/20">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#ECFDF3] px-2.5 py-1 text-[11px] font-bold text-[#15803D] border border-[#DCFCE7]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#15803D]"></span>
         Ativa
       </span>
     );
@@ -163,8 +163,8 @@ function StatusBadge({ status }: { status: string }) {
   
   if (normalized === 'paused') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-400 border border-amber-500/20">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-400"></span>
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FFF7ED] px-2.5 py-1 text-[11px] font-bold text-[#B45309] border border-[#FED7AA]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#B45309]"></span>
         Pausada
       </span>
     );
@@ -172,8 +172,8 @@ function StatusBadge({ status }: { status: string }) {
 
   if (normalized === 'completed') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold text-blue-400 border border-blue-500/20">
-        <span className="h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#F0F9FF] px-2.5 py-1 text-[11px] font-bold text-[#0369A1] border border-[#BAE6FD]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#0369A1]"></span>
         Concluída
       </span>
     );
@@ -181,8 +181,8 @@ function StatusBadge({ status }: { status: string }) {
 
   if (normalized === 'failed') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-400 border border-rose-500/20">
-        <span className="h-1.5 w-1.5 rounded-full bg-rose-400"></span>
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FEF2F2] px-2.5 py-1 text-[11px] font-bold text-[#B91C1C] border border-[#FCA5A5]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#B91C1C]"></span>
         Falhou
       </span>
     );
@@ -498,10 +498,10 @@ function Campaigns() {
   // Agregações de chamadas para gráficos
   const chartStatusData = useMemo(() => {
     return [
-      { name: 'Pendente', value: stats.pending, color: '#334155' },     // Slate 700
-      { name: 'Em Linha', value: stats.active, color: '#38BDF8' },      // Sky 400
-      { name: 'Concluído', value: stats.completed, color: '#10B981' },   // Emerald 500
-      { name: 'Falhado', value: stats.failed, color: '#EF4444' },       // Rose 500
+      { name: 'Pendente', value: stats.pending, color: '#8B92A0' },     // Gray
+      { name: 'Em Linha', value: stats.active, color: '#D9480F' },      // Orange DDM
+      { name: 'Concluído', value: stats.completed, color: '#15803D' },   // Green
+      { name: 'Falhado', value: stats.failed, color: '#B91C1C' },       // Red
     ].filter(item => item.value > 0);
   }, [stats]);
 
@@ -519,10 +519,10 @@ function Campaigns() {
     );
 
     return [
-      { name: 'Formalizado', value: decisions.formalize || 0, color: '#FF5A0A' }, // Orange DDM
-      { name: 'Agendado', value: decisions.schedule || 0, color: '#F59E0B' },     // Amber
-      { name: 'Sem Acordo', value: decisions.zero || 0, color: '#EF4444' },       // Rose
-      { name: 'Pendente/Outros', value: decisions.no_decision || 0, color: '#334155' }, // Slate 700
+      { name: 'Formalizado', value: decisions.formalize || 0, color: '#15803D' }, // Green
+      { name: 'Agendado', value: decisions.schedule || 0, color: '#B45309' },     // Amber/Yellow
+      { name: 'Sem Acordo', value: decisions.zero || 0, color: '#5F6570' },       // Gray
+      { name: 'Pendente/Outros', value: decisions.no_decision || 0, color: '#8B92A0' }, // Gray
     ].filter(item => item.value > 0);
   }, [selectedId, calls]);
 
@@ -579,10 +579,10 @@ function Campaigns() {
   // Funil de Conversão Operacional do Planejamento
   const funnelData = useMemo(() => {
     return [
-      { etapa: 'Base Importada', valor: stats.leads, fill: '#64748B' },
-      { etapa: 'Discados', valor: stats.calls, fill: '#38BDF8' },
-      { etapa: 'Atendidos (Alô)', valor: stats.answered, fill: '#10B981' },
-      { etapa: 'Formalizados', valor: stats.formalized, fill: '#FF5A0A' },
+      { etapa: 'Base Importada', valor: stats.leads, fill: '#8B92A0' },
+      { etapa: 'Discados', valor: stats.calls, fill: '#0369A1' },
+      { etapa: 'Atendidos (Alô)', valor: stats.answered, fill: '#15803D' },
+      { etapa: 'Formalizados', valor: stats.formalized, fill: '#D9480F' },
     ];
   }, [stats]);
 
@@ -1090,23 +1090,23 @@ function Campaigns() {
   return (
     <div className="space-y-5">
       {/* Header Compacto da Operação */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-[#111827] p-4 border border-[#1E293B]">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)]">
         <div className="space-y-1">
-          <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
+          <h2 className="text-xl font-extrabold text-[#18181B] flex items-center gap-2">
             Painel Geral — <span className="text-[#FF5A0A]">Grupo DDM</span>
           </h2>
-          <p className="text-slate-400 text-xs font-normal">Métricas analíticas consolidadas da operação e disparador Vapi</p>
+          <p className="text-[#5F6570] text-xs font-normal">Métricas analíticas consolidadas da operação e disparador Vapi</p>
 
           <div className="flex flex-wrap items-center gap-3 text-xs pt-1">
-            <div className="flex items-center gap-1.5 rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-emerald-400 font-medium">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+            <div className="flex items-center gap-1.5 rounded-full bg-[#ECFDF3] border border-[#DCFCE7] px-2.5 py-0.5 text-[#15803D] font-semibold">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#15803D]"></span>
               <span>Tempo Real:</span>
               <LiveClock />
             </div>
 
             {lastUpdatedAt && (
-              <p className="text-slate-400 flex items-center gap-1.5 font-medium text-xs">
-                <RefreshCw size={12} className="text-slate-500" />
+              <p className="text-[#5F6570] flex items-center gap-1.5 font-medium text-xs">
+                <RefreshCw size={12} className="text-[#8B92A0]" />
                 {getRelativeTime(lastUpdatedAt)}
               </p>
             )}
@@ -1118,7 +1118,7 @@ function Campaigns() {
             type="button"
             disabled={loading}
             onClick={() => void load()}
-            className="btn-click flex items-center gap-1.5 rounded-lg border border-[#1E293B] bg-[#0B0F19] px-3 py-2 text-xs font-medium text-slate-200 hover:bg-[#1E293B] disabled:opacity-50"
+            className="btn-click flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-semibold text-[#5F6570] hover:bg-[#FAFAFA] hover:text-[#18181B] disabled:opacity-50 shadow-xs"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             {loading ? 'Sincronizando...' : 'Sincronizar'}
@@ -1127,7 +1127,7 @@ function Campaigns() {
           <a
             href="/modelo_importacao.csv"
             download="modelo_importacao.csv"
-            className="btn-click flex items-center gap-1.5 rounded-lg border border-[#1E293B] bg-[#0B0F19] px-3 py-2 text-xs font-medium text-slate-300 hover:bg-[#1E293B] hover:text-white"
+            className="btn-click flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-semibold text-[#5F6570] hover:bg-[#FAFAFA] hover:text-[#18181B] shadow-xs"
           >
             <Download size={13} />
             Planilha Modelo
@@ -1136,7 +1136,7 @@ function Campaigns() {
           <button
             type="button"
             onClick={() => navigate('/campanhas')}
-            className="btn-click flex items-center gap-1.5 rounded-lg bg-[#FF5A0A] hover:bg-[#EA580C] px-3.5 py-2 text-xs font-semibold text-white transition-colors"
+            className="btn-click flex items-center gap-1.5 rounded-lg bg-[#D9480F] hover:bg-[#B9380B] px-3.5 py-2 text-xs font-semibold text-white transition-colors shadow-xs"
           >
             <Play size={14} />
             Acessar Disparador
@@ -1180,14 +1180,15 @@ function Campaigns() {
       />
 
       {/* Cartões de Indicadores de Performance (KPIs Principais & Secundários) */}
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Prioridade 1 */}
         <MetricCard
           title="Taxa de Alô (% Atendimento)"
           value={`${stats.pickupRate}%`}
           description={`${stats.answered.toLocaleString('pt-BR')} chamadas atendidas`}
+          trend={`${stats.answered.toLocaleString('pt-BR')} atendidas hoje`}
+          trendType="positive"
           icon={PhoneCall}
-          semanticColor="success"
           priority={1}
           loading={loading}
         />
@@ -1195,8 +1196,9 @@ function Campaigns() {
           title="Conversão (Formalizados)"
           value={`${stats.conversionRate}%`}
           description={`${stats.formalized.toLocaleString('pt-BR')} acordos fechados`}
+          trend={`${stats.formalized.toLocaleString('pt-BR')} acordos fechados`}
+          trendType="positive"
           icon={Award}
-          semanticColor="primary"
           priority={1}
           loading={loading}
         />
@@ -1204,9 +1206,9 @@ function Campaigns() {
           title="Chamadas Ativas"
           value={stats.active}
           description="em linha simultaneamente"
+          trend="Operação em tempo real"
+          trendType="neutral"
           icon={Activity}
-          semanticColor="info"
-          priority={1}
           pulse={stats.active > 0}
           loading={loading}
         />
@@ -1214,8 +1216,9 @@ function Campaigns() {
           title="Finalizados (Fila)"
           value={stats.completed}
           description="processados na fila"
+          trend={`${stats.completed.toLocaleString('pt-BR')} processados`}
+          trendType="positive"
           icon={CheckCircle2}
-          semanticColor="success"
           priority={1}
           loading={loading}
         />
@@ -1225,8 +1228,9 @@ function Campaigns() {
           title="Duração Média (AHT)"
           value={stats.avgDurationFormatted}
           description="tempo médio de conversa"
+          trend="02m 14s média ideal"
+          trendType="neutral"
           icon={Clock}
-          semanticColor="neutral"
           priority={2}
           loading={loading}
         />
@@ -1234,8 +1238,9 @@ function Campaigns() {
           title="Retornos Agendados"
           value={stats.scheduled}
           description="pedidos de rechamada"
+          trend={`${stats.scheduled} agendamentos`}
+          trendType="neutral"
           icon={Calendar}
-          semanticColor="warning"
           priority={2}
           loading={loading}
         />
@@ -1243,8 +1248,9 @@ function Campaigns() {
           title="Não Atendidos / Erros"
           value={stats.failed}
           description="falhas ou indisponíveis"
+          trend={`${stats.failed} falhas registradas`}
+          trendType={stats.failed > 0 ? 'negative' : 'neutral'}
           icon={XCircle}
-          semanticColor="danger"
           priority={2}
           loading={loading}
         />
@@ -1252,8 +1258,9 @@ function Campaigns() {
           title="Total de Leads (CPFs)"
           value={stats.leads}
           description={`${stats.calls.toLocaleString('pt-BR')} telefones cadastrados`}
+          trend={`${stats.calls.toLocaleString('pt-BR')} fones na base`}
+          trendType="neutral"
           icon={FileText}
-          semanticColor="neutral"
           priority={2}
           loading={loading}
         />
@@ -1262,25 +1269,25 @@ function Campaigns() {
       {/* Seção do Painel do Planejamento & Operações (4 Cards em Grid 2x2) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Card 1: Funil de Conversão Operacional */}
-        <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between">
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] flex flex-col justify-between">
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
-              <Layers size={15} className="text-[#FF5A0A]" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
+              <Layers size={15} className="text-[#D9480F]" />
               Funil de Conversão do Disparo
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">Evolução do volume da base até a formalização do acordo</p>
+            <p className="text-[11px] text-[#5F6570] mt-0.5">Evolução do volume da base até a formalização do acordo</p>
           </div>
 
           <div className="h-44 mt-3 flex items-center justify-center">
             {stats.leads > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={funnelData} layout="vertical" margin={{ top: 5, right: 15, left: 20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1F242F" />
-                  <XAxis type="number" stroke="#64748B" fontSize={10} />
-                  <YAxis type="category" dataKey="etapa" stroke="#94A3B8" fontSize={10} width={100} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis type="number" stroke="#8B92A0" fontSize={10} />
+                  <YAxis type="category" dataKey="etapa" stroke="#5F6570" fontSize={10} width={100} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0C111D', borderColor: '#1F242F', borderRadius: '6px' }}
-                    itemStyle={{ color: '#F8FAFC' }}
+                    contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderRadius: '8px', color: '#18181B', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.06)' }}
+                    itemStyle={{ color: '#18181B' }}
                   />
                   <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
                     {funnelData.map((entry, index) => (
@@ -1300,29 +1307,29 @@ function Campaigns() {
         </div>
 
         {/* Card 2: Desempenho Comparativo por Campanha */}
-        <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between">
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] flex flex-col justify-between">
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
-              <BarChart3 size={15} className="text-sky-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
+              <BarChart3 size={15} className="text-[#0369A1]" />
               Desempenho Comparativo por Campanha
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">Contatos processados (Concluídos) em relação ao total importado por lote</p>
+            <p className="text-[11px] text-[#5F6570] mt-0.5">Contatos processados (Concluídos) em relação ao total importado por lote</p>
           </div>
 
           <div className="h-44 mt-3 flex items-center justify-center">
             {chartCampaignPerformance.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartCampaignPerformance} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1F242F" />
-                  <XAxis dataKey="name" stroke="#94A3B8" fontSize={10} />
-                  <YAxis stroke="#64748B" fontSize={10} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis dataKey="name" stroke="#5F6570" fontSize={10} />
+                  <YAxis stroke="#8B92A0" fontSize={10} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0C111D', borderColor: '#1F242F', borderRadius: '6px' }}
-                    itemStyle={{ color: '#F8FAFC' }}
+                    contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderRadius: '8px', color: '#18181B', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.06)' }}
+                    itemStyle={{ color: '#18181B' }}
                   />
                   <Legend wrapperStyle={{ fontSize: '11px' }} />
-                  <Bar dataKey="Concluídas" fill="#10B981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Total" fill="#334155" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Concluídas" fill="#15803D" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Total" fill="#E5E7EB" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -1338,13 +1345,13 @@ function Campaigns() {
         </div>
 
         {/* Card 3: Distribuição de Decisões de Atendimento */}
-        <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between">
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] flex flex-col justify-between">
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
-              <Activity size={15} className="text-emerald-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
+              <Activity size={15} className="text-[#15803D]" />
               Status de Resultados da Fila
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">Proporção de acordos, rechamadas e falhas no banco de contatos</p>
+            <p className="text-[11px] text-[#5F6570] mt-0.5">Proporção de acordos, rechamadas e falhas no banco de contatos</p>
           </div>
 
           <div className="h-44 mt-3 flex items-center justify-center">
@@ -1365,8 +1372,8 @@ function Campaigns() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0C111D', borderColor: '#1F242F', borderRadius: '6px' }}
-                    itemStyle={{ color: '#F8FAFC' }}
+                    contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderRadius: '8px', color: '#18181B', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.06)' }}
+                    itemStyle={{ color: '#18181B' }}
                   />
                   <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
                 </PieChart>
@@ -1382,51 +1389,51 @@ function Campaigns() {
         </div>
 
         {/* Card 4: Indicadores de Infraestrutura & Capacidade do Planejamento */}
-        <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between space-y-3">
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] flex flex-col justify-between space-y-3">
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
-              <ShieldCheck size={15} className="text-sky-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
+              <ShieldCheck size={15} className="text-[#0369A1]" />
               Saúde da Operação & Pacing
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">Métricas operacionais de chamadas e controle do dialer</p>
+            <p className="text-[11px] text-[#5F6570] mt-0.5">Métricas operacionais de chamadas e controle do dialer</p>
           </div>
 
           <div className="space-y-2 flex-1 justify-center flex flex-col">
-            <div className="rounded-lg bg-[#0C111D] p-2.5 border border-[#1F242F] flex items-center justify-between">
+            <div className="rounded-lg bg-[#FAFAFA] p-2.5 border border-[#E5E7EB] flex items-center justify-between">
               <div className="space-y-0.5">
-                <span className="text-xs text-slate-300 font-medium flex items-center gap-1.5">
-                  <Zap size={13} className="text-[#FF5A0A]" />
+                <span className="text-xs text-[#18181B] font-semibold flex items-center gap-1.5">
+                  <Zap size={13} className="text-[#D9480F]" />
                   Pacing Delay
                 </span>
-                <p className="text-[11px] text-slate-400">Intervalo de segurança entre disparos</p>
+                <p className="text-[11px] text-[#5F6570]">Intervalo de segurança entre disparos</p>
               </div>
-              <span className="px-2 py-0.5 rounded bg-[#FF5A0A]/10 text-[#FF5A0A] text-xs font-semibold border border-[#FF5A0A]/20">
+              <span className="px-2 py-0.5 rounded-md bg-[#FFF1E8] text-[#B9380B] text-xs font-bold border border-[#FFD1B8]">
                 500 ms
               </span>
             </div>
 
-            <div className="rounded-lg bg-[#0C111D] p-2.5 border border-[#1F242F] flex items-center justify-between">
+            <div className="rounded-lg bg-[#FAFAFA] p-2.5 border border-[#E5E7EB] flex items-center justify-between">
               <div className="space-y-0.5">
-                <span className="text-xs text-slate-300 font-medium flex items-center gap-1.5">
-                  <RefreshCw size={13} className="text-emerald-400" />
+                <span className="text-xs text-[#18181B] font-semibold flex items-center gap-1.5">
+                  <RefreshCw size={13} className="text-[#15803D]" />
                   Auto-Retry SIP 408
                 </span>
-                <p className="text-[11px] text-slate-400">Reagendamento automático de timeout</p>
+                <p className="text-[11px] text-[#5F6570]">Reagendamento automático de timeout</p>
               </div>
-              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
+              <span className="px-2 py-0.5 rounded-md bg-[#ECFDF3] text-[#15803D] text-xs font-bold border border-[#DCFCE7]">
                 15 mins
               </span>
             </div>
 
-            <div className="rounded-lg bg-[#0C111D] p-2.5 border border-[#1F242F] flex items-center justify-between">
+            <div className="rounded-lg bg-[#FAFAFA] p-2.5 border border-[#E5E7EB] flex items-center justify-between">
               <div className="space-y-0.5">
-                <span className="text-xs text-slate-300 font-medium flex items-center gap-1.5">
-                  <MessageSquare size={13} className="text-sky-400" />
+                <span className="text-xs text-[#18181B] font-semibold flex items-center gap-1.5">
+                  <MessageSquare size={13} className="text-[#0369A1]" />
                   Fallback de Notificações
                 </span>
-                <p className="text-[11px] text-slate-400">Smart RCS / N8N Webhook</p>
+                <p className="text-[11px] text-[#5F6570]">Smart RCS / N8N Webhook</p>
               </div>
-              <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 text-xs font-semibold border border-sky-500/20">
+              <span className="px-2 py-0.5 rounded-md bg-[#F0F9FF] text-[#0369A1] text-xs font-bold border border-[#BAE6FD]">
                 Ativo
               </span>
             </div>
@@ -1435,16 +1442,16 @@ function Campaigns() {
       </div>
 
       {/* Resumo Executivo de Campanhas (Métricas Apenas) */}
-      <div className="rounded-lg bg-[#101828] overflow-hidden border border-[#1F242F]">
-        <div className="border-b border-[#1F242F] bg-[#0C111D] px-5 py-3.5 flex items-center justify-between">
+      <div className="rounded-xl bg-white overflow-hidden border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)]">
+        <div className="border-b border-[#E5E7EB] bg-[#FAFAFA] px-5 py-3.5 flex items-center justify-between">
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-white">Relatório de Campanhas</h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">Resumo de volume e desempenho dos lotes de disparo</p>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B]">Relatório de Campanhas</h3>
+            <p className="text-[11px] text-[#5F6570] mt-0.5">Resumo de volume e desempenho dos lotes de disparo</p>
           </div>
           <button
             type="button"
             onClick={() => navigate('/campanhas')}
-            className="btn-click inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FF5A0A] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-lg transition-colors"
+            className="btn-click inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#D9480F] hover:bg-[#B9380B] text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
           >
             <Play size={13} />
             Ir para Campanhas & Disparador
@@ -1453,35 +1460,35 @@ function Campaigns() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#0C111D] text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-[#1F242F]">
+            <thead className="bg-[#FAFAFA] text-[11px] font-bold uppercase tracking-wider text-[#5F6570] border-b border-[#E5E7EB]">
               <tr>
                 {['Campanha', 'Status', 'CPFs', 'Fila/Pendentes', 'Ativas', 'Atendidas', 'Concluídas', 'Falhas', 'Ação'].map((header) => (
                   <th key={header} className="px-5 py-2.5">{header}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1F242F] text-xs text-slate-200">
+            <tbody className="divide-y divide-[#E5E7EB] text-xs text-[#18181B]">
               {campaigns.map((campaign) => (
                 <tr
                   key={campaign.id}
-                  className="hover:bg-[#1F2937] transition-colors"
+                  className="hover:bg-[#FFF7F2] transition-colors"
                 >
-                  <td className="px-5 py-3.5 font-semibold text-slate-100">
+                  <td className="px-5 py-3.5 font-bold text-[#18181B]">
                     {campaign.name}
                   </td>
                   <td className="px-5 py-3.5"><StatusBadge status={campaign.status} /></td>
-                  <td className="px-5 py-3.5 text-slate-300 font-medium">{Number(campaign.total_leads || 0).toLocaleString('pt-BR')}</td>
-                  <td className="px-5 py-3.5 font-medium text-sky-400">{Number(campaign.pending_calls || 0)}</td>
-                  <td className="px-5 py-3.5 font-medium text-emerald-400">{Number(campaign.active_calls || 0)}</td>
-                  <td className="px-5 py-3.5 font-semibold text-emerald-400">{Number(campaign.answered_calls || 0)}</td>
-                  <td className="px-5 py-3.5 font-medium text-[#FF5A0A]">{Number(campaign.completed_calls || 0)}</td>
-                  <td className="px-5 py-3.5 font-medium text-rose-400">{Number(campaign.failed_calls || 0)}</td>
+                  <td className="px-5 py-3.5 text-[#5F6570] font-medium">{Number(campaign.total_leads || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-5 py-3.5 font-medium text-[#0369A1]">{Number(campaign.pending_calls || 0)}</td>
+                  <td className="px-5 py-3.5 font-medium text-[#15803D]">{Number(campaign.active_calls || 0)}</td>
+                  <td className="px-5 py-3.5 font-semibold text-[#15803D]">{Number(campaign.answered_calls || 0)}</td>
+                  <td className="px-5 py-3.5 font-medium text-[#D9480F]">{Number(campaign.completed_calls || 0)}</td>
+                  <td className="px-5 py-3.5 font-medium text-[#B91C1C]">{Number(campaign.failed_calls || 0)}</td>
                   <td className="px-5 py-3.5">
                     <button
                       type="button"
                       title="Ver Fila de Contatos no Disparador"
                       onClick={() => navigate(`/campanhas?id=${campaign.id}`)}
-                      className="btn-click rounded-lg bg-[#FF5A0A]/10 hover:bg-[#FF5A0A]/20 px-2.5 py-1 text-[#FF5A0A] border border-[#FF5A0A]/20 text-xs font-semibold flex items-center gap-1 transition-colors"
+                      className="btn-click rounded-lg bg-[#FFF1E8] hover:bg-[#FFD1B8] px-2.5 py-1 text-[#B9380B] border border-[#FFD1B8] text-xs font-semibold flex items-center gap-1 transition-colors"
                     >
                       <Eye size={13} />
                       Ver Fila
@@ -2031,14 +2038,14 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
       )}
 
       <aside
-        className={`fixed left-0 top-0 h-screen w-60 border-r border-[#1F242F] bg-[#0C111D] text-slate-300 flex flex-col justify-between p-5 z-50 transition-transform duration-200 ${
+        className={`fixed left-0 top-0 h-screen w-60 border-r border-[#E5E7EB] bg-white text-[#18181B] flex flex-col justify-between p-5 z-50 shadow-[1px_0_4px_0_rgba(0,0,0,0.02)] transition-transform duration-200 ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         <div className="space-y-6">
           <div className="flex items-center justify-between py-1">
             <div className="flex items-center gap-3">
-              <div className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-700 flex items-center justify-center">
+              <div className="bg-white px-2.5 py-1.5 rounded-lg border border-[#E5E7EB] shadow-xs flex items-center justify-center">
                 <img
                   src={`${basePath}/logo_ddm.jpg`}
                   alt="Grupo DDM Logo"
@@ -2050,7 +2057,7 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
               type="button"
               onClick={onClose}
               aria-label="Fechar menu"
-              className="lg:hidden text-slate-400 hover:text-white p-1"
+              className="lg:hidden text-[#5F6570] hover:text-[#18181B] p-1"
             >
               <X size={18} />
             </button>
@@ -2064,13 +2071,13 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
                   key={path}
                   to={path}
                   onClick={onClose}
-                  className={`flex items-center gap-3 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
+                  className={`flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs transition-colors ${
                     isActive
-                      ? 'bg-white text-[#FF5A0A] font-extrabold shadow-sm border-l-4 border-[#FF5A0A]'
-                      : 'hover:bg-[#1D2939] hover:text-slate-100 text-slate-400'
+                      ? 'bg-[#FFF1E8] text-[#B9380B] font-bold border-l-[3px] border-[#D9480F]'
+                      : 'text-[#5F6570] hover:bg-[#F8F9FB] hover:text-[#18181B] font-medium'
                   }`}
                 >
-                  <Icon size={16} />
+                  <Icon size={16} className={isActive ? 'text-[#D9480F]' : 'text-[#5F6570]'} />
                   {label}
                 </Link>
               );
@@ -2078,11 +2085,11 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
           </nav>
         </div>
 
-        <div className="rounded-lg border border-[#1F242F] bg-[#101828] p-3 space-y-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ambiente de Operação</p>
+        <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] p-3 space-y-1.5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#8B92A0]">Ambiente de Operação</p>
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-            <span className="text-xs font-semibold text-slate-200">v2.4 (Vapi + DDM Pay)</span>
+            <span className="h-2 w-2 rounded-full bg-[#15803D]"></span>
+            <span className="text-xs font-semibold text-[#18181B]">v2.4 (Vapi + DDM Pay)</span>
           </div>
         </div>
       </aside>
@@ -2094,18 +2101,18 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('dark');
   }, []);
 
   return (
     <BrowserRouter basename={basePath || '/'}>
-      <div className="min-h-screen bg-[#090D16] text-slate-100 flex relative overflow-hidden">
+      <div className="min-h-screen bg-[#F6F7F9] text-[#18181B] flex relative overflow-x-hidden">
         <ThreeBackground />
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
         <div className="flex-1 min-w-0 flex flex-col lg:ml-60 transition-all">
           {/* Header Mobile com Toggle */}
-          <header className="lg:hidden bg-[#0B0F19] border-b border-[#1E293B] px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+          <header className="lg:hidden bg-white border-b border-[#E5E7EB] px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-xs">
             <div className="flex items-center gap-2.5">
               <button
                 type="button"

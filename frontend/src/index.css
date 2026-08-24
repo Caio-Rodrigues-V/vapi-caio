@@ -1,74 +1,112 @@
 @import "tailwindcss";
 
+:root {
+  /* Laranja DDM */
+  --brand-logo: #ff5a0a;
+  --brand-primary: #d9480f;
+  --brand-hover: #b9380b;
+  --brand-soft: #fff1e8;
+  --brand-subtle: #fff7f2;
+  --brand-border: #ffd1b8;
+
+  /* Estrutura */
+  --page-background: #f6f7f9;
+  --surface: #ffffff;
+  --surface-subtle: #fafafa;
+  --surface-hover: #f8f9fb;
+
+  /* Bordas */
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+
+  /* Textos */
+  --text-primary: #18181b;
+  --text-secondary: #5f6570;
+  --text-muted: #8b92a0;
+
+  /* Estados Operacionais */
+  --success: #15803d;
+  --success-soft: #ecfdf3;
+  --warning: #b45309;
+  --warning-soft: #fff7ed;
+  --danger: #b91c1c;
+  --danger-soft: #fef2f2;
+  --info: #0369a1;
+  --info-soft: #f0f9ff;
+}
+
 @theme {
-  --color-primary: #FF5A0A;
-  --color-primary-hover: #EA580C;
-  --color-brand-bg: #0C111D;
-  --color-brand-sidebar: #0C111D;
-  --color-brand-surface: #101828;
-  --color-brand-elevated: #1D2939;
-  --color-brand-hover: #1F2937;
-  --color-brand-border: #1F242F;
-  --color-text-main: #FFFFFF;
-  --color-text-sub: #CBD5E1;
-  --color-text-muted: #94A3B8;
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
-  --color-info: #38BDF8;
+  --color-primary: #d9480f;
+  --color-primary-hover: #b9380b;
+  --color-brand-bg: #f6f7f9;
+  --color-brand-sidebar: #ffffff;
+  --color-brand-surface: #ffffff;
+  --color-brand-elevated: #ffffff;
+  --color-brand-hover: #f8f9fb;
+  --color-brand-border: #e5e7eb;
+  --color-text-main: #18181b;
+  --color-text-sub: #5f6570;
+  --color-text-muted: #8b92a0;
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-danger: #b91c1c;
+  --color-info: #0369a1;
 }
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #0C111D;
-  color: #FFFFFF;
+  background-color: #f6f7f9;
+  color: #18181b;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* B2B Card & Surface Tokens (Untitled UI 04 - Sober, 8px-10px radius) */
+/* DDM Light Operations - Card & Surface Tokens */
 .card-surface {
-  background-color: #101828;
-  border: 1px solid #1F242F;
-  border-radius: 8px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
 }
 
 .card-elevated {
-  background-color: #1D2939;
-  border: 1px solid #344054;
-  border-radius: 8px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
 }
 
 .card-hover:hover {
-  background-color: #1F2937;
-  border-color: #334155;
+  background-color: #f8f9fb;
+  border-color: #d1d5db;
 }
 
 .btn-primary {
-  background-color: #FF5A0A;
-  color: #FFFFFF;
+  background-color: #d9480f;
+  color: #ffffff;
   border-radius: 8px;
   font-weight: 600;
   transition: background-color 0.15s ease;
 }
 
 .btn-primary:hover {
-  background-color: #EA580C;
+  background-color: #b9380b;
 }
 
 .input-field {
-  background-color: #0B0F19;
-  border: 1px solid #1E293B;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  color: #F8FAFC;
+  color: #18181b;
   font-size: 14px;
 }
 
 .input-field:focus {
-  border-color: #FF5A0A;
+  border-color: #d9480f;
   outline: none;
+  box-shadow: 0 0 0 3px rgba(217, 72, 15, 0.14);
 }
 
 /* Skeleton Loading Animation */
@@ -78,7 +116,7 @@ body {
 }
 
 .skeleton {
-  background-color: #1E293B;
+  background-color: #e5e7eb;
   border-radius: 8px;
   animation: skeleton-pulse 1.8s ease-in-out infinite;
 }
@@ -90,21 +128,21 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #090D16;
+  background: #f6f7f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
+  background: #d1d5db;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #9ca3af;
 }
 
 /* Micro-interactions */
 .btn-click {
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
