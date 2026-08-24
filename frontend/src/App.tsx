@@ -1922,6 +1922,7 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
   const location = useLocation();
   const links = [
     ['/', 'Painel Geral', BarChart3],
+    ['/campanhas', 'Visão da Campanha', Layers],
     ['/configuracoes', 'Configurações', SettingsIcon],
   ] as const;
 
@@ -2027,6 +2028,7 @@ export default function App() {
           <main className="p-4 sm:p-6 lg:p-8 flex-1 min-w-0 max-w-[1600px] w-full mx-auto space-y-6 z-10 relative">
             <Routes>
               <Route path="/" element={<Campaigns />} />
+              <Route path="/campanhas" element={<Campaigns />} />
               <Route path="/configuracoes" element={<Settings />} />
             </Routes>
           </main>
