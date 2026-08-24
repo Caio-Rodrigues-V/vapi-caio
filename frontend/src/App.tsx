@@ -47,6 +47,7 @@ import { MetricCard } from './components/ui/MetricCard';
 import { FilterBar } from './components/ui/FilterBar';
 import { EmptyState } from './components/ui/EmptyState';
 import { ErrorState } from './components/ui/ErrorState';
+import { LiveClock } from './components/ui/LiveClock';
 import { gsap } from 'gsap';
 import './index.css';
 
@@ -551,13 +552,6 @@ function Campaigns() {
     }));
   }, [campaigns]);
 
-  const [now, setNow] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   useEffect(() => {
     gsap.fromTo(
       '.gsap-card',
@@ -566,9 +560,9 @@ function Campaigns() {
     );
   }, [selectedId, campaigns.length]);
 
-  const getRelativeTime = (lastDate: Date | null, currentDate: Date) => {
+  const getRelativeTime = (lastDate: Date | null) => {
     if (!lastDate) return 'Aguardando sincronismo...';
-    const diffSec = Math.max(0, Math.floor((currentDate.getTime() - lastDate.getTime()) / 1000));
+    const diffSec = Math.max(0, Math.floor((Date.now() - lastDate.getTime()) / 1000));
     if (diffSec < 5) return 'Sincronizado agora mesmo';
     if (diffSec < 60) return `Sincronizado há ${diffSec}s atrás`;
     const diffMin = Math.floor(diffSec / 60);
@@ -592,13 +586,13 @@ function Campaigns() {
             <div className="flex items-center gap-1.5 rounded-lg bg-[#10B981]/10 border border-[#10B981]/20 px-2.5 py-0.5 text-[#10B981] font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse"></span>
               <span>Tempo Real</span>
-              <span className="text-[#94A3B8] font-mono text-[11px] ml-1">[{now.toLocaleTimeString('pt-BR')}]</span>
+              <LiveClock />
             </div>
 
             {lastUpdatedAt && (
               <p className="text-[#94A3B8] flex items-center gap-1.5 font-medium text-xs">
                 <RefreshCw size={12} className="text-[#64748B]" />
-                {getRelativeTime(lastUpdatedAt, now)}
+                {getRelativeTime(lastUpdatedAt)}
               </p>
             )}
           </div>
