@@ -16,7 +16,6 @@ import {
   XCircle,
   AlertCircle,
   Settings as SettingsIcon,
-  ChevronRight,
   Filter,
   Download,
   X,
@@ -620,14 +619,33 @@ function Campaigns() {
             <p className="text-xs text-[#94A3B8]">Gestão de lotes de cobrança, disparador automático Vapi e fila de contatos</p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="btn-click inline-flex items-center gap-2 px-4 py-2.5 bg-[#FF5A0A] hover:bg-[#E04B00] text-white text-xs font-bold rounded-xl shadow-lg shadow-[#FF5A0A]/20 transition-all"
-          >
-            <Plus size={16} />
-            Nova Campanha
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            {campaigns.length > 0 && (
+              <div className="flex items-center gap-2 bg-[#050814] px-3 py-2 rounded-xl border border-glass">
+                <span className="text-xs text-[#94A3B8] font-semibold hidden sm:inline">Campanha:</span>
+                <select
+                  value={selectedId || ''}
+                  onChange={(e) => setSelectedId(Number(e.target.value))}
+                  className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer"
+                >
+                  {campaigns.map((c) => (
+                    <option key={c.id} value={c.id} className="bg-[#0A0E1A] text-white">
+                      #{c.id} - {c.name} ({Number(c.total_leads || 0).toLocaleString('pt-BR')} CPFs)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="btn-click inline-flex items-center gap-2 px-4 py-2.5 bg-[#FF5A0A] hover:bg-[#E04B00] text-white text-xs font-bold rounded-xl shadow-lg shadow-[#FF5A0A]/20 transition-all"
+            >
+              <Plus size={16} />
+              Nova Campanha
+            </button>
+          </div>
         </div>
 
         {/* Tabela de Controle Operacional de Campanhas */}
@@ -657,17 +675,21 @@ function Campaigns() {
                       className={`hover:bg-[#151C2B]/50 transition-all ${isSelected ? 'bg-[#FF5A0A]/5 hover:bg-[#FF5A0A]/10' : ''}`}
                     >
                       <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <button
-                            onClick={() => setSelectedId(campaign.id)}
-                            className="flex items-center gap-1 font-bold text-white hover:text-[#FF5A0A] transition-all text-left"
-                          >
-                            {campaign.name}
-                            <ChevronRight size={14} className={`text-slate-500 transition-transform ${isSelected ? 'rotate-90 text-[#FF5A0A]' : ''}`} />
-                          </button>
-                          <p className="text-[11px] text-[#94A3B8] mt-0.5">
-                            {Number(campaign.total_leads || 0).toLocaleString('pt-BR')} CPFs • {Number(campaign.total_calls || 0).toLocaleString('pt-BR')} números
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl border transition-all ${isSelected ? 'bg-[#FF5A0A]/10 text-[#FF5A0A] border-[#FF5A0A]/30' : 'bg-[#050814] text-[#94A3B8] border-glass'}`}>
+                            <Layers size={16} />
+                          </div>
+                          <div>
+                            <button
+                              onClick={() => setSelectedId(campaign.id)}
+                              className="font-bold text-white hover:text-[#FF5A0A] transition-all text-left block text-sm"
+                            >
+                              {campaign.name}
+                            </button>
+                            <p className="text-[11px] text-[#94A3B8] mt-0.5">
+                              {Number(campaign.total_leads || 0).toLocaleString('pt-BR')} CPFs • {Number(campaign.total_calls || 0).toLocaleString('pt-BR')} números
+                            </p>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4"><StatusBadge status={campaign.status} /></td>
@@ -773,13 +795,24 @@ function Campaigns() {
         {selectedCampaign && (
           <div className="card-surface p-5 border border-glass shadow-lg space-y-4 animate-slide-in">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-glass pb-4">
-              <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  Fila de Contatos — Campanha #{selectedCampaign.id}: "{selectedCampaign.name}"
-                </h3>
-                <p className="text-xs text-[#94A3B8]">
-                  {selectedCampaign.completed_calls || 0} discadas de {selectedCampaign.total_calls || 0} contatos importados
-                </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="space-y-1">
+                  <span className="text-[11px] text-[#94A3B8] font-bold uppercase tracking-wider block">Fila da Campanha Selecionada</span>
+                  <div className="flex items-center gap-2 bg-[#050814] px-3.5 py-2 rounded-xl border border-[#FF5A0A]/40 focus-within:border-[#FF5A0A]">
+                    <Layers size={16} className="text-[#FF5A0A]" />
+                    <select
+                      value={selectedId || ''}
+                      onChange={(e) => setSelectedId(Number(e.target.value))}
+                      className="bg-transparent text-white text-sm font-bold focus:outline-none cursor-pointer pr-2"
+                    >
+                      {campaigns.map((c) => (
+                        <option key={c.id} value={c.id} className="bg-[#0A0E1A] text-white font-normal">
+                          Campanha #{c.id}: {c.name} ({Number(c.total_leads || 0).toLocaleString('pt-BR')} CPFs)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
