@@ -158,7 +158,7 @@ export class DispatchCampaignBatch {
         await this.calls.attachProviderCall(call.id, providerResult.providerCallId);
         result.dispatched += 1;
 
-        const delayMs = Number(process.env.WORKER_DELAY_BETWEEN_CALLS_MS || 0);
+        const delayMs = Number(process.env.WORKER_DELAY_BETWEEN_CALLS_MS ?? 500);
         if (delayMs > 0 && result.dispatched < batch.length) {
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
@@ -166,14 +166,18 @@ export class DispatchCampaignBatch {
         const message = error instanceof Error ? error.message : String(error);
         const permanent = error instanceof DebtProviderPermanentError;
         const temporary = error instanceof DebtProviderTemporaryError;
+        const isSipTimeout = message.includes('408') || message.includes('timeout') || message.includes('providerfault');
         const exhausted = call.attempts + 1 >= campaign.maxAttempts;
 
-        if (permanent || exhausted) {
+        if ((permanent || exhausted) && !isSipTimeout) {
           await this.calls.updateStatus(call.id, 'failed', message);
           result.failed += 1;
         } else {
-          const reason = temporary ? `ddm_temporary: ${message}` : message;
-          await this.calls.scheduleRetry(call.id, this.retryPolicy.nextAttempt(call.attempts), reason);
+          const retryAt = isSipTimeout
+            ? new Date(Date.now() + 15 * 60 * 1000)
+            : this.retryPolicy.nextAttempt(call.attempts);
+          const reason = isSipTimeout ? `sip_timeout_auto_retry: ${message}` : (temporary ? `ddm_temporary: ${message}` : message);
+          await this.calls.scheduleRetry(call.id, retryAt, reason);
           result.retries += 1;
         }
       }

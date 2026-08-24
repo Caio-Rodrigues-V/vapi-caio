@@ -218,6 +218,18 @@ export class NotificationSender {
       smsSent = await this.sendSmartRcsSms(input, targetPhone);
     }
 
+    // Fallback automático para o N8N se o SMS falhar ou não estiver configurado
+    if (!smsSent && process.env.N8N_WEBHOOK_URL && !n8nSent) {
+      console.log('[NotificationSender] SMS Smart RCS falhou ou não configurado. Acionando webhook de contingência N8N...');
+      try {
+        await axios.post(process.env.N8N_WEBHOOK_URL, input, { timeout: 7000 });
+        n8nSent = true;
+        console.log('[NotificationSender] Webhook N8N de contingência acionado com sucesso.');
+      } catch (n8nErr: any) {
+        console.error('[NotificationSender] Falha ao acionar webhook N8N de contingência:', n8nErr.message);
+      }
+    }
+
     return { emailSent, n8nSent, smsSent };
   }
 
