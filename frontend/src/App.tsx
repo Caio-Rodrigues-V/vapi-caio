@@ -1264,7 +1264,7 @@ function Campaigns() {
         {/* Card 1: Funil de Conversão Operacional */}
         <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
               <Layers size={15} className="text-[#FF5A0A]" />
               Funil de Conversão do Disparo
             </h3>
@@ -1302,7 +1302,7 @@ function Campaigns() {
         {/* Card 2: Desempenho Comparativo por Campanha */}
         <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
               <BarChart3 size={15} className="text-sky-400" />
               Desempenho Comparativo por Campanha
             </h3>
@@ -1340,7 +1340,7 @@ function Campaigns() {
         {/* Card 3: Distribuição de Decisões de Atendimento */}
         <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
               <Activity size={15} className="text-emerald-400" />
               Status de Resultados da Fila
             </h3>
@@ -1384,7 +1384,7 @@ function Campaigns() {
         {/* Card 4: Indicadores de Infraestrutura & Capacidade do Planejamento */}
         <div className="rounded-lg bg-[#101828] p-4 border border-[#1F242F] flex flex-col justify-between space-y-3">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
               <ShieldCheck size={15} className="text-sky-400" />
               Saúde da Operação & Pacing
             </h3>
@@ -1438,7 +1438,7 @@ function Campaigns() {
       <div className="rounded-lg bg-[#101828] overflow-hidden border border-[#1F242F]">
         <div className="border-b border-[#1F242F] bg-[#0C111D] px-5 py-3.5 flex items-center justify-between">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-100">Relatório de Campanhas</h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-white">Relatório de Campanhas</h3>
             <p className="text-[11px] text-slate-400 mt-0.5">Resumo de volume e desempenho dos lotes de disparo</p>
           </div>
           <button

@@ -9,9 +9,9 @@
   --color-brand-elevated: #1D2939;
   --color-brand-hover: #1F2937;
   --color-brand-border: #1F242F;
-  --color-text-main: #F8FAFC;
-  --color-text-sub: #94A3B8;
-  --color-text-muted: #64748B;
+  --color-text-main: #FFFFFF;
+  --color-text-sub: #CBD5E1;
+  --color-text-muted: #94A3B8;
   --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
@@ -21,7 +21,7 @@
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: #0C111D;
-  color: #F8FAFC;
+  color: #FFFFFF;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;

@@ -31,14 +31,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden rounded-lg bg-[#101828] border border-[#1F242F] p-4 flex items-center justify-between transition-colors duration-150 hover:border-[#344054] ${
+      className={`relative overflow-hidden rounded-lg bg-[#101828] border border-[#1F242F] p-4 flex items-center justify-between transition-colors duration-150 hover:border-[#FF5A0A]/50 ${
         onClick ? 'cursor-pointer' : ''
       }`}
     >
       <div className="space-y-1 min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 truncate">{title}</p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-300 truncate">{title}</p>
         <div className="flex items-center gap-2">
-          <p className="text-2xl font-bold text-slate-100 tracking-tight">
+          <p className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             {value}
           </p>
           {pulse && (
@@ -49,11 +49,11 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           )}
         </div>
         {description && (
-          <p className="text-[12px] text-slate-500 font-medium truncate">{description}</p>
+          <p className="text-[12px] text-slate-400 font-medium truncate">{description}</p>
         )}
       </div>
 
-      <div className="p-2 rounded-lg bg-[#1D2939] text-slate-400 border border-[#344054]/50 flex-shrink-0 ml-3">
+      <div className="p-2.5 rounded-lg bg-[#1D2939] text-[#FF5A0A] border border-[#FF5A0A]/20 flex-shrink-0 ml-3">
         <Icon size={18} />
       </div>
     </div>
