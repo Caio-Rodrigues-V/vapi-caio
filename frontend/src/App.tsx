@@ -1133,14 +1133,13 @@ function Campaigns() {
             Planilha Modelo
           </a>
 
-          <button
-            type="button"
-            onClick={() => navigate('/campanhas')}
+          <Link
+            to="/campanhas"
             className="btn-click flex items-center gap-1.5 rounded-lg bg-[#D9480F] hover:bg-[#B9380B] px-3.5 py-2 text-xs font-semibold text-white transition-colors shadow-xs"
           >
             <Play size={14} />
             Acessar Disparador
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -1448,14 +1447,13 @@ function Campaigns() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B]">Relatório de Campanhas</h3>
             <p className="text-[11px] text-[#5F6570] mt-0.5">Resumo de volume e desempenho dos lotes de disparo</p>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate('/campanhas')}
+          <Link
+            to="/campanhas"
             className="btn-click inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#D9480F] hover:bg-[#B9380B] text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
           >
             <Play size={13} />
             Ir para Campanhas & Disparador
-          </button>
+          </Link>
         </div>
 
         <div className="overflow-x-auto">
@@ -1484,15 +1482,13 @@ function Campaigns() {
                   <td className="px-5 py-3.5 font-medium text-[#D9480F]">{Number(campaign.completed_calls || 0)}</td>
                   <td className="px-5 py-3.5 font-medium text-[#B91C1C]">{Number(campaign.failed_calls || 0)}</td>
                   <td className="px-5 py-3.5">
-                    <button
-                      type="button"
-                      title="Ver Fila de Contatos no Disparador"
-                      onClick={() => navigate(`/campanhas?id=${campaign.id}`)}
-                      className="btn-click rounded-lg bg-[#FFF1E8] hover:bg-[#FFD1B8] px-2.5 py-1 text-[#B9380B] border border-[#FFD1B8] text-xs font-semibold flex items-center gap-1 transition-colors"
+                    <Link
+                      to={`/campanhas?id=${campaign.id}`}
+                      className="btn-click rounded-lg bg-[#FFF1E8] hover:bg-[#FFD1B8] px-2.5 py-1 text-[#B9380B] border border-[#FFD1B8] text-xs font-semibold inline-flex items-center gap-1 transition-colors"
                     >
                       <Eye size={13} />
                       Ver Fila
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))}
