@@ -495,10 +495,11 @@ campaignsV2Router.get('/vapi/config', async (_req, res) => {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
 
+    const isStaging = process.env.NODE_ENV === 'staging';
     const assistants = [
       {
         id: uvaAssistantId,
-        name: 'JULIA - VEIGA VAPI (UVA)',
+        name: isStaging ? 'JULIA - VEIGA VAPI (UVA - HML)' : 'JULIA - VEIGA VAPI (UVA)',
         institution: 'UVA',
       },
       {
