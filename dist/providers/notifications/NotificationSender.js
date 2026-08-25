@@ -123,7 +123,7 @@ class NotificationSender {
                     cpf: input.cpf,
                     nome: input.nome,
                     email: targetEmail,
-                    phone: targetPhone,
+                    phone: targetPhone ? (targetPhone.replace(/\D/g, '').startsWith('55') ? targetPhone.replace(/\D/g, '') : `55${targetPhone.replace(/\D/g, '')}`) : null,
                     original_email: input.email,
                     original_phone: input.phone,
                     instituicao: input.instituicao,
