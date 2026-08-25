@@ -93,10 +93,15 @@ class ProcessVapiWebhook {
                     customerMessages.push(transcript);
                 // 1. Check if the call triggered an agreement tool call in the messages history
                 const agreementConfirmedByTool = wasToolCalled(messages, 'confirmar_acordo') ||
+                    wasToolCalled(messages, 'confirmar_acordo_hml') ||
                     wasToolCalled(messages, 'formalizar_acordo') ||
                     wasToolCalled(messages, 'efetivar_acordo') ||
                     wasToolCalled(messages, 'formaliza_acordo');
-                const fullText = (transcript + ' ' + messages.map((m) => String(m.message || m.content || '')).join(' ')).toLowerCase();
+                const spokenMessages = messages.filter((m) => {
+                    const role = String(m?.role || '').toLowerCase();
+                    return role !== 'system';
+                });
+                const fullText = (transcript + ' ' + spokenMessages.map((m) => String(m.message || m.content || '')).join(' ')).toLowerCase();
                 const assistantSpokeAgreement = messages.some((m) => {
                     const role = String(m.role || '').toLowerCase();
                     const content = String(m.message || m.content || '').toLowerCase();
