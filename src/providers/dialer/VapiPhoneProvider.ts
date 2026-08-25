@@ -57,6 +57,7 @@ export class VapiPhoneProvider implements DialerProvider {
 
     if (webhookUrl) {
       overrides.serverUrl = webhookUrl;
+      overrides.server = { url: webhookUrl, timeoutSeconds: 20 };
     }
 
     const payload: Record<string, unknown> = {
@@ -65,6 +66,10 @@ export class VapiPhoneProvider implements DialerProvider {
       customer,
       metadata: input.metadata,
     };
+
+    if (webhookUrl) {
+      payload.serverUrl = webhookUrl;
+    }
 
     if (Object.keys(overrides).length > 0) {
       payload.assistantOverrides = overrides;

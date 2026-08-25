@@ -47,6 +47,7 @@ class VapiPhoneProvider {
                 (process.env.NODE_ENV === 'staging' ? 'https://hml-vapi.grupoddm.com.br/api/v2/vapi/webhook' : undefined));
         if (webhookUrl) {
             overrides.serverUrl = webhookUrl;
+            overrides.server = { url: webhookUrl, timeoutSeconds: 20 };
         }
         const payload = {
             assistantId: input.assistantId,
@@ -54,6 +55,9 @@ class VapiPhoneProvider {
             customer,
             metadata: input.metadata,
         };
+        if (webhookUrl) {
+            payload.serverUrl = webhookUrl;
+        }
         if (Object.keys(overrides).length > 0) {
             payload.assistantOverrides = overrides;
         }
