@@ -139,6 +139,7 @@ function handleToolCall(call) {
                 }),
             };
         case 'confirmar_acordo':
+        case 'confirmar_acordo_hml':
         case 'formalizar_acordo':
         case 'end_call':
         case 'end_call_tool':
