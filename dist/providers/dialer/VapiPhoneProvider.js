@@ -44,7 +44,7 @@ class VapiPhoneProvider {
         }
         const webhookUrl = process.env.VAPI_WEBHOOK_URL ||
             (process.env.APP_BASE_URL ? `${process.env.APP_BASE_URL}/api/v2/vapi/webhook` :
-                (process.env.NODE_ENV === 'staging' ? 'https://hml-vapi.grupoddm.com.br/api/v2/vapi/webhook' : undefined));
+                (process.env.NODE_ENV === 'staging' ? 'https://hmlvapi.grupoddm.ia.br/api/v2/vapi/webhook' : undefined));
         if (webhookUrl) {
             overrides.serverUrl = webhookUrl;
             overrides.server = { url: webhookUrl, timeoutSeconds: 20 };
