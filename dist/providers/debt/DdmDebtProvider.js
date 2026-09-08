@@ -162,17 +162,23 @@ class DdmDebtProvider {
             process.env.DDM_TOKEN || '',
         ])).filter(Boolean);
         let located = [];
+        let hasApiError = false;
         for (const tk of tokensToTry) {
             try {
                 const res = await this.getWithRetry('/calc/localiza_dev.php', { tk, cpf });
                 if (Array.isArray(res) && res.length > 0) {
                     located = res;
+                    hasApiError = false;
                     break;
                 }
             }
             catch (err) {
+                hasApiError = true;
                 console.warn(`[DdmDebtProvider] localiza_dev falhou com token ${tk.slice(0, 8)}...:`, err);
             }
+        }
+        if (hasApiError && (!Array.isArray(located) || !located.length)) {
+            return { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'api_error' };
         }
         if (!Array.isArray(located) || !located.length) {
             return { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'no_debt' };

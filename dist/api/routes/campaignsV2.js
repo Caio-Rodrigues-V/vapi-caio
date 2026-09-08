@@ -674,7 +674,7 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename=relatorio-campanha-${id}.csv`);
         res.write('\uFEFF'); // BOM for Portuguese Excel encoding compatibility
-        res.write('Telefone;CPF;Nome;Status;Tentativas;Decisão;Duração (s);Motivo do Fim;Última Atualização;Transcrição\n');
+        res.write('Data/Hora;Instituição;CRM ID (Matrícula);Aluno (Nome);Telefone;CPF;Atendente;Status;Tentativas;Decisão (Tabulação);Duração (s);Custo (US$);Motivo Desconexão;Última Atualização;Transcrição / Resumo\n');
         const [rows] = await db_1.default.query(`SELECT cc.customer_number, cc.cpf, cc.attempts, cc.status, cc.last_error, cc.metadata,
               cr.decision, cr.duration_seconds, cr.ended_reason, cc.updated_at, cr.transcript
        FROM campaign_calls cc
@@ -683,7 +683,10 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
        ORDER BY cc.id DESC`, params);
         for (const row of rows) {
             const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
-            const name = metadata.name || '';
+            const name = metadata.debtorName || metadata.name || '';
+            const crmId = metadata.debtorId || metadata.calculationId || '';
+            const institution = metadata.institution || 'VEIGA DE ALMEIDA';
+            const cost = metadata.cost ? `$${Number(metadata.cost).toFixed(2)}` : '$0.00';
             let decisionText = 'Aguardando';
             if (row.status === 'skipped') {
                 const calcId = metadata.calculationId || metadata.debtorId;
@@ -748,13 +751,18 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
                     statusText = 'Pulado';
             }
             const line = [
+                row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '',
+                institution,
+                crmId,
+                name,
                 row.customer_number,
                 row.cpf || '',
-                name,
+                'Júlia (Vapi AI)',
                 statusText,
                 row.attempts,
                 decisionText,
                 row.duration_seconds !== null && row.duration_seconds !== undefined ? row.duration_seconds : '',
+                cost,
                 row.ended_reason || '',
                 row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '',
                 row.transcript || '',

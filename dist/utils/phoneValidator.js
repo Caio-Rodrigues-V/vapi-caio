@@ -22,7 +22,7 @@ function expandScientificNotation(value) {
     // Um telefone brasileiro com DDI possui 12 ou 13 dígitos. Quando o Excel
     // reduz a mantissa (ex.: 5.52198E+12), os dígitos finais já foram perdidos.
     // Nessa situação é mais seguro rejeitar a linha do que ligar para outro número.
-    if (significantDigits.length < 12) {
+    if (significantDigits.length < 10) {
         return null;
     }
     const numericValue = Number(normalized);

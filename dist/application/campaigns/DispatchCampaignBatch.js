@@ -58,6 +58,12 @@ class DispatchCampaignBatch {
                     const debt = await this.debts.lookup(call.cpf);
                     if (!debt.hasDebt) {
                         const reason = debt.skipReason || 'no_debt';
+                        if (reason === 'api_error') {
+                            console.warn(`[DispatchCampaignBatch] Falha técnica na DDM para o CPF ${call.cpf}. Reagendando para nova tentativa.`);
+                            await this.calls.updateStatus(call.id, 'retry_scheduled', 'api_lookup_failed');
+                            result.failed += 1;
+                            continue;
+                        }
                         await this.calls.mergeMetadata(call.id, {
                             debtCheckedAt: new Date().toISOString(),
                             hasDebt: false,
