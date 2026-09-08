@@ -283,4 +283,57 @@ export class NotificationSender {
 
     return false;
   }
+
+  async sendWhatsappLinkSms(phone: string, nome: string, instituicao: string): Promise<boolean> {
+    if (!phone) return false;
+    const formattedPhone = phone.replace(/\D/g, '');
+    const cleanPhone = formattedPhone.startsWith('55') ? formattedPhone : `55${formattedPhone}`;
+    const messageText = `DDM: Ola ${nome}, conforme solicitado, seu atendimento via WhatsApp da ${instituicao}: https://wa.me/552130309191 ou ligue 21 3030-9156.`;
+
+    console.log(`[NotificationSender] Enviando link WhatsApp via SMS para ${cleanPhone}...`);
+    try {
+      const apiKey = process.env.SMART_RCS_API_KEY;
+      const apiUrl = process.env.SMART_RCS_API_URL || 'https://api.smartrcs.com.br/v1/messages';
+
+      if (apiKey) {
+        await axios.post(
+          apiUrl,
+          {
+            destination: cleanPhone,
+            phone: cleanPhone,
+            message: messageText,
+            text: messageText,
+            link: 'https://wa.me/552130309191',
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'X-API-KEY': apiKey,
+              'Content-Type': 'application/json',
+            },
+            timeout: 7000,
+          }
+        );
+      }
+
+      if (process.env.N8N_WEBHOOK_URL) {
+        await axios.post(
+          process.env.N8N_WEBHOOK_URL,
+          {
+            type: 'MIGRAR_CANAL_WHATSAPP',
+            phone: cleanPhone,
+            nome,
+            instituicao,
+            whatsappLink: 'https://wa.me/552130309191',
+          },
+          { timeout: 5000 }
+        );
+      }
+
+      return true;
+    } catch (err: any) {
+      console.error('[NotificationSender] Erro ao enviar link WhatsApp via SMS/N8N:', err.message);
+      return false;
+    }
+  }
 }

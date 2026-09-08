@@ -187,6 +187,22 @@ class ProcessVapiWebhook {
                 if (decision === 'schedule' && scheduledAt && !Number.isNaN(scheduledAt.getTime())) {
                     await this.repository.scheduleCallbackFromCall(campaignCallId, scheduledAt);
                 }
+                // Se o cliente mencionou WhatsApp/zap ou pediu retorno, dispara link direto via SMS/RCS/N8N
+                const lowerTranscript = (transcript || '').toLowerCase();
+                if (lowerTranscript.includes('whatsapp') || lowerTranscript.includes('zap') || lowerTranscript.includes('manda no meu')) {
+                    void (async () => {
+                        try {
+                            const callDetails = await this.repository.findCampaignCall(campaignCallId);
+                            if (callDetails && callDetails.customerNumber) {
+                                const sender = new NotificationSender_1.NotificationSender();
+                                await sender.sendWhatsappLinkSms(callDetails.customerNumber, callDetails.metadata?.debtorName || callDetails.metadata?.name || 'Cliente', callDetails.metadata?.institution || 'Veiga de Almeida');
+                            }
+                        }
+                        catch (e) {
+                            console.error('[ProcessVapiWebhook] Erro ao disparar link WhatsApp por SMS:', e.message);
+                        }
+                    })();
+                }
                 if (decision === 'formalize' && this.debts) {
                     // Processa a formalização DDM e notificação de forma assíncrona para responder ao webhook da Vapi em milissegundos sem estourar o timeout de 30s
                     void (async () => {
