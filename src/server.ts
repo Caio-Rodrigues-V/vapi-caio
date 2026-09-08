@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import multer from 'multer';
 import fs from 'fs';
+import path from 'path';
 import { parse } from 'csv-parse';
 import pool from './db';
 import { classificarLigacao } from './services/llmClassifier';
@@ -22,10 +23,9 @@ app.use(express.json({ limit: '2mb' }));
 app.use('/api/admin', adminVapiHealthRouter);
 app.use('/api/admin', adminMigrationsRouter);
 app.use('/api/v2', vapiWebhookRouter);
+app.use('/api', vapiWebhookRouter);
 app.use('/api/v2', campaignsV2Router);
 app.use('/api/v2', streamRouter);
-app.use('/api/v2', externalTriggerRouter);
-
 const PORT = Number(process.env.PORT || 3000);
 const upload = multer({
   dest: 'uploads/',
@@ -34,113 +34,6 @@ const upload = multer({
 
 app.get('/api/health', (_req: Request, res: Response) => {
   return res.json({ status: 'ok' });
-});
-
-app.post('/api/vapi/webhook', async (req: Request, res: Response) => {
-  try {
-    const message = req.body?.message;
-
-    if (!message) {
-      return res.status(400).json({ error: 'Missing message in body' });
-    }
-
-    const { type, call } = message;
-    const callId = call?.id;
-
-    if (!callId || !type) {
-      return res.status(400).json({ error: 'Missing call id or event type' });
-    }
-
-    try {
-      await pool.query(
-        'INSERT INTO eventos_webhook (call_id, tipo_evento, payload) VALUES (?, ?, ?)',
-        [callId, type, JSON.stringify(message)]
-      );
-    } catch (error: any) {
-      if (error.code === 'ER_DUP_ENTRY') {
-        return res.status(200).json({ received: true, ignored: 'duplicate' });
-      }
-      throw error;
-    }
-
-    if (type !== 'end-of-call-report') {
-      return res.status(200).json({ received: true });
-    }
-
-    const telefone = call?.customer?.number || '';
-    const transcricao = message.transcript || '';
-    const mensagens = Array.isArray(message.artifact?.messages)
-      ? message.artifact.messages
-      : [];
-
-    const falasCliente = mensagens
-      .filter((item: any) => item.role === 'user' || item.role === 'customer')
-      .map((item: any) => item.message)
-      .filter(Boolean);
-
-    if (falasCliente.length === 0 && transcricao) {
-      falasCliente.push(transcricao);
-    }
-
-    const { decisao, dataAgendamento } = await classificarLigacao(
-      transcricao,
-      falasCliente
-    );
-
-    await pool.query(
-      `INSERT INTO auditoria_chamadas
-        (call_id, telefone, decisao, data_agendamento)
-       VALUES (?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         telefone = VALUES(telefone),
-         decisao = VALUES(decisao),
-         data_agendamento = VALUES(data_agendamento)`,
-      [callId, telefone, decisao, dataAgendamento || null]
-    );
-
-    const filaIdMetadata = Number(
-      call?.metadata?.filaDisparoId || message?.metadata?.filaDisparoId
-    );
-
-    if (Number.isInteger(filaIdMetadata) && filaIdMetadata > 0) {
-      await pool.query(
-        `UPDATE fila_disparo
-         SET status = 'concluido', lote_id = NULL
-         WHERE id = ? AND call_id = ?`,
-        [filaIdMetadata, callId]
-      );
-    } else {
-      await pool.query(
-        `UPDATE fila_disparo
-         SET status = 'concluido', lote_id = NULL
-         WHERE call_id = ?`,
-        [callId]
-      );
-    }
-
-    if (decisao === 'Agendar' && dataAgendamento) {
-      const [rows]: any = await pool.query(
-        'SELECT cpf, telefone FROM fila_disparo WHERE call_id = ? LIMIT 1',
-        [callId]
-      );
-
-      const registroOriginal = rows[0];
-
-      if (registroOriginal) {
-        await pool.query(
-          `INSERT INTO fila_disparo
-            (telefone, cpf, status, proxima_tentativa_em)
-           VALUES (?, ?, 'pendente', ?)`,
-          [registroOriginal.telefone, registroOriginal.cpf, dataAgendamento]
-        );
-      }
-    }
-
-    return res.status(200).json({ received: true });
-  } catch (error) {
-    console.error('Error processing webhook:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
-  }
 });
 
 app.post('/api/upload', upload.single('file'), (req: Request, res: Response) => {
@@ -251,6 +144,19 @@ app.post('/api/worker/start', (req: Request, res: Response) => {
 
   return res.status(202).json({ message: 'Dispatcher de campanhas acionado.' });
 });
+
+const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+const frontendIndex = path.join(frontendDist, 'index.html');
+
+if (fs.existsSync(frontendIndex)) {
+  app.use(express.static(frontendDist, { index: false }));
+  app.use((req: Request, res: Response, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api/')) {
+      return next();
+    }
+    return res.sendFile(frontendIndex);
+  });
+}
 
 if (require.main === module) {
   runPendingMigrations()

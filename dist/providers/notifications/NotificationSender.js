@@ -123,7 +123,7 @@ class NotificationSender {
                     cpf: input.cpf,
                     nome: input.nome,
                     email: targetEmail,
-                    phone: targetPhone,
+                    phone: targetPhone ? (targetPhone.replace(/\D/g, '').startsWith('55') ? targetPhone.replace(/\D/g, '') : `55${targetPhone.replace(/\D/g, '')}`) : null,
                     original_email: input.email,
                     original_phone: input.phone,
                     instituicao: input.instituicao,
@@ -155,38 +155,138 @@ class NotificationSender {
             const config = this.getSmtpConfig();
             if (!config.user || !config.pass) {
                 console.warn('[NotificationSender] SMTP não configurado (pass ou user ausentes). E-mail ignorado.');
-                return { emailSent, n8nSent };
             }
-            try {
-                const transporter = nodemailer_1.default.createTransport({
-                    host: config.host,
-                    port: config.port,
-                    secure: config.secure,
-                    auth: {
-                        user: config.user,
-                        pass: config.pass,
-                    },
-                    tls: {
-                        rejectUnauthorized: false, // Evita erros comuns de certificado em servidores cPanel
-                    },
-                });
-                const from = process.env.SMTP_FROM || `"DDM Assessoria" <${config.user}>`;
-                const html = this.buildHtmlEmail({ ...input, email: targetEmail });
-                console.log(`[NotificationSender] Enviando e-mail SMTP direto para ${targetEmail}`);
-                await transporter.sendMail({
-                    from,
-                    to: targetEmail,
-                    subject: `Acordo Formalizado — ${input.instituicao}`,
-                    html,
-                });
-                emailSent = true;
-                console.log(`[NotificationSender] E-mail SMTP enviado com sucesso para ${targetEmail}`);
-            }
-            catch (error) {
-                console.error(`[NotificationSender] Erro ao enviar e-mail via SMTP: ${error.message}`);
+            else {
+                try {
+                    const transporter = nodemailer_1.default.createTransport({
+                        host: config.host,
+                        port: config.port,
+                        secure: config.secure,
+                        auth: {
+                            user: config.user,
+                            pass: config.pass,
+                        },
+                        tls: {
+                            rejectUnauthorized: false, // Evita erros comuns de certificado em servidores cPanel
+                        },
+                    });
+                    const from = process.env.SMTP_FROM || `"DDM Assessoria" <${config.user}>`;
+                    const html = this.buildHtmlEmail({ ...input, email: targetEmail });
+                    console.log(`[NotificationSender] Enviando e-mail SMTP direto para ${targetEmail}`);
+                    await transporter.sendMail({
+                        from,
+                        to: targetEmail,
+                        subject: `Acordo Formalizado — ${input.instituicao}`,
+                        html,
+                    });
+                    emailSent = true;
+                    console.log(`[NotificationSender] E-mail SMTP enviado com sucesso para ${targetEmail}`);
+                }
+                catch (error) {
+                    console.error(`[NotificationSender] Erro ao enviar e-mail via SMTP: ${error.message}`);
+                }
             }
         }
-        return { emailSent, n8nSent };
+        // 3. Disparo de SMS / RCS via Smart RCS
+        let smsSent = false;
+        if (targetPhone) {
+            smsSent = await this.sendSmartRcsSms(input, targetPhone);
+        }
+        // Fallback automático para o N8N se o SMS falhar ou não estiver configurado
+        if (!smsSent && process.env.N8N_WEBHOOK_URL && !n8nSent) {
+            console.log('[NotificationSender] SMS Smart RCS falhou ou não configurado. Acionando webhook de contingência N8N...');
+            try {
+                await axios_1.default.post(process.env.N8N_WEBHOOK_URL, input, { timeout: 7000 });
+                n8nSent = true;
+                console.log('[NotificationSender] Webhook N8N de contingência acionado com sucesso.');
+            }
+            catch (n8nErr) {
+                console.error('[NotificationSender] Falha ao acionar webhook N8N de contingência:', n8nErr.message);
+            }
+        }
+        return { emailSent, n8nSent, smsSent };
+    }
+    async sendSmartRcsSms(input, targetPhone) {
+        const apiKey = process.env.SMART_RCS_API_KEY;
+        const apiUrl = process.env.SMART_RCS_API_URL || 'https://api.smartrcs.com.br/v1/messages';
+        if (!apiKey) {
+            console.log('[NotificationSender] SMART_RCS_API_KEY não configurada no env. Envio de SMS/RCS ignorado.');
+            return false;
+        }
+        try {
+            const formattedPhone = targetPhone.replace(/\D/g, '');
+            const cleanPhone = formattedPhone.startsWith('55') ? formattedPhone : `55${formattedPhone}`;
+            const link = input.linkBoleto || input.linkPix || '';
+            const linhaDigText = input.linhaDigitavel ? ` Linha Digitavel: ${input.linhaDigitavel}` : '';
+            const linkText = link ? ` Boleto/Pix: ${link}` : '';
+            const messageText = `DDM: Ola ${input.nome}, seu acordo com ${input.instituicao} (R$ ${input.valor}) foi formalizado!${linhaDigText}${linkText}`;
+            console.log(`[NotificationSender] Enviando SMS/RCS via Smart RCS para ${cleanPhone}...`);
+            const response = await axios_1.default.post(apiUrl, {
+                destination: cleanPhone,
+                phone: cleanPhone,
+                message: messageText,
+                text: messageText,
+                link: link || undefined,
+                cpf: input.cpf,
+            }, {
+                headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    'X-API-KEY': apiKey,
+                    'Content-Type': 'application/json',
+                },
+                timeout: 10000,
+            });
+            if (response.status >= 200 && response.status < 300) {
+                console.log(`[NotificationSender] SMS Smart RCS enviado com sucesso para ${cleanPhone}`);
+                return true;
+            }
+        }
+        catch (error) {
+            console.error(`[NotificationSender] Falha ao enviar SMS Smart RCS para ${targetPhone}:`, error.response?.data || error.message);
+        }
+        return false;
+    }
+    async sendWhatsappLinkSms(phone, nome, instituicao) {
+        if (!phone)
+            return false;
+        const formattedPhone = phone.replace(/\D/g, '');
+        const cleanPhone = formattedPhone.startsWith('55') ? formattedPhone : `55${formattedPhone}`;
+        const messageText = `DDM: Ola ${nome}, conforme solicitado, seu atendimento via WhatsApp da ${instituicao}: https://wa.me/552130309191 ou ligue 21 3030-9156.`;
+        console.log(`[NotificationSender] Enviando link WhatsApp via SMS para ${cleanPhone}...`);
+        try {
+            const apiKey = process.env.SMART_RCS_API_KEY;
+            const apiUrl = process.env.SMART_RCS_API_URL || 'https://api.smartrcs.com.br/v1/messages';
+            if (apiKey) {
+                await axios_1.default.post(apiUrl, {
+                    destination: cleanPhone,
+                    phone: cleanPhone,
+                    message: messageText,
+                    text: messageText,
+                    link: 'https://wa.me/552130309191',
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${apiKey}`,
+                        'X-API-KEY': apiKey,
+                        'Content-Type': 'application/json',
+                    },
+                    timeout: 7000,
+                });
+            }
+            if (process.env.N8N_WEBHOOK_URL) {
+                await axios_1.default.post(process.env.N8N_WEBHOOK_URL, {
+                    type: 'MIGRAR_CANAL_WHATSAPP',
+                    phone: cleanPhone,
+                    nome,
+                    instituicao,
+                    whatsappLink: 'https://wa.me/552130309191',
+                }, { timeout: 5000 });
+            }
+            return true;
+        }
+        catch (err) {
+            console.error('[NotificationSender] Erro ao enviar link WhatsApp via SMS/N8N:', err.message);
+            return false;
+        }
     }
 }
 exports.NotificationSender = NotificationSender;

@@ -23,11 +23,17 @@ function mapStatus(type: string, message: Record<string, any>): 'queued' | 'in_p
 }
 function wasToolCalled(messages: any[], toolName: string): boolean {
   if (!Array.isArray(messages)) return false;
+  const target = toolName.toLowerCase();
   return messages.some((m: any) => {
-    if (m.role === 'tool_calls' && Array.isArray(m.toolCalls)) {
-      return m.toolCalls.some((tc: any) => tc.function?.name === toolName);
-    }
-    return false;
+    if (!m) return false;
+    const name = String(m.name || m.toolName || m.function?.name || '').toLowerCase();
+    if (name && name.includes(target)) return true;
+
+    const toolCalls = Array.isArray(m.toolCalls) ? m.toolCalls : (Array.isArray(m.tool_calls) ? m.tool_calls : []);
+    return toolCalls.some((tc: any) => {
+      const tcName = String(tc.name || tc.function?.name || '').toLowerCase();
+      return tcName && tcName.includes(target);
+    });
   });
 }
 
@@ -48,51 +54,101 @@ export class ProcessVapiWebhook {
     const inserted = await this.repository.registerEvent({
       provider: 'vapi', eventId, providerCallId, eventType: type, payload,
     });
-    if (!inserted) return { duplicate: true, processed: false };
 
-    try {
-      const status = mapStatus(type, message);
-      if (status) {
-        await this.repository.markCallStatus(providerCallId, status);
-        eventBroadcaster.broadcast('call_updated', { providerCallId, status, type });
-      }
-      if (type !== 'end-of-call-report') {
-        await this.repository.markEventProcessed('vapi', eventId);
-        return { duplicate: false, processed: true };
-      }
+    if (!inserted) {
+      return { duplicate: true, processed: false };
+    }
 
-      const metadata = asRecord(call.metadata || message.metadata);
-      const metadataCallId = Number(metadata.campaignCallId || metadata.campaign_call_id || 0) || undefined;
-      const campaignCallId = await this.repository.findCampaignCallId(providerCallId, metadataCallId);
-      if (!campaignCallId) throw new Error('campaign_call não localizado para o webhook.');
+    const mappedStatus = mapStatus(type, message);
+    if (mappedStatus) {
+      try {
+        await this.repository.markCallStatus(providerCallId, mappedStatus);
+        eventBroadcaster.broadcast('call_updated', { providerCallId, status: mappedStatus, type });
 
-      const transcript = String(message.transcript || message.artifact?.transcript || '');
-      const messages = Array.isArray(message.artifact?.messages) ? message.artifact.messages : [];
+        if (type !== 'end-of-call-report') {
+          await this.repository.markEventProcessed('vapi', eventId);
+          return { duplicate: false, processed: true };
+        }
+
+        const metadata = asRecord(message.customer?.metadata ?? call.customer?.metadata ?? call.metadata ?? message.metadata);
+        const metadataCallId = Number(metadata.campaignCallId || metadata.campaign_call_id || 0) || undefined;
+        const campaignCallId = await this.repository.findCampaignCallId(providerCallId, metadataCallId);
+        if (!campaignCallId) throw new Error('campaign_call não localizado para o webhook.');
+
+        const transcript = String(
+          message.transcript ||
+          message.artifact?.transcript ||
+          call.transcript ||
+          call.artifact?.transcript ||
+          '',
+        );
+
+      const rawMessages = message.artifact?.messages || message.messages || call.artifact?.messages || call.messages || [];
+      const messages = Array.isArray(rawMessages) ? rawMessages : [];
+
       const customerMessages = messages
         .filter((item: any) => item?.role === 'user' || item?.role === 'customer')
         .map((item: any) => String(item.message || item.content || ''))
         .filter(Boolean);
       if (!customerMessages.length && transcript) customerMessages.push(transcript);
 
-      // 1. Check if the call triggered the 'confirmar_acordo' tool call in the messages history
-      const agreementConfirmedByTool = wasToolCalled(messages, 'confirmar_acordo');
+      // 1. Check if the call triggered an agreement tool call in the messages history
+      const agreementConfirmedByTool = wasToolCalled(messages, 'confirmar_acordo') ||
+        wasToolCalled(messages, 'confirmar_acordo_hml') ||
+        wasToolCalled(messages, 'formalizar_acordo') ||
+        wasToolCalled(messages, 'efetivar_acordo') ||
+        wasToolCalled(messages, 'formaliza_acordo');
+
+      const spokenMessages = messages.filter((m: any) => {
+        const role = String(m?.role || '').toLowerCase();
+        return role !== 'system';
+      });
+
+      const fullText = (
+        transcript + ' ' + spokenMessages.map((m: any) => String(m.message || m.content || '')).join(' ')
+      ).toLowerCase();
+
       const assistantSpokeAgreement = messages.some((m: any) => {
         const role = String(m.role || '').toLowerCase();
         const content = String(m.message || m.content || '').toLowerCase();
-        return (role === 'assistant' || role === 'ai') && (content.includes('acordo formalizado') || content.includes('acordo fechado'));
+        return (role === 'assistant' || role === 'ai' || role === 'bot') && (
+          content.includes('acordo formalizado') ||
+          content.includes('acordo fechado') ||
+          content.includes('acordo foi gerado') ||
+          content.includes('acordo gerado') ||
+          content.includes('formalizado com sucesso') ||
+          content.includes('enviado por e-mail') ||
+          content.includes('enviado para o seu e-mail') ||
+          content.includes('enviado no seu e-mail')
+        );
       });
-      const agendamentoTriggeredByTool = transcript.includes('#AGENDAMENTO');
+
+      const agreementInTranscript = (
+        fullText.includes('#acordoformalizado') ||
+        fullText.includes('#acordo_formalizado') ||
+        fullText.includes('#fechado') ||
+        fullText.includes('#formalizado') ||
+        fullText.includes('#acordo') ||
+        fullText.includes('#efetivado') ||
+        fullText.includes('formaliz') ||
+        fullText.includes('acordo fechad') ||
+        fullText.includes('acordo gerad')
+      ) || (
+        fullText.includes('acordo') && (fullText.includes('email') || fullText.includes('e-mail') || fullText.includes('boleto'))
+      );
+
+      const agendamentoTriggeredByTool = fullText.includes('#agendamento') || fullText.includes('agendad');
 
       let decision: 'formalize' | 'schedule' | 'zero' = 'zero';
       let scheduledAt: Date | null = null;
 
-      if (agreementConfirmedByTool || assistantSpokeAgreement) {
+      if (agreementConfirmedByTool || assistantSpokeAgreement || agreementInTranscript) {
         decision = 'formalize';
-        console.log(`[ProcessVapiWebhook] Acordo formalizado detectado (ferramenta ou fala da assistente) para a chamada ${providerCallId}`);
+        console.log(`[ProcessVapiWebhook] Acordo formalizado detectado (#ACORDOFORMALIZADO) para a chamada ${providerCallId}`);
       } else if (agendamentoTriggeredByTool) {
         decision = 'schedule';
         scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        console.log(`[ProcessVapiWebhook] Agendamento detectado via tags no transcript para a chamada ${providerCallId}`);
+        console.log(`[ProcessVapiWebhook] Agendamento detectado (#AGENDAMENTO) para a chamada ${providerCallId}`);
       } else if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'dummy_key') {
         try {
           const classification = await classificarLigacao(transcript, customerMessages);
@@ -149,6 +205,26 @@ export class ProcessVapiWebhook {
 
       if (decision === 'schedule' && scheduledAt && !Number.isNaN(scheduledAt.getTime())) {
         await this.repository.scheduleCallbackFromCall(campaignCallId, scheduledAt);
+      }
+
+      // Se o cliente mencionou WhatsApp/zap ou pediu retorno, dispara link direto via SMS/RCS/N8N
+      const lowerTranscript = (transcript || '').toLowerCase();
+      if (lowerTranscript.includes('whatsapp') || lowerTranscript.includes('zap') || lowerTranscript.includes('manda no meu')) {
+        void (async () => {
+          try {
+            const callDetails = await this.repository.findCampaignCall(campaignCallId);
+            if (callDetails && callDetails.customerNumber) {
+              const sender = new NotificationSender();
+              await sender.sendWhatsappLinkSms(
+                callDetails.customerNumber,
+                callDetails.metadata?.debtorName || callDetails.metadata?.name || 'Cliente',
+                callDetails.metadata?.institution || 'Veiga de Almeida'
+              );
+            }
+          } catch (e: any) {
+            console.error('[ProcessVapiWebhook] Erro ao disparar link WhatsApp por SMS:', e.message);
+          }
+        })();
       }
 
       if (decision === 'formalize' && this.debts) {
@@ -238,4 +314,7 @@ export class ProcessVapiWebhook {
       throw error;
     }
   }
+
+  return { duplicate: false, processed: true };
+}
 }

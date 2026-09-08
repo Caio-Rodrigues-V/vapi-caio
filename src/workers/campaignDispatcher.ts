@@ -47,6 +47,7 @@ export async function runCampaignDispatcher(): Promise<CampaignDispatcherResult>
   });
   const assistantResolver = new AssistantResolver({
     uvaAssistantId: requiredEnv('VAPI_ASSISTANT_ID_UVA'),
+    cruzeiroAssistantId: process.env.VAPI_ASSISTANT_ID_CRUZEIRO,
   });
   const retryPolicy = new RetryPolicy({
     baseDelayMs: envInt('WORKER_RETRY_BASE_MS', 60_000),

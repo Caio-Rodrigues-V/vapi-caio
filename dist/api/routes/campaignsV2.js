@@ -12,6 +12,7 @@ const csv_parse_1 = require("csv-parse");
 const db_1 = __importDefault(require("../../db"));
 const phoneValidator_1 = require("../../utils/phoneValidator");
 const DdmDebtProvider_1 = require("../../providers/debt/DdmDebtProvider");
+const vapiCallSynchronizer_1 = require("../../workers/vapiCallSynchronizer");
 exports.campaignsV2Router = (0, express_1.Router)();
 const upload = (0, multer_1.default)({
     dest: 'uploads/',
@@ -141,6 +142,24 @@ exports.campaignsV2Router.get('/campaigns/diag-vapi-call/:callId', async (req, r
     }
     catch (err) {
         return res.status(500).json({ error: err.message, response: err.response?.data });
+    }
+});
+exports.campaignsV2Router.get('/campaigns/diag-last-calls', async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== 'ddm_diag_987') {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+    try {
+        const [rows] = await db_1.default.query(`SELECT cc.id, cc.campaign_id, cc.customer_number, cc.cpf, cc.status, cc.last_error, cc.metadata,
+              cr.provider_call_id, cr.decision, cr.ended_reason, cr.duration_seconds, cr.transcript, cr.created_at
+       FROM campaign_calls cc
+       LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
+       ORDER BY cc.id DESC
+       LIMIT 5`);
+        return res.json({ calls: rows });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
     }
 });
 exports.campaignsV2Router.get('/campaigns/diag-calls-detail', async (req, res) => {
@@ -413,37 +432,42 @@ exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, r
 exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
     try {
         const apiKey = configuredValue(undefined, 'VAPI_API_KEY');
-        const assistantId = configuredValue(undefined, 'VAPI_ASSISTANT_ID_UVA');
+        const uvaAssistantId = process.env.VAPI_ASSISTANT_ID_UVA || '15190261-096d-47fe-bbbe-cbfe8dceb2ae';
+        const cruzeiroAssistantId = process.env.VAPI_ASSISTANT_ID_CRUZEIRO || 'd0e0eea1-2e61-4ae5-91b8-85e29ba8e60f';
         const phoneNumberId = configuredValue(undefined, 'VAPI_PHONE_NUMBER_ID');
         const client = axios_1.default.create({
             baseURL: 'https://api.vapi.ai',
             timeout: 10_000,
             headers: { Authorization: `Bearer ${apiKey}` },
         });
-        let assistantData;
-        try {
-            const resp = await client.get(`/assistant/${assistantId}`);
-            assistantData = resp.data;
-        }
-        catch (err) {
-            const errMsg = err.response?.data?.message || err.message;
-            return res.status(404).json({ error: `Assistente ID [${assistantId}] não encontrado na Vapi: ${errMsg}` });
-        }
+        const isStaging = process.env.NODE_ENV === 'staging';
+        const assistants = [
+            {
+                id: uvaAssistantId,
+                name: isStaging ? 'JULIA - VEIGA VAPI (UVA - HML)' : 'JULIA - VEIGA VAPI (UVA)',
+                institution: 'UVA',
+            },
+            {
+                id: cruzeiroAssistantId,
+                name: 'JULIA - CRUZEIRO DO SUL',
+                institution: 'CRUZEIRO',
+            },
+        ];
         let phoneData;
         try {
             const resp = await client.get(`/phone-number/${phoneNumberId}`);
             phoneData = resp.data;
         }
         catch (err) {
-            const errMsg = err.response?.data?.message || err.message;
-            return res.status(404).json({ error: `Telefone ID [${phoneNumberId}] não encontrado na Vapi: ${errMsg}` });
+            console.warn('[vapi/config] warning fetching phone:', err.message);
         }
         return res.json({
-            operation: 'uva',
+            operation: 'multi',
             assistant: {
-                id: assistantId,
-                name: String(assistantData?.name || 'Assistant UVA'),
+                id: uvaAssistantId,
+                name: 'JULIA - VEIGA VAPI (CAIO)',
             },
+            assistants,
             phoneNumber: {
                 id: phoneNumberId,
                 number: String(phoneData?.number ||
@@ -458,6 +482,8 @@ exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
     }
 });
 exports.campaignsV2Router.get('/campaigns', async (req, res) => {
+    // Sincroniza chamadas ativas com a Vapi em segundo plano para limpar chamadas presas como 'in_progress'
+    void (0, vapiCallSynchronizer_1.runVapiCallSynchronizer)(20).catch((e) => console.warn('[campaigns] list sync error:', e.message));
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 25)));
     const offset = (page - 1) * limit;
@@ -648,7 +674,7 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename=relatorio-campanha-${id}.csv`);
         res.write('\uFEFF'); // BOM for Portuguese Excel encoding compatibility
-        res.write('Telefone;CPF;Nome;Status;Tentativas;Decisão;Duração (s);Motivo do Fim;Última Atualização;Transcrição\n');
+        res.write('Data/Hora;Instituição;CRM ID (Matrícula);Aluno (Nome);Telefone;CPF;Atendente;Status;Tentativas;Decisão (Tabulação);Duração (s);Custo (US$);Motivo Desconexão;Última Atualização;Transcrição / Resumo\n');
         const [rows] = await db_1.default.query(`SELECT cc.customer_number, cc.cpf, cc.attempts, cc.status, cc.last_error, cc.metadata,
               cr.decision, cr.duration_seconds, cr.ended_reason, cc.updated_at, cr.transcript
        FROM campaign_calls cc
@@ -657,7 +683,10 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
        ORDER BY cc.id DESC`, params);
         for (const row of rows) {
             const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
-            const name = metadata.name || '';
+            const name = metadata.debtorName || metadata.name || '';
+            const crmId = metadata.debtorId || metadata.calculationId || '';
+            const institution = metadata.institution || 'VEIGA DE ALMEIDA';
+            const cost = metadata.cost ? `$${Number(metadata.cost).toFixed(2)}` : '$0.00';
             let decisionText = 'Aguardando';
             if (row.status === 'skipped') {
                 const calcId = metadata.calculationId || metadata.debtorId;
@@ -722,13 +751,18 @@ exports.campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
                     statusText = 'Pulado';
             }
             const line = [
+                row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '',
+                institution,
+                crmId,
+                name,
                 row.customer_number,
                 row.cpf || '',
-                name,
+                'Júlia (Vapi AI)',
                 statusText,
                 row.attempts,
                 decisionText,
                 row.duration_seconds !== null && row.duration_seconds !== undefined ? row.duration_seconds : '',
+                cost,
                 row.ended_reason || '',
                 row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '',
                 row.transcript || '',
@@ -767,11 +801,22 @@ exports.campaignsV2Router.get('/campaigns/:id/calls/cpf/:cpf', async (req, res) 
         return res.status(500).json({ error: 'Erro ao buscar telefones do CPF' });
     }
 });
+exports.campaignsV2Router.post('/campaigns/:id/sync-vapi', async (_req, res) => {
+    try {
+        const syncRes = await (0, vapiCallSynchronizer_1.runVapiCallSynchronizer)(50);
+        return res.json({ success: true, sync: syncRes });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
 exports.campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
         return res.status(400).json({ error: 'Campanha inválida' });
     }
+    // Sincroniza chamadas ativas com a Vapi em segundo plano para não manter 'Em Linha' se a chamada já terminou
+    void (0, vapiCallSynchronizer_1.runVapiCallSynchronizer)(20).catch((e) => console.warn('[campaigns] auto sync error:', e.message));
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
     const offset = (page - 1) * limit;

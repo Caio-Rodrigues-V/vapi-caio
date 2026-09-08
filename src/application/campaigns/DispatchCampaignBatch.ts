@@ -71,6 +71,13 @@ export class DispatchCampaignBatch {
           const debt = await this.debts.lookup(call.cpf);
           if (!debt.hasDebt) {
             const reason = debt.skipReason || 'no_debt';
+            if (reason === 'api_error') {
+              console.warn(`[DispatchCampaignBatch] Falha técnica na DDM para o CPF ${call.cpf}. Reagendando para nova tentativa.`);
+              await this.calls.updateStatus(call.id, 'retry_scheduled', 'api_lookup_failed');
+              result.failed += 1;
+              continue;
+            }
+
             await this.calls.mergeMetadata(call.id, {
               debtCheckedAt: new Date().toISOString(),
               hasDebt: false,
@@ -83,10 +90,15 @@ export class DispatchCampaignBatch {
             continue;
           }
 
-          // Filtro rigoroso: Se tiver instituição e não for UVA/Veiga, pula informando a instituição pertencente
+          // Filtro de Instituição: Aceita UVA, Veiga de Almeida e Cruzeiro do Sul
           const instUpper = (debt.institution || '').toUpperCase();
-          const isUva = !debt.institution || instUpper.includes('VEIGA') || instUpper.includes('ALMEIDA') || instUpper.includes('UVA');
-          if (!isUva) {
+          const isAllowedInst = !debt.institution ||
+            instUpper.includes('VEIGA') ||
+            instUpper.includes('ALMEIDA') ||
+            instUpper.includes('UVA') ||
+            instUpper.includes('CRUZEIRO');
+
+          if (!isAllowedInst) {
             await this.calls.mergeMetadata(call.id, {
               debtCheckedAt: new Date().toISOString(),
               hasDebt: false,
@@ -94,7 +106,7 @@ export class DispatchCampaignBatch {
               calculationId: debt.calculationId ?? null,
               debtorId: debt.debtorId ?? null,
             });
-            await this.calls.updateStatus(call.id, 'skipped', 'non_uva_institution');
+            await this.calls.updateStatus(call.id, 'skipped', 'unsupported_institution');
             result.skipped += 1;
             continue;
           }
@@ -133,7 +145,7 @@ export class DispatchCampaignBatch {
 
         const firstName = (customerName || '').trim().split(/\s+/)[0] || '';
         const instName = String(debtMetadata.institution || 'DDM').trim();
-        const firstMessage = `Oi, ${firstName || 'tudo bem'}. Aqui é a Júlia, da assessoria financeira da ${instName}. Tudo bem com você? Antes de prosseguirmos com os detalhes por segurança, você pode me confirmar apenas os três primeiros números do seu CPF?`;
+        const firstMessage = `Oi, ${firstName || 'tudo bem'}. Aqui é a Júlia, da assessoria financeira da ${instName}. Por segurança, pode me confirmar apenas os três primeiros números do seu CPF?`;
 
         const providerResult = await this.dialer.startCall({
           customerNumber: call.customerNumber,
@@ -153,7 +165,7 @@ export class DispatchCampaignBatch {
         await this.calls.attachProviderCall(call.id, providerResult.providerCallId);
         result.dispatched += 1;
 
-        const delayMs = Number(process.env.WORKER_DELAY_BETWEEN_CALLS_MS || 0);
+        const delayMs = Number(process.env.WORKER_DELAY_BETWEEN_CALLS_MS ?? 500);
         if (delayMs > 0 && result.dispatched < batch.length) {
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
@@ -161,14 +173,18 @@ export class DispatchCampaignBatch {
         const message = error instanceof Error ? error.message : String(error);
         const permanent = error instanceof DebtProviderPermanentError;
         const temporary = error instanceof DebtProviderTemporaryError;
+        const isSipTimeout = message.includes('408') || message.includes('timeout') || message.includes('providerfault');
         const exhausted = call.attempts + 1 >= campaign.maxAttempts;
 
-        if (permanent || exhausted) {
+        if ((permanent || exhausted) && !isSipTimeout) {
           await this.calls.updateStatus(call.id, 'failed', message);
           result.failed += 1;
         } else {
-          const reason = temporary ? `ddm_temporary: ${message}` : message;
-          await this.calls.scheduleRetry(call.id, this.retryPolicy.nextAttempt(call.attempts), reason);
+          const retryAt = isSipTimeout
+            ? new Date(Date.now() + 15 * 60 * 1000)
+            : this.retryPolicy.nextAttempt(call.attempts);
+          const reason = isSipTimeout ? `sip_timeout_auto_retry: ${message}` : (temporary ? `ddm_temporary: ${message}` : message);
+          await this.calls.scheduleRetry(call.id, retryAt, reason);
           result.retries += 1;
         }
       }

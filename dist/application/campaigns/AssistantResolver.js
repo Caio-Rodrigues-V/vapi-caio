@@ -12,7 +12,7 @@ class AssistantResolver {
     resolve(institution) {
         const instUpper = (institution || '').toUpperCase();
         if (instUpper.includes('CRUZEIRO')) {
-            return process.env.VAPI_ASSISTANT_ID_CRUZEIRO || this.options.cruzeiroAssistantId || this.options.uvaAssistantId;
+            return process.env.VAPI_ASSISTANT_ID_CRUZEIRO || this.options.cruzeiroAssistantId || 'd0e0eea1-2e61-4ae5-91b8-85e29ba8e60f';
         }
         return this.options.uvaAssistantId;
     }

@@ -62,35 +62,51 @@ function consolidateCalculation(raw) {
             continue;
         const row = item;
         const dados = row.Dados;
-        if (dados && typeof dados === 'object' && !Array.isArray(dados))
+        if (dados && typeof dados === 'object' && !Array.isArray(dados)) {
             Object.assign(consolidated, dados);
+        }
+        Object.assign(consolidated, row);
         const calculos = Array.isArray(row.Calculos) ? row.Calculos : [];
         for (const calc of calculos) {
             if (calc && typeof calc === 'object' && 'debitos' in calc)
                 debts.push(calc.debitos);
         }
-        const cash = row.PgtoAvista;
+        const cash = row.PgtoAvista || row.pgto_avista;
         if (cash && typeof cash === 'object' && !Array.isArray(cash)) {
             consolidated.PgtoAvista = cash;
             const cashRow = cash;
             installments.push({
-                ValorParcela: cashRow.ValorFinal ?? cashRow.ValorTotal ?? '0,00',
-                ValorFinal: cashRow.ValorFinal ?? cashRow.ValorTotal ?? '0,00',
+                ValorParcela: cashRow.ValorFinal ?? cashRow.ValorTotal ?? cashRow.valor ?? '0,00',
+                ValorFinal: cashRow.ValorFinal ?? cashRow.ValorTotal ?? cashRow.valor ?? '0,00',
             });
         }
-        if (row.PgtoParceladoBoleto && typeof row.PgtoParceladoBoleto === 'object') {
-            installments.push(row.PgtoParceladoBoleto);
+        else if (row.ValorFinal || row.ValorTotal || row.valor_total) {
+            const val = row.ValorFinal ?? row.ValorTotal ?? row.valor_total;
+            installments.push({
+                ValorParcela: val,
+                ValorFinal: val,
+            });
+        }
+        const boleto = row.PgtoParceladoBoleto || row.pgto_parcelado_boleto || row.ListaParcelas || row.parcelas;
+        if (Array.isArray(boleto)) {
+            for (const p of boleto) {
+                if (p && typeof p === 'object')
+                    installments.push(p);
+            }
+        }
+        else if (boleto && typeof boleto === 'object') {
+            installments.push(boleto);
         }
         if (row.PgtoParceladoCartao)
             consolidated.PgtoParceladoCartao = row.PgtoParceladoCartao;
     }
     consolidated.ListaParcelas = { Parcelas: installments };
     consolidated.ListaDebitos = { Debito: debts };
-    consolidated.TotalNominal = consolidated.nominal ?? consolidated.nominal_princ ??
-        (consolidated.PgtoAvista?.ValorTotal ?? '0,00');
-    consolidated.Cliente = consolidated.instituicao ?? consolidated.Cliente ?? '';
-    consolidated.NomeDev = consolidated.nome ?? consolidated.NomeDevedor ?? '';
-    consolidated.idcalc = consolidated.CalculoID ?? consolidated.iddev ?? '';
+    consolidated.TotalNominal = consolidated.nominal ?? consolidated.nominal_princ ?? consolidated.TotalNominal ??
+        (consolidated.PgtoAvista?.ValorTotal ?? consolidated.ValorTotal ?? '0,00');
+    consolidated.Cliente = consolidated.instituicao ?? consolidated.Cliente ?? consolidated.cliente ?? '';
+    consolidated.NomeDev = consolidated.nome ?? consolidated.NomeDevedor ?? consolidated.nomedev ?? '';
+    consolidated.idcalc = consolidated.CalculoID ?? consolidated.iddev ?? consolidated.idcalc ?? '';
     return consolidated;
 }
 class DdmDebtProvider {
@@ -139,7 +155,31 @@ class DdmDebtProvider {
         const cpf = normalizeCpf(cpfInput);
         if (cpf.length !== 11)
             throw new DebtProvider_1.DebtProviderPermanentError('CPF inválido para consulta DDM.');
-        const located = await this.getWithRetry('/calc/localiza_dev.php', { tk: this.token, cpf });
+        const tokensToTry = Array.from(new Set([
+            this.token,
+            process.env.DDM_TOKEN_CRUZEIRO || '',
+            process.env.DDM_TOKEN_BUSCA || '',
+            process.env.DDM_TOKEN || '',
+        ])).filter(Boolean);
+        let located = [];
+        let hasApiError = false;
+        for (const tk of tokensToTry) {
+            try {
+                const res = await this.getWithRetry('/calc/localiza_dev.php', { tk, cpf });
+                if (Array.isArray(res) && res.length > 0) {
+                    located = res;
+                    hasApiError = false;
+                    break;
+                }
+            }
+            catch (err) {
+                hasApiError = true;
+                console.warn(`[DdmDebtProvider] localiza_dev falhou com token ${tk.slice(0, 8)}...:`, err);
+            }
+        }
+        if (hasApiError && (!Array.isArray(located) || !located.length)) {
+            return { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'api_error' };
+        }
         if (!Array.isArray(located) || !located.length) {
             return { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'no_debt' };
         }
@@ -152,20 +192,25 @@ class DdmDebtProvider {
             if (!debtorId)
                 continue;
             const system = String(debtor.sistema ?? '').trim().toLowerCase();
-            const client = system === 'cruzeirodosul' ? 'cruzeiro' : 'ddm';
+            const instRaw = String(debtor.instituicao ?? debtor.cliente ?? '').trim().toLowerCase();
+            const isCruzeiro = system.includes('cruzeiro') || instRaw.includes('cruzeiro');
+            const client = isCruzeiro ? 'cruzeiro' : 'ddm';
             try {
+                const calcToken = client === 'cruzeiro' ? (process.env.DDM_TOKEN_CRUZEIRO || this.token) : this.token;
                 const rawCalculation = await this.getWithRetry('/calc/', {
-                    tk: this.token,
+                    tk: calcToken,
                     idDev: debtorId,
                     cli: client,
                 });
                 const calculation = consolidateCalculation(rawCalculation);
                 const installmentContainer = getAny(calculation, ['ListaParcelas', 'lista_parcelas', 'parcelas']);
                 const rawInstallments = getAny(installmentContainer, ['Parcelas', 'Parcela', 'parcelas']);
-                const rows = Array.isArray(rawInstallments) ? rawInstallments : rawInstallments ? [rawInstallments] : [];
+                const rows = Array.isArray(rawInstallments) ? rawInstallments.flat(Infinity) : rawInstallments ? [rawInstallments] : [];
                 const installments = rows
                     .map((row, index) => {
-                    const amount = parseMoney(getAny(row, ['ValorParcela', 'valor_parcela', 'valor', 'ValorFinal']));
+                    if (!row || typeof row !== 'object')
+                        return null;
+                    const amount = parseMoney(getAny(row, ['ValorParcela', 'valor_parcela', 'valor', 'ValorFinal', 'ValorTotal']));
                     if (!amount || amount <= 0)
                         return null;
                     return {
@@ -175,12 +220,17 @@ class DdmDebtProvider {
                     };
                 })
                     .filter((item) => Boolean(item));
-                const cashAmount = installments[0]?.amount ?? null;
+                const cashAmount = installments[0]?.amount ?? parseMoney(getAny(calculation, ['ValorFinal', 'ValorTotal', 'valortotal', 'cashAmount'])) ?? null;
                 const institution = findFirst(calculation, ['Cliente', 'Instituicao', 'instituicao']).replace(/\bNOVO\b/gi, '').trim() || null;
                 const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
-                const hasInstallments = installments.length > 0 && Boolean(cashAmount);
+                const hasInstallments = (installments.length > 0 && Boolean(cashAmount)) || (Boolean(cashAmount) && cashAmount > 0);
+                const rawJsonStr = JSON.stringify(rawCalculation).toLowerCase();
+                const isBlocked = rawJsonStr.includes('bloqueado') || rawJsonStr.includes('operador');
                 let skipReason = null;
-                if (calculation.FechaAcordo === false) {
+                if (isBlocked) {
+                    skipReason = 'blocked_operator';
+                }
+                else if (calculation.FechaAcordo === false) {
                     const rawAcordos = Array.isArray(calculation.Acordos) ? calculation.Acordos : [];
                     const hasActiveAgreement = rawAcordos.some((a) => (Array.isArray(a) ? a.length > 0 : Boolean(a)));
                     skipReason = hasActiveAgreement ? 'already_has_agreement' : 'no_online_agreement';
@@ -205,16 +255,19 @@ class DdmDebtProvider {
                     skipReason,
                 };
                 lastResult = result;
-                // Se encontrou dívidas ativas para este devedor
+                // Se encontrou dívidas ativas para este devedor (UVA ou Cruzeiro do Sul)
                 if (result.hasDebt) {
                     const instUpper = (result.institution || '').toUpperCase();
-                    const isTargetUva = instUpper.includes('VEIGA') || instUpper.includes('ALMEIDA') || instUpper.includes('UVA');
-                    if (isTargetUva) {
-                        // Se for específico da UVA, retorna imediatamente!
+                    const isTargetInst = instUpper.includes('VEIGA') ||
+                        instUpper.includes('ALMEIDA') ||
+                        instUpper.includes('UVA') ||
+                        instUpper.includes('CRUZEIRO');
+                    if (isTargetInst) {
+                        // Se for uma das instituições alvo (UVA ou Cruzeiro do Sul), retorna imediatamente!
                         return result;
                     }
                     else {
-                        // Se for outra instituição (ex: UNISUAM), salva como fallback e continua a busca por UVA
+                        // Se for outra instituição, salva como fallback
                         if (!fallbackResult) {
                             fallbackResult = result;
                         }
@@ -228,8 +281,13 @@ class DdmDebtProvider {
         return fallbackResult || lastResult || { cpf, hasDebt: false, installments: [], raw: {}, skipReason: 'no_debt' };
     }
     async formalize(debtorId, client, installments = 1) {
+        const isCruzeiro = String(client || '').toLowerCase().includes('cruzeiro');
+        const token = isCruzeiro
+            ? (process.env.DDM_TOKEN_CRUZEIRO || this.tokenCalcula)
+            : this.tokenCalcula;
+        console.log(`[DdmDebtProvider] Efetivando acordo idDev: ${debtorId}, cli: ${client}, usando token: ${token.slice(0, 8)}...`);
         const data = await this.getWithRetry('/calc/efetiva_acordo.php', {
-            tk: this.tokenCalcula,
+            tk: token,
             idDev: debtorId,
             cli: client,
             Parc: String(installments),

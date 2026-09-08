@@ -1,87 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+:root {
+  /* Laranja DDM */
+  --brand-logo: #ff5a0a;
+  --brand-primary: #d9480f;
+  --brand-hover: #b9380b;
+  --brand-soft: #fff1e8;
+  --brand-subtle: #fff7f2;
+  --brand-border: #ffd1b8;
+
+  /* Estrutura */
+  --page-background: #f6f7f9;
+  --surface: #ffffff;
+  --surface-subtle: #fafafa;
+  --surface-hover: #f8f9fb;
+
+  /* Bordas */
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+
+  /* Textos */
+  --text-primary: #18181b;
+  --text-secondary: #5f6570;
+  --text-muted: #8b92a0;
+
+  /* Estados Operacionais */
+  --success: #15803d;
+  --success-soft: #ecfdf3;
+  --warning: #b45309;
+  --warning-soft: #fff7ed;
+  --danger: #b91c1c;
+  --danger-soft: #fef2f2;
+  --info: #0369a1;
+  --info-soft: #f0f9ff;
+}
+
 @theme {
-  --color-primary: #F97316;
-  --color-primary-hover: #EA580C;
-  --color-secondary: #64748B;
-  --color-success: #22C55E;
-  --color-danger: #EF4444;
-  --color-background: #F8FAFC;
-  --color-surface: #FFFFFF;
-  --color-dark-bg: #0F172A;
-  --color-dark-surface: #1E293B;
-  --color-dark-border: #334155;
+  --color-primary: #d9480f;
+  --color-primary-hover: #b9380b;
+  --color-brand-bg: #f6f7f9;
+  --color-brand-sidebar: #ffffff;
+  --color-brand-surface: #ffffff;
+  --color-brand-elevated: #ffffff;
+  --color-brand-hover: #f8f9fb;
+  --color-brand-border: #e5e7eb;
+  --color-text-main: #18181b;
+  --color-text-sub: #5f6570;
+  --color-text-muted: #8b92a0;
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-danger: #b91c1c;
+  --color-info: #0369a1;
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background-color: #0B0F19;
-  background-image: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #090d16 100%);
-  background-attachment: fixed;
-  color: #F8FAFC;
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  background-color: #f6f7f9;
+  color: #18181b;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Classes */
-.bg-glass {
-  background: rgba(20, 27, 45, 0.45);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+/* DDM Light Operations - Card & Surface Tokens com Motion e Hover Laranja DDM */
+.card-surface, .card-elevated {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.border-glass {
-  border: 1px solid rgba(255, 255, 255, 0.07);
+.card-surface:hover, .card-elevated:hover, .card-hover:hover {
+  border-color: #d9480f;
+  box-shadow: 0 4px 14px -2px rgba(217, 72, 15, 0.14);
+  transform: translateY(-2px);
 }
 
-.bg-glass-hover:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 87, 6, 0.3);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 87, 6, 0.05);
+.btn-primary {
+  background-color: #d9480f;
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: background-color 0.15s ease;
 }
 
-/* Pulsing indicators for active calls */
-.indicator-glow {
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.8), 0 0 20px rgba(34, 197, 94, 0.4);
+.btn-primary:hover {
+  background-color: #b9380b;
 }
 
-.indicator-glow-orange {
-  box-shadow: 0 0 8px rgba(249, 115, 22, 0.8), 0 0 20px rgba(249, 115, 22, 0.4);
+.input-field {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #18181b;
+  font-size: 14px;
 }
 
-/* Scrollbars */
+.input-field:focus {
+  border-color: #d9480f;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(217, 72, 15, 0.14);
+}
+
+/* Skeleton Loading Animation */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.skeleton {
+  background-color: #e5e7eb;
+  border-radius: 8px;
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+/* Scrollbar Style */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1); 
+  background: #f6f7f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155; 
+  background: #d1d5db;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569; 
+  background: #9ca3af;
 }
 
-/* Custom Gradients */
-.text-gradient {
-  background: linear-gradient(135deg, #FFF 30%, #F97316 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
+/* Micro-interactions */
 .btn-click {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.btn-click:active {
-  transform: scale(0.96);
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
-
-.animate-pulse-slow {
-  animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-

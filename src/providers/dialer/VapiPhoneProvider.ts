@@ -44,11 +44,20 @@ export class VapiPhoneProvider implements DialerProvider {
     if (input.firstMessage?.trim()) {
       overrides.firstMessage = input.firstMessage.trim();
       overrides.firstMessageMode = 'assistant-speaks-first';
-      overrides.silenceTimeoutSeconds = 12;
+      overrides.silenceTimeoutSeconds = 20;
       overrides.maxDurationSeconds = 600;
     }
     if (input.variableValues && Object.keys(input.variableValues).length > 0) {
       overrides.variableValues = input.variableValues;
+    }
+
+    const webhookUrl = process.env.VAPI_WEBHOOK_URL ||
+      (process.env.APP_BASE_URL ? `${process.env.APP_BASE_URL}/api/v2/vapi/webhook` :
+      (process.env.NODE_ENV === 'staging' ? 'https://hmlvapi.grupoddm.ia.br/api/v2/vapi/webhook' : undefined));
+
+    if (webhookUrl) {
+      overrides.serverUrl = webhookUrl;
+      overrides.server = { url: webhookUrl, timeoutSeconds: 20 };
     }
 
     const payload: Record<string, unknown> = {
@@ -57,6 +66,10 @@ export class VapiPhoneProvider implements DialerProvider {
       customer,
       metadata: input.metadata,
     };
+
+    if (webhookUrl) {
+      payload.serverUrl = webhookUrl;
+    }
 
     if (Object.keys(overrides).length > 0) {
       payload.assistantOverrides = overrides;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   BarChart3,
   FileText,
@@ -15,9 +15,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  HelpCircle,
   Settings as SettingsIcon,
-  ChevronRight,
   Filter,
   Download,
   X,
@@ -27,6 +25,11 @@ import {
   Clock,
   Award,
   Calendar,
+  Menu,
+  Eye,
+  Zap,
+  ShieldCheck,
+  Layers,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -42,6 +45,14 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { prepareImportFile } from './lib/importFile';
+import { ThreeBackground } from './components/ThreeBackground';
+import { MetricCard } from './components/ui/MetricCard';
+import { FilterBar } from './components/ui/FilterBar';
+import { EmptyState } from './components/ui/EmptyState';
+import { ErrorState } from './components/ui/ErrorState';
+import { LiveClock } from './components/ui/LiveClock';
+import { Drawer } from './components/ui/Drawer';
+import { gsap } from 'gsap';
 import './index.css';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -122,9 +133,12 @@ type CallRow = {
   metadata?: Record<string, any> | null;
 };
 
+type AssistantItem = { id: string; name: string; institution?: string };
+
 type VapiConfig = {
   operation: string;
   assistant: { id: string; name: string };
+  assistants?: AssistantItem[];
   phoneNumber: { id: string; number: string };
 };
 
@@ -140,8 +154,8 @@ function StatusBadge({ status }: { status: string }) {
   
   if (normalized === 'running') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#ECFDF3] px-2.5 py-1 text-[11px] font-bold text-[#15803D] border border-[#DCFCE7]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#15803D]"></span>
         Ativa
       </span>
     );
@@ -149,8 +163,8 @@ function StatusBadge({ status }: { status: string }) {
   
   if (normalized === 'paused') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-400 border border-amber-500/20">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-400"></span>
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FFF7ED] px-2.5 py-1 text-[11px] font-bold text-[#B45309] border border-[#FED7AA]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#B45309]"></span>
         Pausada
       </span>
     );
@@ -158,8 +172,8 @@ function StatusBadge({ status }: { status: string }) {
 
   if (normalized === 'completed') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-400 border border-blue-500/20">
-        <span className="h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#F0F9FF] px-2.5 py-1 text-[11px] font-bold text-[#0369A1] border border-[#BAE6FD]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#0369A1]"></span>
         Concluída
       </span>
     );
@@ -167,8 +181,8 @@ function StatusBadge({ status }: { status: string }) {
 
   if (normalized === 'failed') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-semibold text-rose-400 border border-rose-500/20">
-        <span className="h-1.5 w-1.5 rounded-full bg-rose-400"></span>
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FEF2F2] px-2.5 py-1 text-[11px] font-bold text-[#B91C1C] border border-[#FCA5A5]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#B91C1C]"></span>
         Falhou
       </span>
     );
@@ -176,8 +190,8 @@ function StatusBadge({ status }: { status: string }) {
 
   if (normalized === 'queued' || normalized === 'in_progress' || normalized === 'answered') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-400 border border-violet-500/20">
-        <span className="h-1.5 w-1.5 rounded-full bg-violet-400 animate-pulse"></span>
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-violet-500/10 px-2.5 py-1 text-[11px] font-semibold text-violet-400 border border-violet-500/20">
+        <span className="h-1.5 w-1.5 rounded-full bg-violet-400"></span>
         Em Linha
       </span>
     );
@@ -185,7 +199,7 @@ function StatusBadge({ status }: { status: string }) {
 
   if (normalized === 'skipped') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-500/10 px-2.5 py-0.5 text-xs font-semibold text-slate-400 border border-slate-500/20">
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-400 border border-slate-700">
         <span className="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
         Pulado
       </span>
@@ -193,7 +207,7 @@ function StatusBadge({ status }: { status: string }) {
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-500/10 px-2.5 py-0.5 text-xs font-semibold text-slate-300 border border-slate-500/20">
+    <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-300 border border-slate-700">
       <span className="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
       {status}
     </span>
@@ -201,6 +215,12 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function Campaigns() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const isCampaignRoute = location.pathname.startsWith('/campanhas');
+
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -216,6 +236,7 @@ function Campaigns() {
   const [terminatingCallId, setTerminatingCallId] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [period, setPeriod] = useState<string>('all');
 
   async function terminateCall(providerCallId: string, event: React.MouseEvent) {
     event.stopPropagation(); // Prevent opening modal
@@ -390,6 +411,21 @@ function Campaigns() {
     }
   }, [selectedId, decisionFilter, callsPage, searchQuery]);
 
+  // Sincroniza a campanha selecionada via URL (/campanhas?id=X)
+  useEffect(() => {
+    const urlId = searchParams.get('id');
+    if (urlId) {
+      const parsedId = Number(urlId);
+      if (!isNaN(parsedId) && parsedId !== selectedId) {
+        setSelectedId(parsedId);
+      }
+    } else if (isCampaignRoute && !selectedId && campaigns.length > 0) {
+      setSelectedId(campaigns[0].id);
+    } else if (!isCampaignRoute && selectedId !== null) {
+      setSelectedId(null);
+    }
+  }, [searchParams, isCampaignRoute, campaigns, selectedId]);
+
   const selectedCampaign = campaigns.find(c => c.id === selectedId);
 
   // Helper para formatar segundos em mm:ss
@@ -462,10 +498,10 @@ function Campaigns() {
   // Agregações de chamadas para gráficos
   const chartStatusData = useMemo(() => {
     return [
-      { name: 'Pendente', value: stats.pending, color: '#6366F1' },     // Indigo
-      { name: 'Em Linha', value: stats.active, color: '#A855F7' },      // Violet
-      { name: 'Concluído', value: stats.completed, color: '#22C55E' },   // Green
-      { name: 'Falhado', value: stats.failed, color: '#EF4444' },       // Rose
+      { name: 'Pendente', value: stats.pending, color: '#8B92A0' },     // Gray
+      { name: 'Em Linha', value: stats.active, color: '#D9480F' },      // Orange DDM
+      { name: 'Concluído', value: stats.completed, color: '#15803D' },   // Green
+      { name: 'Falhado', value: stats.failed, color: '#B91C1C' },       // Red
     ].filter(item => item.value > 0);
   }, [stats]);
 
@@ -483,10 +519,10 @@ function Campaigns() {
     );
 
     return [
-      { name: 'Formalizado', value: decisions.formalize || 0, color: '#FF5706' }, // Orange DDM
-      { name: 'Agendado', value: decisions.schedule || 0, color: '#F59E0B' },     // Amber
-      { name: 'Sem Acordo', value: decisions.zero || 0, color: '#EF4444' },       // Rose
-      { name: 'Pendente/Outros', value: decisions.no_decision || 0, color: '#64748B' }, // Slate
+      { name: 'Formalizado', value: decisions.formalize || 0, color: '#15803D' }, // Green
+      { name: 'Agendado', value: decisions.schedule || 0, color: '#B45309' },     // Amber/Yellow
+      { name: 'Sem Acordo', value: decisions.zero || 0, color: '#5F6570' },       // Gray
+      { name: 'Pendente/Outros', value: decisions.no_decision || 0, color: '#8B92A0' }, // Gray
     ].filter(item => item.value > 0);
   }, [selectedId, calls]);
 
@@ -496,7 +532,7 @@ function Campaigns() {
     if (decisionFilter === 'active') return calls.filter(c => ['reserved', 'queued', 'in_progress', 'answered'].includes(c.status));
     if (decisionFilter === 'pending') return calls.filter(c => !c.decision && c.status !== 'completed' && !['reserved', 'queued', 'in_progress', 'answered'].includes(c.status));
     if (decisionFilter === 'answered') return calls.filter(c => (c.duration_seconds && c.duration_seconds > 0) || c.status === 'answered');
-    if (decisionFilter === 'no_debt') return calls.filter(c => c.status === 'skipped' && c.last_error === 'no_debt');
+    if (decisionFilter === 'no_debt') return calls.filter(c => c.status === 'skipped' || c.last_error === 'no_debt' || c.last_error === 'already_has_agreement');
     return calls.filter(c => c.decision === decisionFilter);
   }, [calls, decisionFilter]);
 
@@ -540,16 +576,27 @@ function Campaigns() {
     }));
   }, [campaigns]);
 
-  const [now, setNow] = useState(new Date());
+  // Funil de Conversão Operacional do Planejamento
+  const funnelData = useMemo(() => {
+    return [
+      { etapa: 'Base Importada', valor: stats.leads, fill: '#8B92A0' },
+      { etapa: 'Discados', valor: stats.calls, fill: '#0369A1' },
+      { etapa: 'Atendidos (Alô)', valor: stats.answered, fill: '#15803D' },
+      { etapa: 'Formalizados', valor: stats.formalized, fill: '#D9480F' },
+    ];
+  }, [stats]);
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    gsap.fromTo(
+      '.gsap-card',
+      { opacity: 0, y: 20, scale: 0.95 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.06, ease: 'power2.out' }
+    );
+  }, [selectedId, campaigns.length]);
 
-  const getRelativeTime = (lastDate: Date | null, currentDate: Date) => {
+  const getRelativeTime = (lastDate: Date | null) => {
     if (!lastDate) return 'Aguardando sincronismo...';
-    const diffSec = Math.max(0, Math.floor((currentDate.getTime() - lastDate.getTime()) / 1000));
+    const diffSec = Math.max(0, Math.floor((Date.now() - lastDate.getTime()) / 1000));
     if (diffSec < 5) return 'Sincronizado agora mesmo';
     if (diffSec < 60) return `Sincronizado há ${diffSec}s atrás`;
     const diffMin = Math.floor(diffSec / 60);
@@ -558,253 +605,772 @@ function Campaigns() {
     return `Sincronizado há ${diffHours}h atrás`;
   };
 
+  // Rota /campanhas -> Renderiza a aba operacional "Campanhas & Disparador"
+  if (isCampaignRoute) {
+    return (
+      <div className="space-y-5">
+        {/* Header da Aba Campanhas & Disparador */}
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)]">
+          <div>
+            <h2 className="text-xl font-extrabold text-[#18181B] flex items-center gap-2">
+              <Play size={20} className="text-[#D9480F]" />
+              Campanhas & Disparador
+            </h2>
+            <p className="text-xs text-[#5F6570]">Gestão de lotes de cobrança, disparador automático Vapi e fila de contatos</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {campaigns.length > 0 && (
+              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#E5E7EB] shadow-xs">
+                <span className="text-xs text-[#5F6570] font-medium hidden sm:inline">Campanha:</span>
+                <select
+                  value={selectedId || ''}
+                  onChange={(e) => setSelectedId(Number(e.target.value))}
+                  className="bg-transparent text-[#18181B] text-xs font-semibold focus:outline-none cursor-pointer"
+                >
+                  {campaigns.map((c) => (
+                    <option key={c.id} value={c.id} className="bg-white text-[#18181B]">
+                      #{c.id} - {c.name} ({Number(c.total_leads || 0).toLocaleString('pt-BR')} CPFs)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="btn-click inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#D9480F] hover:bg-[#B9380B] text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
+            >
+              <Plus size={15} />
+              Nova Campanha
+            </button>
+          </div>
+        </div>
+
+        {/* Tabela de Controle Operacional de Campanhas */}
+        <div className="rounded-xl bg-white overflow-hidden border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)]">
+          <div className="border-b border-[#E5E7EB] bg-[#FAFAFA] px-5 py-3.5 flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B]">Lotes de Disparo</h3>
+            <span className="text-xs text-[#5F6570] font-medium">{campaigns.length} campanhas cadastradas</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-[#FAFAFA] text-[11px] font-bold uppercase tracking-wider text-[#5F6570] border-b border-[#E5E7EB]">
+                <tr>
+                  {['Campanha', 'Status', 'CPFs', 'Discados', 'Atendidos (Alô)', 'Cobraram (Acordos)', 'Agendados', 'Sem Débito / Ignorados', 'Falhas', 'Ações Operacionais'].map((header) => (
+                    <th key={header} className="px-4 py-3">{header}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E5E7EB] text-xs text-[#18181B]">
+                {campaigns.map((campaign) => {
+                  const deleteBlocked = campaign.status === 'running' || Number(campaign.active_calls || 0) > 0;
+                  const isSelected = selectedId === campaign.id;
+
+                  return (
+                    <tr
+                      key={campaign.id}
+                      className={`hover:bg-[#FFF7F2] transition-colors ${isSelected ? 'bg-[#FFF1E8]/60 border-l-[3px] border-[#D9480F]' : ''}`}
+                    >
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg border transition-colors ${isSelected ? 'bg-[#FFF1E8] text-[#B9380B] border-[#FFD1B8]' : 'bg-[#FAFAFA] text-[#5F6570] border-[#E5E7EB]'}`}>
+                            <Layers size={15} />
+                          </div>
+                          <div>
+                            <button
+                              onClick={() => setSelectedId(campaign.id)}
+                              className="font-bold text-[#18181B] hover:text-[#D9480F] transition-colors text-left block text-xs"
+                            >
+                              {campaign.name}
+                            </button>
+                            <p className="text-[11px] text-[#5F6570] mt-0.5">
+                              {Number(campaign.total_leads || 0).toLocaleString('pt-BR')} CPFs • {Number(campaign.total_calls || 0).toLocaleString('pt-BR')} números
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5"><StatusBadge status={campaign.status} /></td>
+                      <td className="px-4 py-3.5 font-medium text-[#18181B]">{Number(campaign.total_leads || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-medium text-[#0369A1]">{Number(campaign.total_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-semibold text-[#15803D]">{Number(campaign.answered_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-extrabold text-[#D9480F] bg-[#FFF1E8]/40">{Number(campaign.formalized_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-semibold text-[#B45309]">{Number(campaign.scheduled_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-medium text-[#5F6570]">{Number(campaign.skipped_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-medium text-[#B91C1C]">{Number(campaign.failed_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-1.5">
+                          {campaign.status !== 'running' ? (
+                            <button
+                              type="button"
+                              title="Iniciar campanha"
+                              aria-label={`Iniciar campanha ${campaign.name}`}
+                              onClick={() => void changeStatus(campaign.id, 'running')}
+                              className="btn-click rounded-lg bg-[#ECFDF3] hover:bg-[#DCFCE7] p-1.5 text-[#15803D] border border-[#DCFCE7]"
+                            >
+                              <Play size={14} />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              title="Pausar campanha"
+                              aria-label={`Pausar campanha ${campaign.name}`}
+                              onClick={() => void changeStatus(campaign.id, 'paused')}
+                              className="btn-click rounded-lg bg-[#FFF7ED] hover:bg-[#FED7AA] p-1.5 text-[#B45309] border border-[#FED7AA]"
+                            >
+                              <Pause size={14} />
+                            </button>
+                          )}
+
+                          <label
+                            title="Importar contatos (CSV / Excel)"
+                            aria-label={`Importar contatos para ${campaign.name}`}
+                            className="btn-click cursor-pointer rounded-lg bg-[#FAFAFA] border border-[#E5E7EB] hover:bg-[#E5E7EB] p-1.5 text-[#5F6570]"
+                          >
+                            <UploadCloud size={14} />
+                            <input
+                              className="hidden"
+                              type="file"
+                              accept=".csv,.xlsx,.xls"
+                              onChange={(event) => void importFile(campaign.id, event.target.files?.[0])}
+                            />
+                          </label>
+
+                          <button
+                            type="button"
+                            title="Ver Fila de Contatos"
+                            onClick={() => setSelectedId(campaign.id)}
+                            className={`btn-click rounded-lg px-2.5 py-1 border text-xs font-semibold flex items-center gap-1 transition-colors ${
+                              isSelected
+                                ? 'bg-[#D9480F] text-white border-[#D9480F]'
+                                : 'bg-[#FFF1E8] text-[#B9380B] border-[#FFD1B8] hover:bg-[#FFD1B8]'
+                            }`}
+                          >
+                            <Eye size={13} />
+                            <span className="hidden sm:inline">Ver Fila</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            title="Editar configurações"
+                            onClick={() => setEditingCampaign(campaign)}
+                            className="btn-click rounded-lg bg-[#F0F9FF] hover:bg-[#BAE6FD] p-1.5 text-[#0369A1] border border-[#BAE6FD]"
+                          >
+                            <SettingsIcon size={14} />
+                          </button>
+
+                          <button
+                            type="button"
+                            title={deleteBlocked ? 'Pause a campanha para excluir' : 'Excluir campanha'}
+                            disabled={deleteBlocked || deletingId === campaign.id}
+                            onClick={() => void deleteCampaign(campaign)}
+                            className="btn-click rounded-lg bg-[#FEF2F2] hover:bg-[#FCA5A5]/30 p-1.5 text-[#B91C1C] border border-[#FCA5A5] disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {!campaigns.length && (
+                  <tr>
+                    <td colSpan={8} className="p-4">
+                      <EmptyState
+                        title="Nenhuma campanha cadastrada"
+                        description="Crie uma nova campanha para iniciar o disparo automatizado."
+                        actionLabel="Nova Campanha"
+                        onAction={() => setShowCreate(true)}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Visão de Contatos da Campanha Selecionada */}
+        {selectedCampaign && (
+          <div className="rounded-xl bg-white p-5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E7EB] pb-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="space-y-1">
+                  <span className="text-[11px] text-[#5F6570] font-bold uppercase tracking-wider block">Fila da Campanha Selecionada</span>
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#E5E7EB]">
+                    <Layers size={15} className="text-[#D9480F]" />
+                    <select
+                      value={selectedId || ''}
+                      onChange={(e) => setSelectedId(Number(e.target.value))}
+                      className="bg-transparent text-[#18181B] text-xs font-semibold focus:outline-none cursor-pointer pr-2"
+                    >
+                      {campaigns.map((c) => (
+                        <option key={c.id} value={c.id} className="bg-white text-[#18181B] font-normal">
+                          Campanha #{c.id}: {c.name} ({Number(c.total_leads || 0).toLocaleString('pt-BR')} CPFs)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <StatusBadge status={selectedCampaign.status} />
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => void loadCalls(selectedCampaign.id, callsPage)}
+                  className="btn-click flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-semibold text-[#5F6570] hover:bg-[#FAFAFA] hover:text-[#18181B] shadow-xs"
+                >
+                  <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+                  Atualizar Fila
+                </button>
+              </div>
+            </div>
+
+            {/* 7 Metric Cards Detalhadas da Campanha */}
+            <div className="w-full grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Base CPFs</span>
+                <p className="text-base font-bold text-[#18181B] mt-0.5">{Number(selectedCampaign.total_leads || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Discados</span>
+                <p className="text-base font-bold text-[#0369A1] mt-0.5">{Number(selectedCampaign.total_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Atendidos</span>
+                <p className="text-base font-bold text-[#15803D] mt-0.5">{Number(selectedCampaign.answered_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-lg bg-[#FFF1E8] p-3 border border-[#FFD1B8]">
+                <span className="text-[11px] text-[#B9380B] font-bold uppercase tracking-wider block">Cobraram (Acordo)</span>
+                <p className="text-base font-extrabold text-[#D9480F] mt-0.5">{Number(selectedCampaign.formalized_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Agendados</span>
+                <p className="text-base font-bold text-[#B45309] mt-0.5">{Number(selectedCampaign.scheduled_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Sem Débito / Ignorados</span>
+                <p className="text-base font-bold text-[#5F6570] mt-0.5">{Number(selectedCampaign.skipped_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Falhas</span>
+                <p className="text-base font-bold text-[#B91C1C] mt-0.5">{Number(selectedCampaign.failed_calls || 0).toLocaleString('pt-BR')}</p>
+              </div>
+            </div>
+
+            {/* Gráfico de Decisões da Campanha Selecionada */}
+            {selectedCampaignDecisions.length > 0 && (
+              <div className="w-full rounded-lg bg-[#FAFAFA] p-4 border border-[#E5E7EB] flex flex-col md:flex-row items-center justify-between gap-4 my-2">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
+                    <Activity size={14} className="text-[#D9480F]" />
+                    Classificação de Decisões do Acordo (IA)
+                  </h4>
+                  <p className="text-xs text-[#5F6570]">Distribuição em tempo real das intenções dos contatos desta campanha</p>
+                </div>
+                <div className="h-40 w-full md:w-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={selectedCampaignDecisions}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={60}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {selectedCampaignDecisions.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderRadius: '8px', color: '#18181B', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.06)' }}
+                        itemStyle={{ color: '#18181B' }}
+                      />
+                      <Legend verticalAlign="bottom" height={28} iconType="circle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Filtros e Tabela de Contatos */}
+            <div className="space-y-3 pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#E5E7EB] shadow-xs">
+                  <input
+                    type="text"
+                    placeholder="Buscar CPF, Telefone ou Nome..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setCallsPage(1);
+                        setSearchQuery(searchInput);
+                      }
+                    }}
+                    className="bg-transparent text-xs text-[#18181B] placeholder-[#8B92A0] focus:outline-none w-48 sm:w-60"
+                  />
+                  {searchInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchInput('');
+                        setCallsPage(1);
+                        setSearchQuery('');
+                      }}
+                      className="text-[10px] text-[#5F6570] hover:text-[#18181B] bg-[#FAFAFA] border border-[#E5E7EB] px-1.5 py-0.5 rounded"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-[#5F6570] font-semibold flex items-center gap-1">
+                    <Filter size={12} className="text-[#D9480F]" />
+                    Filtrar:
+                  </span>
+                  {[
+                    { label: 'Todos', value: 'all' },
+                    { label: 'Em Linha', value: 'active' },
+                    { label: 'Formalizado', value: 'formalize' },
+                    { label: 'Agendado', value: 'schedule' },
+                    { label: 'Atendidas', value: 'answered' },
+                    { label: 'Sem Acordo', value: 'zero' },
+                    { label: 'Sem Débito', value: 'no_debt' },
+                    { label: 'Pendente', value: 'pending' },
+                  ].map(f => (
+                    <button
+                      key={f.value}
+                      type="button"
+                      onClick={() => {
+                        setCallsPage(1);
+                        setDecisionFilter(f.value);
+                      }}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-medium border transition-colors ${
+                        decisionFilter === f.value
+                          ? 'bg-[#FFF1E8] text-[#B9380B] border-[#FFD1B8] font-bold'
+                          : 'bg-white text-[#5F6570] border-[#E5E7EB] hover:bg-[#F8F9FB] hover:text-[#18181B]'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    disabled={exporting}
+                    onClick={exportToCsv}
+                    className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-[#DCFCE7] bg-[#ECFDF3] text-[#15803D] hover:bg-[#DCFCE7] transition-colors flex items-center gap-1.5 ml-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                  >
+                    <Download size={12} className={exporting ? 'animate-spin' : ''} />
+                    {exporting ? 'Exportando...' : 'Exportar CSV'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabela de Contatos */}
+              <div className="overflow-x-auto rounded-xl border border-[#E5E7EB]">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-[#FAFAFA] text-[11px] font-bold uppercase tracking-wider text-[#5F6570] border-b border-[#E5E7EB]">
+                    <tr>
+                      {['Telefone', 'CPF', 'Status', 'Tentativas', 'Acordo / Decisão', 'Última Atualização', 'Ações'].map((header) => (
+                        <th key={header} className="px-5 py-3">{header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E5E7EB] text-xs text-[#18181B]">
+                    {filteredCalls.map((call) => (
+                      <tr
+                        key={call.id}
+                        onClick={() => setSelectedCall(call)}
+                        className="hover:bg-[#FFF7F2] cursor-pointer transition-colors"
+                      >
+                        <td className="px-5 py-3 font-bold text-[#18181B]">{call.customer_number}</td>
+                        <td className="px-5 py-3 text-[#5F6570] font-mono">{call.cpf || '-'}</td>
+                        <td className="px-5 py-3"><StatusBadge status={call.status} /></td>
+                        <td className="px-5 py-3">
+                          <span className="inline-flex items-center justify-center rounded bg-[#FAFAFA] px-2 py-0.5 text-xs font-semibold text-[#5F6570] border border-[#E5E7EB]">
+                            {call.attempts} / 5
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 font-semibold">
+                          {call.decision === 'formalize' && (
+                            <span className="text-[#15803D] flex items-center gap-1 font-bold">
+                              <CheckCircle2 size={13} /> Formalizado
+                            </span>
+                          )}
+                          {call.decision === 'schedule' && (
+                            <span className="text-[#B45309] flex items-center gap-1 font-bold">
+                              <AlertCircle size={13} /> Reagendado
+                            </span>
+                          )}
+                          {call.decision === 'zero' && (
+                            <span className="text-[#B91C1C] flex items-center gap-1 font-bold">
+                              <XCircle size={13} />
+                              {call.ended_reason === 'voicemail' 
+                                ? 'Caixa Postal' 
+                                : (!call.duration_seconds || call.duration_seconds === 0
+                                    ? 'Não Atendido'
+                                    : (call.duration_seconds <= 30 
+                                        ? 'Atendeu e Desligou' 
+                                        : 'Recusado/Sem Acordo'))}
+                            </span>
+                          )}
+                          {call.status === 'skipped' ? (
+                            <span className="text-[#5F6570] font-normal flex items-center gap-1">
+                              <X size={13} className="text-[#8B92A0]" />
+                              {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado`}
+                              {call.last_error === 'no_online_agreement' && `Acordo online não permitido`}
+                              {call.last_error === 'blocked_operator' && `Bloqueado na DDM (Transferir p/ operador)`}
+                              {call.last_error === 'no_debt' && 'Sem débito em aberto'}
+                              {call.last_error === 'cpf_missing' && 'CPF ausente'}
+                              {!['already_has_agreement', 'no_online_agreement', 'blocked_operator', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
+                            </span>
+                          ) : (
+                            !call.decision && (
+                              <span className="text-[#8B92A0] font-normal">Aguardando</span>
+                            )
+                          )}
+                        </td>
+                        <td className="px-5 py-3 text-[#5F6570] text-xs">
+                          {call.updated_at ? new Date(call.updated_at).toLocaleString('pt-BR') : '-'}
+                        </td>
+                        <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
+                          {['reserved', 'queued', 'in_progress', 'answered'].includes(call.status) && call.provider_call_id ? (
+                            <button
+                              type="button"
+                              title="Desligar chamada"
+                              disabled={!!terminatingCallId}
+                              onClick={(event) => void terminateCall(call.provider_call_id!, event)}
+                              className="btn-click rounded bg-[#FEF2F2] hover:bg-[#FCA5A5]/30 p-1 text-[#B91C1C] border border-[#FCA5A5] disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <PhoneOff size={13} className={terminatingCallId === call.provider_call_id ? 'animate-pulse' : ''} />
+                            </button>
+                          ) : (
+                            <span className="text-[#8B92A0] text-xs">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {!filteredCalls.length && (
+                      <tr>
+                        <td colSpan={7} className="p-4">
+                          <EmptyState
+                            title="Nenhum contato encontrado"
+                            description="Tente alterar os filtros de busca para encontrar o contato desejado."
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Criar/Editar e Detalhes */}
+        {showCreate && (
+          <CreateCampaign onClose={() => setShowCreate(false)} onCreated={() => load()} />
+        )}
+
+        {editingCampaign && (
+          <CreateCampaign campaign={editingCampaign} onClose={() => setEditingCampaign(null)} onCreated={() => load()} />
+        )}
+
+        {selectedCall && (
+          <CallDetailsModal call={selectedCall} onClose={() => setSelectedCall(null)} />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Top Banner de Monitoramento */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-glass border-glass p-6 shadow-2xl">
-        <div className="space-y-2">
-          <h2 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
-            Dashboard
-            <span className="text-gradient">DDM Call Center</span>
+    <div className="space-y-5">
+      {/* Header Compacto da Operação */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)]">
+        <div className="space-y-1">
+          <h2 className="text-xl font-extrabold text-[#18181B] flex items-center gap-2">
+            Painel Geral — <span className="text-[#FF5A0A]">Grupo DDM</span>
           </h2>
-          <p className="text-slate-400 text-sm">Operação automatizada de acordos e discagem via Vapi</p>
-          
+          <p className="text-[#5F6570] text-xs font-normal">Métricas analíticas consolidadas da operação e disparador Vapi</p>
+
           <div className="flex flex-wrap items-center gap-3 text-xs pt-1">
-            <div className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-emerald-400 font-medium">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Tempo Real</span>
-              <span className="text-slate-400 font-mono text-[11px] ml-1">[{now.toLocaleTimeString('pt-BR')}]</span>
+            <div className="flex items-center gap-1.5 rounded-full bg-[#ECFDF3] border border-[#DCFCE7] px-2.5 py-0.5 text-[#15803D] font-semibold">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#15803D]"></span>
+              <span>Tempo Real:</span>
+              <LiveClock />
             </div>
 
             {lastUpdatedAt && (
-              <p className="text-slate-400 flex items-center gap-1.5 font-medium">
-                <RefreshCw size={12} className="text-slate-500" />
-                {getRelativeTime(lastUpdatedAt, now)}
+              <p className="text-[#5F6570] flex items-center gap-1.5 font-medium text-xs">
+                <RefreshCw size={12} className="text-[#8B92A0]" />
+                {getRelativeTime(lastUpdatedAt)}
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             disabled={loading}
             onClick={() => void load()}
-            className="btn-click flex items-center gap-2 rounded-xl border border-glass bg-slate-800/40 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="btn-click flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-semibold text-[#5F6570] hover:bg-[#FAFAFA] hover:text-[#18181B] disabled:opacity-50 shadow-xs"
           >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             {loading ? 'Sincronizando...' : 'Sincronizar'}
           </button>
 
           <a
             href="/modelo_importacao.csv"
             download="modelo_importacao.csv"
-            className="btn-click flex items-center gap-2 rounded-xl border border-glass bg-slate-800/40 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800"
+            className="btn-click flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-semibold text-[#5F6570] hover:bg-[#FAFAFA] hover:text-[#18181B] shadow-xs"
           >
-            <Download size={16} />
+            <Download size={13} />
             Planilha Modelo
           </a>
 
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="btn-click flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary-hover shadow-lg shadow-primary/20"
+          <Link
+            to="/campanhas"
+            className="btn-click flex items-center gap-1.5 rounded-lg bg-[#D9480F] hover:bg-[#B9380B] px-3.5 py-2 text-xs font-semibold text-white transition-colors shadow-xs"
           >
-            <Plus size={16} />
-            Nova Campanha
-          </button>
+            <Play size={14} />
+            Acessar Disparador
+          </Link>
         </div>
       </div>
 
+      {/* Tratamento de Erro */}
       {error && (
-        <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-450 flex items-center gap-2">
-          <AlertCircle size={16} />
-          {error}
-        </div>
+        <ErrorState
+          title="Erro de Conexão com o Servidor"
+          message={error}
+          onRetry={() => void load()}
+        />
       )}
 
-      {/* Seletor/Indicador de Estatísticas Ativas (Dropdown de Filtro) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-glass border-glass rounded-xl px-4 py-2.5 shadow-sm gap-2">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-primary animate-pulse"></span>
-          <span className="text-xs font-semibold text-slate-300">
-            {selectedId && selectedCampaign
-              ? `Estatísticas da Campanha #${selectedId}: "${selectedCampaign.name}"`
-              : 'Estatísticas de Visão Geral (Soma de Todas as Campanhas)'}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="campaign-select" className="text-xs text-slate-400 font-medium whitespace-nowrap">
-            Selecionar Campanha:
-          </label>
-          <select
-            id="campaign-select"
-            value={selectedId ?? ''}
-            onChange={(e) => setSelectedId(e.target.value ? Number(e.target.value) : null)}
-            className="bg-slate-900/90 text-xs font-semibold text-slate-200 border border-slate-700/80 rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer max-w-[320px] truncate"
-          >
-            <option value="">Todas as Campanhas (Visão Geral)</option>
-            {campaigns.map((c) => (
-              <option key={c.id} value={c.id}>
-                #{c.id} - {c.name}
-              </option>
-            ))}
-          </select>
-          {selectedId && (
-            <button
-              type="button"
-              onClick={() => setSelectedId(null)}
-              className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-all"
-            >
-              <X size={12} />
-              Geral
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Barra de Filtros Dedicada (Etapa 2) */}
+      <FilterBar
+        selectedCampaignId={selectedId}
+        campaigns={campaigns}
+        onSelectCampaign={(id) => setSelectedId(id)}
+        period={period}
+        onSelectPeriod={(p) => setPeriod(p)}
+        statusFilter={decisionFilter}
+        onSelectStatusFilter={(s) => setDecisionFilter(s)}
+        searchInput={searchInput}
+        onSearchChange={(val) => setSearchInput(val)}
+        onClearFilters={() => {
+          setSelectedId(null);
+          setPeriod('all');
+          setDecisionFilter('all');
+          setSearchInput('');
+          setSearchQuery('');
+        }}
+        activeFiltersCount={
+          (selectedId ? 1 : 0) +
+          (period !== 'all' ? 1 : 0) +
+          (decisionFilter !== 'all' ? 1 : 0) +
+          (searchInput ? 1 : 0)
+        }
+      />
 
-      {/* Cartões de Indicadores de Performance (KPIs Principais) */}
+      {/* Cartões de Indicadores de Performance (KPIs Principais & Secundários) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          {
-            label: 'Taxa de Alô (% Atendimento)',
-            value: `${stats.pickupRate}%`,
-            description: `${stats.answered.toLocaleString('pt-BR')} chamadas atendidas`,
-            icon: PhoneCall,
-            color: 'text-emerald-400',
-            bg: 'from-emerald-500/10 to-emerald-500/2',
-          },
-          {
-            label: 'Conversão (Formalizados)',
-            value: `${stats.conversionRate}%`,
-            description: `${stats.formalized.toLocaleString('pt-BR')} acordos fechados`,
-            icon: Award,
-            color: 'text-orange-400',
-            bg: 'from-orange-500/10 to-orange-500/2',
-          },
-          {
-            label: 'Duração Média (AHT)',
-            value: stats.avgDurationFormatted,
-            description: 'tempo médio de conversa',
-            icon: Clock,
-            color: 'text-cyan-400',
-            bg: 'from-cyan-500/10 to-cyan-500/2',
-          },
-          {
-            label: 'Retornos Agendados',
-            value: stats.scheduled,
-            description: 'pedidos de rechamada',
-            icon: Calendar,
-            color: 'text-amber-400',
-            bg: 'from-amber-500/10 to-amber-500/2',
-          },
-          {
-            label: 'Total de Leads (CPFs)',
-            value: stats.leads,
-            description: `${stats.calls.toLocaleString('pt-BR')} telefones cadastrados`,
-            icon: FileText,
-            color: 'text-indigo-400',
-            bg: 'from-indigo-500/10 to-indigo-500/2',
-          },
-          {
-            label: 'Chamadas Ativas',
-            value: stats.active,
-            description: 'em linha simultaneamente',
-            icon: Activity,
-            color: 'text-emerald-400',
-            bg: 'from-emerald-500/10 to-emerald-500/2',
-            glow: stats.active > 0 ? 'indicator-glow' : '',
-            pulse: stats.active > 0,
-          },
-          {
-            label: 'Finalizados (Fila)',
-            value: stats.completed,
-            description: 'processados na fila',
-            icon: CheckCircle2,
-            color: 'text-primary',
-            bg: 'from-orange-500/10 to-orange-500/2',
-          },
-          {
-            label: 'Não Atendidos / Erros',
-            value: stats.failed,
-            description: 'falhas ou indisponíveis',
-            icon: XCircle,
-            color: 'text-rose-400',
-            bg: 'from-rose-500/10 to-rose-500/2',
-          },
-        ].map((item, idx) => (
-          <div
-            key={idx}
-            className={`relative overflow-hidden rounded-2xl bg-glass border-glass p-6 bg-gradient-to-br ${item.bg} flex items-center justify-between transition-all duration-300 bg-glass-hover`}
-          >
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{item.label}</p>
-              <div className="flex items-center gap-2">
-                <p className="text-3xl font-extrabold text-white">{item.value}</p>
-                {item.pulse && (
-                  <span className="flex h-3 w-3 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className={`relative inline-flex rounded-full h-3 w-3 bg-emerald-500 ${item.glow}`}></span>
-                  </span>
-                )}
-              </div>
-              {'description' in item && item.description && (
-                <p className="text-[11px] text-slate-400 font-medium">{item.description}</p>
-              )}
-            </div>
-            <div className={`p-3 rounded-xl bg-slate-900/40 border border-glass ${item.color}`}>
-              <item.icon size={24} />
-            </div>
-          </div>
-        ))}
+        {/* Prioridade 1 */}
+        <MetricCard
+          title="Taxa de Alô (% Atendimento)"
+          value={`${stats.pickupRate}%`}
+          description={`${stats.answered.toLocaleString('pt-BR')} chamadas atendidas`}
+          trend={`${stats.answered.toLocaleString('pt-BR')} atendidas hoje`}
+          trendType="positive"
+          icon={PhoneCall}
+          priority={1}
+          loading={loading}
+        />
+        <MetricCard
+          title="Conversão (Formalizados)"
+          value={`${stats.conversionRate}%`}
+          description={`${stats.formalized.toLocaleString('pt-BR')} acordos fechados`}
+          trend={`${stats.formalized.toLocaleString('pt-BR')} acordos fechados`}
+          trendType="positive"
+          icon={Award}
+          priority={1}
+          loading={loading}
+        />
+        <MetricCard
+          title="Chamadas Ativas"
+          value={stats.active}
+          description="em linha simultaneamente"
+          trend="Operação em tempo real"
+          trendType="neutral"
+          icon={Activity}
+          pulse={stats.active > 0}
+          loading={loading}
+        />
+        <MetricCard
+          title="Finalizados (Fila)"
+          value={stats.completed}
+          description="processados na fila"
+          trend={`${stats.completed.toLocaleString('pt-BR')} processados`}
+          trendType="positive"
+          icon={CheckCircle2}
+          priority={1}
+          loading={loading}
+        />
+
+        {/* Prioridade 2 */}
+        <MetricCard
+          title="Duração Média (AHT)"
+          value={stats.avgDurationFormatted}
+          description="tempo médio de conversa"
+          trend="02m 14s média ideal"
+          trendType="neutral"
+          icon={Clock}
+          priority={2}
+          loading={loading}
+        />
+        <MetricCard
+          title="Retornos Agendados"
+          value={stats.scheduled}
+          description="pedidos de rechamada"
+          trend={`${stats.scheduled} agendamentos`}
+          trendType="neutral"
+          icon={Calendar}
+          priority={2}
+          loading={loading}
+        />
+        <MetricCard
+          title="Não Atendidos / Erros"
+          value={stats.failed}
+          description="falhas ou indisponíveis"
+          trend={`${stats.failed} falhas registradas`}
+          trendType={stats.failed > 0 ? 'negative' : 'neutral'}
+          icon={XCircle}
+          priority={2}
+          loading={loading}
+        />
+        <MetricCard
+          title="Total de Leads (CPFs)"
+          value={stats.leads}
+          description={`${stats.calls.toLocaleString('pt-BR')} telefones cadastrados`}
+          trend={`${stats.calls.toLocaleString('pt-BR')} fones na base`}
+          trendType="neutral"
+          icon={FileText}
+          priority={2}
+          loading={loading}
+        />
       </div>
 
-      {/* Seção de Gráficos Analíticos */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Gráfico 1: Status de Fila Geral ou Decisões da Campanha Selecionada */}
-        <div className="rounded-2xl bg-glass border-glass p-6 flex flex-col justify-between min-h-[350px]">
+      {/* Seção do Painel do Planejamento & Operações (4 Cards em Grid 2x2) */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Card 1: Funil de Conversão Operacional */}
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] transition-all duration-250 ease-in-out hover:border-[#D9480F] hover:shadow-[0_4px_14px_-2px_rgba(217,72,15,0.12)] hover:-translate-y-0.5 flex flex-col justify-between">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Activity size={18} className="text-primary" />
-              {selectedId ? `Resultados da Campanha #${selectedId}` : 'Distribuição de Status de Contatos Geral'}
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
+              <Layers size={15} className="text-[#D9480F]" />
+              Funil de Conversão do Disparo
             </h3>
-            <p className="text-xs text-slate-400">
-              {selectedId ? 'Proporção de acordos e agendamentos fechados nesta campanha' : 'Visualização geral dos contatos do banco'}
-            </p>
+            <p className="text-[11px] text-[#5F6570] mt-0.5">Evolução do volume da base até a formalização do acordo</p>
           </div>
 
-          <div className="h-60 mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              {selectedId && selectedCampaignDecisions.length > 0 ? (
-                <PieChart>
-                  <Pie
-                    data={selectedCampaignDecisions}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={85}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {selectedCampaignDecisions.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
+          <div className="h-44 mt-3 flex items-center justify-center">
+            {stats.leads > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={funnelData} layout="vertical" margin={{ top: 5, right: 15, left: 20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis type="number" stroke="#8B92A0" fontSize={10} />
+                  <YAxis type="category" dataKey="etapa" stroke="#5F6570" fontSize={10} width={100} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0F19', borderColor: '#334155', borderRadius: '8px' }}
-                    itemStyle={{ color: '#fff' }}
+                    contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderRadius: '8px', color: '#18181B', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.06)' }}
+                    itemStyle={{ color: '#18181B' }}
                   />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                </PieChart>
-              ) : !selectedId && chartStatusData.length > 0 ? (
+                  <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
+                    {funnelData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState
+                compact
+                title="Sem dados no funil"
+                description="Importe contatos para visualizar o funil de conversão da operação."
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Card 2: Desempenho Comparativo por Campanha */}
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] transition-all duration-250 ease-in-out hover:border-[#D9480F] hover:shadow-[0_4px_14px_-2px_rgba(217,72,15,0.12)] hover:-translate-y-0.5 flex flex-col justify-between">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
+              <BarChart3 size={15} className="text-[#0369A1]" />
+              Desempenho Comparativo por Campanha
+            </h3>
+            <p className="text-[11px] text-[#5F6570] mt-0.5">Contatos processados (Concluídos) em relação ao total importado por lote</p>
+          </div>
+
+          <div className="h-44 mt-3 flex items-center justify-center">
+            {chartCampaignPerformance.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartCampaignPerformance} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis dataKey="name" stroke="#5F6570" fontSize={10} />
+                  <YAxis stroke="#8B92A0" fontSize={10} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderRadius: '8px', color: '#18181B', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.06)' }}
+                    itemStyle={{ color: '#18181B' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                  <Bar dataKey="Concluídas" fill="#15803D" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Total" fill="#E5E7EB" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState
+                compact
+                title="Sem campanhas ativas"
+                description="Crie uma nova campanha para visualizar o histórico comparativo."
+                actionLabel="Nova Campanha"
+                onAction={() => setShowCreate(true)}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Card 3: Distribuição de Decisões de Atendimento */}
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] transition-all duration-250 ease-in-out hover:border-[#D9480F] hover:shadow-[0_4px_14px_-2px_rgba(217,72,15,0.12)] hover:-translate-y-0.5 flex flex-col justify-between">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
+              <Activity size={15} className="text-[#15803D]" />
+              Status de Resultados da Fila
+            </h3>
+            <p className="text-[11px] text-[#5F6570] mt-0.5">Proporção de acordos, rechamadas e falhas no banco de contatos</p>
+          </div>
+
+          <div className="h-44 mt-3 flex items-center justify-center">
+            {chartStatusData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={chartStatusData}
                     cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={85}
-                    paddingAngle={3}
+                    cy="45%"
+                    innerRadius={40}
+                    outerRadius={62}
+                    paddingAngle={2}
                     dataKey="value"
                   >
                     {chartStatusData.map((entry, index) => (
@@ -812,169 +1378,138 @@ function Campaigns() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0F19', borderColor: '#334155', borderRadius: '8px' }}
-                    itemStyle={{ color: '#fff' }}
+                    contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderRadius: '8px', color: '#18181B', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.06)' }}
+                    itemStyle={{ color: '#18181B' }}
                   />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                  <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
                 </PieChart>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-slate-500 text-sm gap-2">
-                  <HelpCircle size={32} />
-                  <span>Sem dados suficientes para gerar gráfico de resultados.</span>
-                </div>
-              )}
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState
+                compact
+                title="Sem dados analíticos"
+                description="Inicie a discagem para gerar relatórios de classificação."
+              />
+            )}
           </div>
         </div>
 
-        {/* Gráfico 2: Desempenho Comparativo de Campanhas */}
-        <div className="rounded-2xl bg-glass border-glass p-6 flex flex-col justify-between min-h-[350px]">
+        {/* Card 4: Indicadores de Infraestrutura & Capacidade do Planejamento */}
+        <div className="rounded-xl bg-white p-4.5 border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] transition-all duration-250 ease-in-out hover:border-[#D9480F] hover:shadow-[0_4px_14px_-2px_rgba(217,72,15,0.12)] hover:-translate-y-0.5 flex flex-col justify-between space-y-3">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <BarChart3 size={18} className="text-indigo-400" />
-              Desempenho de Campanhas Recentes
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B] flex items-center gap-2">
+              <ShieldCheck size={15} className="text-[#0369A1]" />
+              Saúde da Operação & Pacing
             </h3>
-            <p className="text-xs text-slate-400">Contatos processados (Concluídos) em relação ao total importado</p>
+            <p className="text-[11px] text-[#5F6570] mt-0.5">Métricas operacionais de chamadas e controle do dialer</p>
           </div>
 
-          <div className="h-60 mt-4">
-            {chartCampaignPerformance.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartCampaignPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                  <YAxis stroke="#94a3b8" fontSize={11} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0F19', borderColor: '#334155', borderRadius: '8px' }}
-                    itemStyle={{ color: '#fff' }}
-                  />
-                  <Legend />
-                  <Bar dataKey="Concluídas" fill="#22C55E" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Total" fill="rgba(255,255,255,0.15)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500 text-sm gap-2">
-                <HelpCircle size={32} />
-                <span>Crie e processe campanhas para visualizar dados de desempenho.</span>
+          <div className="space-y-2 flex-1 justify-center flex flex-col">
+            <div className="rounded-lg bg-[#FAFAFA] p-2.5 border border-[#E5E7EB] flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-xs text-[#18181B] font-semibold flex items-center gap-1.5">
+                  <Zap size={13} className="text-[#D9480F]" />
+                  Pacing Delay
+                </span>
+                <p className="text-[11px] text-[#5F6570]">Intervalo de segurança entre disparos</p>
               </div>
-            )}
+              <span className="px-2 py-0.5 rounded-md bg-[#FFF1E8] text-[#B9380B] text-xs font-bold border border-[#FFD1B8]">
+                500 ms
+              </span>
+            </div>
+
+            <div className="rounded-lg bg-[#FAFAFA] p-2.5 border border-[#E5E7EB] flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-xs text-[#18181B] font-semibold flex items-center gap-1.5">
+                  <RefreshCw size={13} className="text-[#15803D]" />
+                  Auto-Retry SIP 408
+                </span>
+                <p className="text-[11px] text-[#5F6570]">Reagendamento automático de timeout</p>
+              </div>
+              <span className="px-2 py-0.5 rounded-md bg-[#ECFDF3] text-[#15803D] text-xs font-bold border border-[#DCFCE7]">
+                15 mins
+              </span>
+            </div>
+
+            <div className="rounded-lg bg-[#FAFAFA] p-2.5 border border-[#E5E7EB] flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-xs text-[#18181B] font-semibold flex items-center gap-1.5">
+                  <MessageSquare size={13} className="text-[#0369A1]" />
+                  Fallback de Notificações
+                </span>
+                <p className="text-[11px] text-[#5F6570]">Smart RCS / N8N Webhook</p>
+              </div>
+              <span className="px-2 py-0.5 rounded-md bg-[#F0F9FF] text-[#0369A1] text-xs font-bold border border-[#BAE6FD]">
+                Ativo
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Tabela de Campanhas Ativas */}
-      <div className="overflow-hidden rounded-2xl bg-glass border-glass shadow-2xl">
-        <div className="border-b border-glass bg-slate-900/40 px-6 py-4">
-          <h3 className="text-lg font-bold text-white">Lista de Campanhas</h3>
-          <p className="text-xs text-slate-400">Gerenciamento de status, importação e ações das filas</p>
+      {/* Resumo Executivo de Campanhas (Métricas Apenas) */}
+      <div className="rounded-xl bg-white overflow-hidden border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)]">
+        <div className="border-b border-[#E5E7EB] bg-[#FAFAFA] px-5 py-3.5 flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18181B]">Relatório de Campanhas</h3>
+            <p className="text-[11px] text-[#5F6570] mt-0.5">Resumo de volume e desempenho dos lotes de disparo</p>
+          </div>
+          <Link
+            to="/campanhas"
+            className="btn-click inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#D9480F] hover:bg-[#B9380B] text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
+          >
+            <Play size={13} />
+            Ir para Campanhas & Disparador
+          </Link>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-900/60 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-glass">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-[#FAFAFA] text-[11px] font-bold uppercase tracking-wider text-[#5F6570] border-b border-[#E5E7EB]">
               <tr>
-                {['Campanha', 'Status', 'Fila/Pendentes', 'Ativas', 'Atendidas', 'Concluídas', 'Falhas', 'Ações'].map((header) => (
-                  <th key={header} className="px-6 py-4">{header}</th>
+                {['Campanha', 'Status', 'CPFs', 'Discados', 'Atendidos (Alô)', 'Cobraram (Acordos)', 'Agendados', 'Sem Débito / Ignorados', 'Falhas', 'Ação'].map((header) => (
+                  <th key={header} className="px-4 py-2.5">{header}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-glass text-sm text-slate-300">
-              {campaigns.map((campaign) => {
-                const deleteBlocked = campaign.status === 'running'
-                  || Number(campaign.active_calls || 0) > 0;
-                const isSelected = selectedId === campaign.id;
-
-                return (
-                  <tr
-                    key={campaign.id}
-                    className={`hover:bg-slate-900/20 transition-all ${isSelected ? 'bg-primary/5 hover:bg-primary/10' : ''}`}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <button
-                          onClick={() => void loadCalls(campaign.id)}
-                          className="flex items-center gap-1 font-bold text-white hover:text-primary transition-all text-left"
-                        >
-                          {campaign.name}
-                          <ChevronRight size={14} className={`text-slate-500 transition-transform ${isSelected ? 'rotate-90 text-primary' : ''}`} />
-                        </button>
-                        <p className="text-[10px] text-slate-400 mt-0.5 ml-0.5">
-                          {Number(campaign.total_leads || 0).toLocaleString('pt-BR')} CPFs • {Number(campaign.total_calls || 0).toLocaleString('pt-BR')} números
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4"><StatusBadge status={campaign.status} /></td>
-                    <td className="px-6 py-4 font-medium text-indigo-300">{Number(campaign.pending_calls || 0)}</td>
-                    <td className="px-6 py-4 font-medium text-emerald-400">{Number(campaign.active_calls || 0)}</td>
-                    <td className="px-6 py-4 font-semibold text-emerald-300">{Number(campaign.answered_calls || 0)}</td>
-                    <td className="px-6 py-4 font-medium text-primary">{Number(campaign.completed_calls || 0)}</td>
-                    <td className="px-6 py-4 font-medium text-rose-400">{Number(campaign.failed_calls || 0)}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        {campaign.status !== 'running' ? (
-                          <button
-                            type="button"
-                            title="Iniciar campanha"
-                            onClick={() => void changeStatus(campaign.id, 'running')}
-                            className="btn-click rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 p-2 text-emerald-400 border border-emerald-500/20"
-                          >
-                            <Play size={15} />
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            title="Pausar campanha"
-                            onClick={() => void changeStatus(campaign.id, 'paused')}
-                            className="btn-click rounded-lg bg-amber-500/10 hover:bg-amber-500/20 p-2 text-amber-400 border border-amber-500/20"
-                          >
-                            <Pause size={15} />
-                          </button>
-                        )}
-
-                        <label
-                          title="Importar contatos (CSV / Excel)"
-                          className="btn-click cursor-pointer rounded-lg bg-slate-800 border border-glass hover:bg-slate-700 p-2 text-slate-200"
-                        >
-                          <UploadCloud size={15} />
-                          <input
-                            className="hidden"
-                            type="file"
-                            accept=".csv,.xlsx,.xls"
-                            onChange={(event) => void importFile(campaign.id, event.target.files?.[0])}
-                          />
-                        </label>
-
-                        <button
-                          type="button"
-                          title="Editar configurações"
-                          onClick={() => setEditingCampaign(campaign)}
-                          className="btn-click rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 p-2 text-indigo-400 border border-indigo-500/20"
-                        >
-                          <SettingsIcon size={15} />
-                        </button>
-
-                        <button
-                          type="button"
-                          title={deleteBlocked
-                            ? 'Pause a campanha e aguarde as chamadas ativas'
-                            : 'Excluir campanha'}
-                          disabled={deleteBlocked || deletingId === campaign.id}
-                          onClick={() => void deleteCampaign(campaign)}
-                          className="btn-click rounded-lg bg-rose-500/10 hover:bg-rose-500/20 p-2 text-rose-400 border border-rose-500/20 disabled:cursor-not-allowed disabled:opacity-30"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+            <tbody className="divide-y divide-[#E5E7EB] text-xs text-[#18181B]">
+              {campaigns.map((campaign) => (
+                <tr
+                  key={campaign.id}
+                  className="hover:bg-[#FFF7F2] transition-colors"
+                >
+                  <td className="px-4 py-3.5 font-bold text-[#18181B]">
+                    {campaign.name}
+                  </td>
+                  <td className="px-4 py-3.5"><StatusBadge status={campaign.status} /></td>
+                  <td className="px-4 py-3.5 font-medium text-[#18181B]">{Number(campaign.total_leads || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-medium text-[#0369A1]">{Number(campaign.total_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-semibold text-[#15803D]">{Number(campaign.answered_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-extrabold text-[#D9480F] bg-[#FFF1E8]/40">{Number(campaign.formalized_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-semibold text-[#B45309]">{Number(campaign.scheduled_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-medium text-[#5F6570]">{Number(campaign.skipped_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-medium text-[#B91C1C]">{Number(campaign.failed_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5">
+                    <Link
+                      to={`/campanhas?id=${campaign.id}`}
+                      className="btn-click rounded-lg bg-[#FFF1E8] hover:bg-[#FFD1B8] px-2.5 py-1 text-[#B9380B] border border-[#FFD1B8] text-xs font-semibold inline-flex items-center gap-1 transition-colors"
+                    >
+                      <Eye size={13} />
+                      Ver Fila
+                    </Link>
+                  </td>
+                </tr>
+              ))}
 
               {!campaigns.length && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                    {loading ? 'Carregando registros...' : 'Nenhuma campanha cadastrada.'}
+                  <td colSpan={9} className="p-4">
+                    <EmptyState
+                      title="Nenhuma campanha cadastrada"
+                      description="Acesse a aba Campanhas & Disparador para criar sua primeira campanha."
+                      actionLabel="Ir para Campanhas"
+                      onAction={() => navigate('/campanhas')}
+                    />
                   </td>
                 </tr>
               )}
@@ -983,234 +1518,15 @@ function Campaigns() {
         </div>
       </div>
 
-      {/* Monitor de Chamadas da Campanha Selecionada */}
-      {selectedId && (
-        <div className="rounded-2xl bg-glass border-glass shadow-2xl overflow-hidden animate-slide-in">
-          <div className="bg-slate-900/40 px-6 py-5 border-b border-glass flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                Contatos da Campanha #{selectedId}
-                {selectedCampaign && (
-                  <span className="text-xs font-normal px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    {selectedCampaign.answered_calls || 0} Atendidas
-                  </span>
-                )}
-              </h3>
-              <p className="text-xs text-slate-400">
-                {selectedCampaign ? (
-                  `${selectedCampaign.completed_calls || 0} discadas de ${selectedCampaign.total_calls || 0} contatos importados`
-                ) : (
-                  'Total de contatos importados e status de discagem'
-                )}
-              </p>
-            </div>
-
-            {/* Filtros de Decisão do Acordo */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 mr-3 bg-slate-950/20 px-2 py-1 rounded-lg border border-glass">
-                <input
-                  type="text"
-                  placeholder="Buscar CPF, Telefone ou Nome..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setCallsPage(1);
-                      setSearchQuery(searchInput);
-                    }
-                  }}
-                  className="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none w-44 sm:w-52"
-                />
-                {searchInput && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearchInput('');
-                      setCallsPage(1);
-                      setSearchQuery('');
-                    }}
-                    className="text-[10px] text-slate-400 hover:text-white bg-slate-800 px-1.5 py-0.5 rounded transition-all"
-                  >
-                    Limpar
-                  </button>
-                )}
-              </div>
-
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Filter size={12} />
-                Filtrar por:
-              </span>
-              {[
-                { label: 'Todos', value: 'all' },
-                { label: 'Em Linha', value: 'active' },
-                { label: 'Formalizado', value: 'formalize' },
-                { label: 'Agendado', value: 'schedule' },
-                { label: 'Atendidas', value: 'answered' },
-                { label: 'Sem Acordo', value: 'zero' },
-                { label: 'Sem Débito', value: 'no_debt' },
-                { label: 'Pendente', value: 'pending' },
-              ].map(f => (
-                <button
-                  key={f.value}
-                  type="button"
-                  onClick={() => {
-                    setCallsPage(1);
-                    setDecisionFilter(f.value);
-                  }}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${
-                    decisionFilter === f.value
-                      ? 'bg-primary text-white border-primary/50 shadow-md shadow-primary/10'
-                      : 'bg-slate-800/60 text-slate-300 border-glass hover:bg-slate-800'
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-
-              <button
-                type="button"
-                disabled={exporting}
-                onClick={exportToCsv}
-                className="rounded-lg px-3 py-1.5 text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1.5 ml-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download size={13} className={exporting ? 'animate-spin' : ''} />
-                {exporting ? 'Exportando...' : 'Exportar CSV'}
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto max-h-[60vh]">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-900/60 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-glass sticky top-0 backdrop-blur-md">
-                <tr>
-                  {['Telefone', 'CPF', 'Status', 'Tentativas', 'Acordo / Decisão', 'Última Atualização', 'Ações'].map((header) => (
-                    <th key={header} className="px-6 py-3">{header}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-glass text-slate-300">
-                {filteredCalls.map((call) => (
-                  <tr
-                    key={call.id}
-                    onClick={() => setSelectedCall(call)}
-                    className="hover:bg-slate-900/20 cursor-pointer transition-all"
-                  >
-                    <td className="px-6 py-3.5 font-medium">{call.customer_number}</td>
-                    <td className="px-6 py-3.5 text-slate-400 font-mono">{call.cpf || '-'}</td>
-                    <td className="px-6 py-3.5"><StatusBadge status={call.status} /></td>
-                    <td className="px-6 py-3.5">
-                      <span className="inline-flex items-center justify-center rounded-md bg-slate-800/80 px-2 py-0.5 text-xs font-semibold text-slate-200">
-                        {call.attempts} / 5
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 font-semibold">
-                      {call.decision === 'formalize' && (
-                        <span className="text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 size={14} /> Formalizado
-                        </span>
-                      )}
-                      {call.decision === 'schedule' && (
-                        <span className="text-amber-400 flex items-center gap-1">
-                          <AlertCircle size={14} /> Reagendado
-                        </span>
-                      )}
-                      {call.decision === 'zero' && (
-                        <span className="text-rose-400 flex items-center gap-1">
-                          <XCircle size={14} />
-                          {call.ended_reason === 'voicemail' 
-                            ? 'Caixa Postal' 
-                            : (!call.duration_seconds || call.duration_seconds === 0
-                                ? 'Não Atendido'
-                                : (call.duration_seconds <= 30 
-                                    ? 'Atendeu e Desligou' 
-                                    : 'Recusado/Sem Acordo'))}
-                        </span>
-                      )}
-                      {call.status === 'skipped' ? (
-                        <span className="text-slate-400 font-normal flex items-center gap-1">
-                          <X size={14} className="text-slate-500" />
-                          {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
-                          {call.last_error === 'no_online_agreement' && `Acordo online não permitido${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
-                          {call.last_error === 'no_debt' && 'Sem débito em aberto'}
-                          {call.last_error === 'cpf_missing' && 'CPF ausente'}
-                          {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
-                        </span>
-                      ) : (
-                        !call.decision && (
-                          <span className="text-slate-500 font-normal">Aguardando</span>
-                        )
-                      )}
-                    </td>
-                    <td className="px-6 py-3.5 text-slate-400 text-xs">
-                      {call.updated_at ? new Date(call.updated_at).toLocaleString('pt-BR') : '-'}
-                    </td>
-                    <td className="px-6 py-3.5" onClick={(e) => e.stopPropagation()}>
-                      {['reserved', 'queued', 'in_progress', 'answered'].includes(call.status) && call.provider_call_id ? (
-                        <button
-                          type="button"
-                          title="Desligar chamada"
-                          disabled={!!terminatingCallId}
-                          onClick={(event) => void terminateCall(call.provider_call_id!, event)}
-                          className="btn-click rounded-lg bg-rose-500/10 hover:bg-rose-500/20 p-1.5 text-rose-400 border border-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <PhoneOff size={13} className={terminatingCallId === call.provider_call_id ? 'animate-pulse' : ''} />
-                        </button>
-                      ) : (
-                        <span className="text-slate-600 text-xs">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-
-                {!filteredCalls.length && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-slate-500">
-                      Nenhum contato encontrado para o filtro selecionado.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Paginação */}
-          <div className="flex items-center justify-between px-6 py-3 border-t border-glass bg-slate-900/40">
-            <button
-              type="button"
-              onClick={() => setCallsPage(p => Math.max(1, p - 1))}
-              disabled={callsPage === 1}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-glass disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              Anterior
-            </button>
-            <span className="text-xs text-slate-400 font-semibold">Página {callsPage}</span>
-            <button
-              type="button"
-              onClick={() => setCallsPage(p => p + 1)}
-              disabled={calls.length < 100}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-glass disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              Próxima
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal - Criação de Campanhas Premium */}
+      {/* Modal - Criar e Editar Campanhas */}
       {showCreate && (
         <CreateCampaign onClose={() => setShowCreate(false)} onCreated={() => load()} />
       )}
 
-      {/* Modal - Edição de Campanhas */}
       {editingCampaign && (
-        <CreateCampaign
-          campaign={editingCampaign}
-          onClose={() => setEditingCampaign(null)}
-          onCreated={() => load()}
-        />
+        <CreateCampaign campaign={editingCampaign} onClose={() => setEditingCampaign(null)} onCreated={() => load()} />
       )}
 
-      {/* Modal - Detalhes e Transcrição da Ligação */}
       {selectedCall && (
         <CallDetailsModal call={selectedCall} onClose={() => setSelectedCall(null)} />
       )}
@@ -1266,213 +1582,191 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
   }, [call.transcript]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="w-full max-w-4xl rounded-2xl border border-glass bg-slate-900 shadow-2xl overflow-hidden animate-scale-up flex flex-col max-h-[85vh]">
-        
-        {/* Header */}
-        <div className="bg-slate-950/40 px-6 py-4 border-b border-glass flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <PhoneCall size={18} className="text-primary" />
-              Detalhes da Ligação #{call.id}
-            </h3>
-            <p className="text-xs text-slate-400">CPF: {call.cpf || '-'} | Telefone: {call.customer_number}</p>
+    <Drawer
+      isOpen={!!call}
+      onClose={onClose}
+      title={`Detalhes da Ligação #${call.id}`}
+      subtitle={`CPF: ${call.cpf || '-'} | Telefone: ${call.customer_number}`}
+    >
+      <div className="space-y-5">
+        {/* Informações Gerais */}
+        <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4 space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[#D9480F]">Informações Gerais</h4>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <span className="text-[#5F6570] block text-[11px]">Status da Fila</span>
+              <span className="font-bold text-[#18181B] capitalize">
+                {call.status === 'skipped' ? 'Pulado' : call.status}
+              </span>
+            </div>
+            <div>
+              <span className="text-[#5F6570] block text-[11px]">Tentativas</span>
+              <span className="font-bold text-[#18181B]">{call.attempts} / 5</span>
+            </div>
+            <div>
+              <span className="text-[#5F6570] block text-[11px]">Duração</span>
+              <span className="font-bold text-[#18181B]">
+                {call.duration_seconds ? `${call.duration_seconds} segundos` : '-'}
+              </span>
+            </div>
+            <div>
+              <span className="text-[#5F6570] block text-[11px]">Acordo / Decisão</span>
+              <span className="font-bold">
+                {call.decision === 'formalize' && <span className="text-[#15803D]">Formalizado</span>}
+                {call.decision === 'schedule' && <span className="text-[#B45309]">Reagendado</span>}
+                {call.decision === 'zero' && (
+                  <span className="text-[#B91C1C]">
+                    {call.ended_reason === 'voicemail' 
+                      ? 'Caixa Postal' 
+                      : (!call.duration_seconds || call.duration_seconds === 0
+                          ? 'Não Atendido'
+                          : (call.duration_seconds <= 30 
+                              ? 'Atendeu e Desligou' 
+                              : 'Recusado/Sem Acordo'))}
+                  </span>
+                )}
+                {call.status === 'skipped' && (
+                  <span className="text-[#5F6570]">
+                    {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
+                    {call.last_error === 'no_online_agreement' && `Acordo online não permitido${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
+                    {call.last_error === 'no_debt' && 'Sem débito em aberto'}
+                    {call.last_error === 'cpf_missing' && 'CPF ausente'}
+                    {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
+                  </span>
+                )}
+                {!call.decision && call.status !== 'skipped' && <span className="text-[#8B92A0]">Pendente</span>}
+              </span>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
-          >
-            <X size={18} />
-          </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 min-h-0">
-          
-          {/* Left Column: Stats & Audio */}
-          <div className="space-y-5">
-            <div className="rounded-xl border border-glass bg-slate-950/40 p-4 space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Informações Gerais</h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-slate-500 block text-xs">Status da Fila</span>
-                  <span className="font-semibold text-white capitalize">
-                    {call.status === 'skipped' ? 'Pulado' : call.status}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-xs">Tentativas</span>
-                  <span className="font-semibold text-white">{call.attempts} / 5</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-xs">Duração</span>
-                  <span className="font-semibold text-white">
-                    {call.duration_seconds ? `${call.duration_seconds} segundos` : '-'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-xs">Acordo / Decisão</span>
-                  <span className="font-semibold">
-                    {call.decision === 'formalize' && <span className="text-emerald-400">Formalizado</span>}
-                    {call.decision === 'schedule' && <span className="text-amber-400">Reagendado</span>}
-                    {call.decision === 'zero' && (
-                      <span className="text-rose-400">
-                        {call.ended_reason === 'voicemail' 
-                          ? 'Caixa Postal' 
-                          : (!call.duration_seconds || call.duration_seconds === 0
-                              ? 'Não Atendido'
-                              : (call.duration_seconds <= 30 
-                                  ? 'Atendeu e Desligou' 
-                                  : 'Recusado/Sem Acordo'))}
-                      </span>
-                    )}
-                    {call.status === 'skipped' && (
-                      <span className="text-slate-400">
-                        {call.last_error === 'already_has_agreement' && `Já possui acordo formalizado${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
-                        {call.last_error === 'no_online_agreement' && `Acordo online não permitido${call.metadata?.calculationId || call.metadata?.debtorId ? ` (Cadastro DDM #${call.metadata.calculationId || call.metadata.debtorId})` : ''}`}
-                        {call.last_error === 'no_debt' && 'Sem débito em aberto'}
-                        {call.last_error === 'cpf_missing' && 'CPF ausente'}
-                        {!['already_has_agreement', 'no_online_agreement', 'no_debt', 'cpf_missing'].includes(call.last_error || '') && 'Não discado'}
-                      </span>
-                    )}
-                    {!call.decision && call.status !== 'skipped' && <span className="text-slate-400">Pendente</span>}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Telefones deste CPF */}
-            <div className="rounded-xl border border-glass bg-slate-950/40 p-4 space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Telefones Cadastrados (CPF)</h4>
-              {loadingPhones ? (
-                <p className="text-xs text-slate-400 animate-pulse">Carregando telefones...</p>
-              ) : cpfPhones.length > 0 ? (
-                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                  {cpfPhones.map((item) => {
-                    const isCurrent = item.customer_number === call.customer_number;
-                    return (
-                      <div
-                        key={item.id}
-                        className={`flex items-center justify-between text-xs p-2 rounded-lg border ${
-                          isCurrent
-                            ? 'bg-primary/10 border-primary/40 text-primary font-bold'
-                            : 'bg-slate-900/40 border-glass text-slate-300'
-                        }`}
-                      >
-                        <span className="font-mono">{item.customer_number}</span>
-                        <div className="flex items-center gap-1.5">
-                          {item.attempts > 0 && (
-                            <span className="text-[10px] text-slate-400 bg-slate-950/60 px-1.5 py-0.5 rounded">
-                              {item.attempts} tent.
-                            </span>
-                          )}
-                          <span className={`capitalize px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                            item.status === 'completed'
-                              ? 'bg-emerald-500/10 text-emerald-400'
-                              : item.status === 'failed'
-                              ? 'bg-rose-500/10 text-rose-450'
-                              : item.status === 'skipped'
-                              ? 'bg-slate-800 text-slate-400'
-                              : 'bg-indigo-500/10 text-indigo-400'
-                          }`}>
-                            {item.status === 'skipped'
-                              ? 'Pulado'
-                              : item.status === 'completed'
-                              ? item.decision === 'formalize'
-                                ? 'Formalizado'
-                                : item.decision === 'schedule'
-                                ? 'Agendado'
-                                : 'S/ Acordo'
-                              : item.status}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-500">Nenhum outro telefone encontrado.</p>
-              )}
-            </div>
-
-            {/* Audio Player Card */}
-            {call.recording_url ? (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-semibold">
-                  <Volume2 size={14} /> Gravação do Áudio
-                </h4>
-                <audio 
-                  src={call.provider_call_id 
-                    ? apiUrl(`/calls/${call.provider_call_id}/recording?token=${getToken()}`) 
-                    : call.recording_url || undefined} 
-                  controls 
-                  className="w-full mt-2 rounded-lg" 
-                />
-              </div>
-            ) : (
-              <div className="rounded-xl border border-glass bg-slate-950/20 p-4 text-center text-slate-500 text-sm">
-                Nenhum áudio de gravação disponível para esta chamada.
-              </div>
-            )}
-
-            {/* Last Error if exists */}
-            {call.last_error && (
-              <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 space-y-1">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-rose-400">Erro Registrado</h4>
-                <p className="text-xs text-slate-300 font-mono break-all">{call.last_error}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Transcript */}
-          <div className="rounded-xl border border-glass bg-slate-950/30 p-4 flex flex-col h-full min-h-0">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5 border-b border-glass pb-2 mb-3 font-semibold">
-              <MessageSquare size={14} /> Transcrição da Conversa
-            </h4>
-            
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0 max-h-[40vh] md:max-h-none">
-              {bubbles.length > 0 ? (
-                bubbles.map((bubble, i) => (
+        {/* Telefones deste CPF */}
+        <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4 space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[#D9480F]">Telefones Cadastrados (CPF)</h4>
+          {loadingPhones ? (
+            <p className="text-xs text-[#5F6570] animate-pulse">Carregando telefones...</p>
+          ) : cpfPhones.length > 0 ? (
+            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+              {cpfPhones.map((item) => {
+                const isCurrent = item.customer_number === call.customer_number;
+                return (
                   <div
-                    key={i}
-                    className={`flex flex-col ${bubble.isAssistant ? 'items-end' : 'items-start'}`}
+                    key={item.id}
+                    className={`flex items-center justify-between text-xs p-2.5 rounded-lg border ${
+                      isCurrent
+                        ? 'bg-[#FFF1E8] border-[#FFD1B8] text-[#B9380B] font-bold'
+                        : 'bg-white border-[#E5E7EB] text-[#18181B]'
+                    }`}
                   >
-                    <span className="text-[10px] text-slate-500 mb-0.5 px-1">{bubble.speaker}</span>
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm ${
-                        bubble.isAssistant
-                          ? 'bg-primary text-white rounded-tr-none font-medium'
-                          : 'bg-slate-800 text-slate-200 rounded-tl-none border border-glass'
-                      }`}
-                    >
-                      {bubble.text}
+                    <span className="font-mono">{item.customer_number}</span>
+                    <div className="flex items-center gap-1.5">
+                      {item.attempts > 0 && (
+                        <span className="text-[10px] text-[#5F6570] bg-[#FAFAFA] border border-[#E5E7EB] px-1.5 py-0.5 rounded">
+                          {item.attempts} tent.
+                        </span>
+                      )}
+                      <span className={`capitalize px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        item.status === 'completed'
+                          ? 'bg-[#ECFDF3] text-[#15803D]'
+                          : item.status === 'failed'
+                          ? 'bg-[#FEF2F2] text-[#B91C1C]'
+                          : item.status === 'skipped'
+                          ? 'bg-[#FAFAFA] text-[#5F6570]'
+                          : 'bg-[#F0F9FF] text-[#0369A1]'
+                      }`}>
+                        {item.status === 'skipped'
+                          ? 'Pulado'
+                          : item.status === 'completed'
+                          ? item.decision === 'formalize'
+                            ? 'Formalizado'
+                            : item.decision === 'schedule'
+                            ? 'Agendado'
+                            : 'S/ Acordo'
+                          : item.status}
+                      </span>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full py-10 text-center text-slate-500 text-sm gap-2">
-                  <FileText size={24} />
-                  <span>Nenhuma transcrição de texto disponível.</span>
-                </div>
-              )}
+                );
+              })}
             </div>
+          ) : (
+            <p className="text-xs text-[#8B92A0]">Nenhum outro telefone encontrado.</p>
+          )}
+        </div>
+
+        {/* Audio Player Card */}
+        {call.recording_url ? (
+          <div className="rounded-xl border border-[#DCFCE7] bg-[#ECFDF3] p-4 space-y-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#15803D] flex items-center gap-1.5 font-bold">
+              <Volume2 size={14} /> Gravação do Áudio
+            </h4>
+            <audio 
+              src={call.provider_call_id 
+                ? apiUrl(`/calls/${call.provider_call_id}/recording?token=${getToken()}`) 
+                : call.recording_url || undefined} 
+              controls 
+              className="w-full mt-1 rounded-lg" 
+            />
+          </div>
+        ) : (
+          <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-3 text-center text-[#8B92A0] text-xs">
+            Nenhum áudio de gravação disponível para esta chamada.
+          </div>
+        )}
+
+        {/* Last Error if exists */}
+        {call.last_error && (
+          <div className="rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] p-3 space-y-1">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#B91C1C]">Erro Registrado</h4>
+            <p className="text-xs text-[#18181B] font-mono break-all">{call.last_error}</p>
+          </div>
+        )}
+
+        {/* Transcrição da Conversa */}
+        <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4 space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[#0369A1] flex items-center gap-1.5 border-b border-[#E5E7EB] pb-2 font-bold">
+            <MessageSquare size={14} /> Transcrição da Conversa (Júlia IA)
+          </h4>
+          
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+            {bubbles.length > 0 ? (
+              bubbles.map((bubble, i) => (
+                <div
+                  key={i}
+                  className={`flex flex-col ${bubble.isAssistant ? 'items-end' : 'items-start'}`}
+                >
+                  <span className="text-[10px] text-[#5F6570] mb-0.5 px-1">{bubble.speaker}</span>
+                  <div
+                    className={`max-w-[85%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
+                      bubble.isAssistant
+                        ? 'bg-[#FFF1E8] text-[#B9380B] border border-[#FFD1B8] rounded-tr-none font-semibold'
+                        : 'bg-white text-[#18181B] rounded-tl-none border border-[#E5E7EB]'
+                    }`}
+                  >
+                    {bubble.text}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-6 text-center text-[#8B92A0] text-xs gap-1.5">
+                <FileText size={20} />
+                <span>Nenhuma transcrição de texto disponível.</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="bg-slate-950/40 px-6 py-4 border-t border-glass flex justify-end">
+        <div className="pt-2 flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-glass bg-slate-800 px-5 py-2 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition-all"
+            className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-2 text-[#5F6570] hover:bg-[#FAFAFA] hover:text-[#18181B] text-xs font-semibold transition-colors shadow-xs"
           >
             Fechar Detalhes
           </button>
         </div>
-
       </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -1489,13 +1783,25 @@ function CreateCampaign({
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [configError, setConfigError] = useState('');
   const [vapiConfig, setVapiConfig] = useState<VapiConfig | null>(null);
+  const [selectedAssistantId, setSelectedAssistantId] = useState<string>('');
+  const [customAssistantId, setCustomAssistantId] = useState<string>('');
 
   useEffect(() => {
     let active = true;
 
     void apiFetch('/vapi/config')
       .then((result) => {
-        if (active) setVapiConfig(result as VapiConfig);
+        if (active) {
+          const cfg = result as VapiConfig;
+          setVapiConfig(cfg);
+          if (campaign?.assistant_id) {
+            setSelectedAssistantId(campaign.assistant_id);
+          } else if (cfg.assistants && cfg.assistants.length > 0) {
+            setSelectedAssistantId(cfg.assistants[0].id);
+          } else {
+            setSelectedAssistantId(cfg.assistant.id);
+          }
+        }
       })
       .catch((err) => {
         if (active) {
@@ -1509,7 +1815,7 @@ function CreateCampaign({
     return () => {
       active = false;
     };
-  }, []);
+  }, [campaign?.assistant_id]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1518,6 +1824,16 @@ function CreateCampaign({
     const form = new FormData(event.currentTarget);
     setSaving(true);
 
+    const finalAssistantId = selectedAssistantId === 'custom'
+      ? customAssistantId.trim()
+      : (selectedAssistantId || vapiConfig.assistant.id);
+
+    if (!finalAssistantId) {
+      window.alert('Selecione ou informe um Assistente Vapi válido.');
+      setSaving(false);
+      return;
+    }
+
     try {
       if (campaign) {
         // Edit Mode
@@ -1525,6 +1841,7 @@ function CreateCampaign({
           method: 'PUT',
           body: JSON.stringify({
             name: form.get('name'),
+            assistantId: finalAssistantId,
             maxConcurrent: Number(form.get('maxConcurrent') || 1),
             maxAttempts: Number(form.get('maxAttempts') || 5),
           }),
@@ -1535,7 +1852,7 @@ function CreateCampaign({
           method: 'POST',
           body: JSON.stringify({
             name: form.get('name'),
-            assistantId: vapiConfig.assistant.id,
+            assistantId: finalAssistantId,
             phoneNumberId: vapiConfig.phoneNumber.id,
             maxConcurrent: Number(form.get('maxConcurrent') || 1),
             maxAttempts: Number(form.get('maxAttempts') || 5),
@@ -1552,85 +1869,112 @@ function CreateCampaign({
     }
   }
 
+  const assistantOptions = vapiConfig?.assistants || (vapiConfig ? [vapiConfig.assistant] : []);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
       <form
         onSubmit={submit}
-        className="w-full max-w-lg space-y-4 rounded-2xl border border-glass bg-slate-900 p-6 shadow-2xl animate-scale-up"
+        className="w-full max-w-lg space-y-4 rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-2xl text-[#18181B]"
       >
-        <h3 className="text-xl font-bold text-white border-b border-glass pb-3">
+        <h3 className="text-base font-bold text-[#18181B] border-b border-[#E5E7EB] pb-3">
           {campaign ? 'Editar Configurações da Campanha' : 'Criar Nova Campanha'}
         </h3>
 
         <div className="space-y-1">
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Nome da Campanha</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6570]">Nome da Campanha</label>
           <input
             name="name"
             required
             defaultValue={campaign?.name}
             placeholder="Ex: Cobrança UVA Vencidos Julho"
-            className="mt-1 w-full rounded-xl border border-glass bg-slate-950 px-3.5 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all text-sm"
+            className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs font-medium transition-all"
           />
         </div>
 
-        <div className="rounded-xl border border-glass bg-slate-950/60 p-4 space-y-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-primary">Agente de Voz & Telefonia</p>
-          {loadingConfig && <p className="text-sm text-slate-400">Verificando dados Vapi...</p>}
-          {configError && <p className="text-sm text-rose-400">{configError}</p>}
+        <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] p-4 space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#D9480F]">Agente de Voz & Carteira</p>
+          {loadingConfig && <p className="text-xs text-[#5F6570]">Verificando dados Vapi...</p>}
+          {configError && <p className="text-xs text-[#B91C1C]">{configError}</p>}
           {vapiConfig && (
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <p className="text-slate-500">Assistente Virtual</p>
-                <p className="font-semibold text-white">{vapiConfig.assistant.name}</p>
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-[#18181B]">Selecionar Assistente Virtual (Carteira)</label>
+                <select
+                  value={selectedAssistantId}
+                  onChange={(e) => setSelectedAssistantId(e.target.value)}
+                  className="w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs font-semibold cursor-pointer transition-all"
+                >
+                  {assistantOptions.map((ast) => (
+                    <option key={ast.id} value={ast.id}>
+                      🎓 {ast.name}
+                    </option>
+                  ))}
+                  <option value="custom">⚙️ Outro Assistente (Informar ID Vapi)</option>
+                </select>
               </div>
-              <div>
-                <p className="text-slate-500">Telefone de Saída</p>
-                <p className="font-semibold text-white">{vapiConfig.phoneNumber.number}</p>
+
+              {selectedAssistantId === 'custom' && (
+                <div className="space-y-1 pt-1">
+                  <label className="block text-xs font-semibold text-[#18181B]">ID do Assistente Vapi</label>
+                  <input
+                    value={customAssistantId}
+                    onChange={(e) => setCustomAssistantId(e.target.value)}
+                    required={selectedAssistantId === 'custom'}
+                    placeholder="Cole o ID da Vapi (ex: 15190261-096d-47fe-bbbe-cbfe8dceb2ae)"
+                    className="w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs font-mono transition-all"
+                  />
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-[#E5E7EB] flex justify-between items-center text-[11px] text-[#5F6570]">
+                <span>Telefone de Saída Vapi:</span>
+                <strong className="font-semibold text-[#18181B]">{vapiConfig.phoneNumber.number}</strong>
               </div>
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Limitar Concorrência</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6570]">Limitar Concorrência</label>
             <input
               name="maxConcurrent"
               required
               defaultValue={campaign ? String(campaign.max_concurrent) : '10'}
               min="1"
               type="number"
-              className="mt-1 w-full rounded-xl border border-glass bg-slate-950 px-3.5 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all text-sm"
+              className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs transition-all"
             />
-            <p className="text-[10px] text-slate-500 mt-1 leading-normal">
-              Recomendado: <b>30</b> chamadas simultâneas para evitar limites na Vapi e bloqueio de rotas SIP.
+            <p className="text-[10px] text-[#8B92A0] mt-1 leading-normal">
+              Recomendado: <b>30</b> chamadas simultâneas.
             </p>
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Máximo Tentativas</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6570]">Máximo Tentativas</label>
             <input
               name="maxAttempts"
               required
               defaultValue={campaign ? String(campaign.max_attempts ?? 5) : '5'}
               min="1"
               type="number"
-              className="mt-1 w-full rounded-xl border border-glass bg-slate-950 px-3.5 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all text-sm"
+              className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs transition-all"
             />
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-glass">
+        <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E7EB]">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-glass bg-slate-800 px-4 py-2.5 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition-all"
+            className="rounded-lg border border-[#E5E7EB] bg-white px-3.5 py-2 text-[#5F6570] hover:bg-[#FAFAFA] hover:text-[#18181B] text-xs font-semibold transition-colors shadow-xs"
           >
             Cancelar
           </button>
           <button
             disabled={saving || loadingConfig || !vapiConfig}
-            className="rounded-xl bg-primary hover:bg-primary-hover px-5 py-2.5 text-white font-bold text-sm transition-all disabled:opacity-40"
+            className="rounded-lg bg-[#D9480F] hover:bg-[#B9380B] px-4 py-2 text-white font-semibold text-xs transition-colors disabled:opacity-40 shadow-xs"
           >
             {saving ? 'Salvando...' : campaign ? 'Salvar Alterações' : 'Iniciar Campanha'}
           </button>
@@ -1644,25 +1988,25 @@ function Settings() {
   const [token, setToken] = useState(getToken());
 
   return (
-    <div className="max-w-xl rounded-2xl bg-glass border-glass p-6 shadow-2xl space-y-6">
-      <div className="border-b border-glass pb-4">
-        <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
-          <SettingsIcon size={24} className="text-primary" />
+    <div className="max-w-xl rounded-xl bg-white border border-[#E5E7EB] shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] p-6 space-y-5 text-[#18181B]">
+      <div className="border-b border-[#E5E7EB] pb-3.5">
+        <h2 className="text-lg font-extrabold text-[#18181B] flex items-center gap-2">
+          <SettingsIcon size={20} className="text-[#D9480F]" />
           Configurações do Painel
         </h2>
-        <p className="text-xs text-slate-400">Gerencie tokens e acessos administrativos deste navegador</p>
+        <p className="text-xs text-[#5F6570]">Gerencie tokens e acessos administrativos deste navegador</p>
       </div>
 
       <div className="space-y-2">
-        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Token Administrativo (API Bearer)</label>
+        <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6570]">Token Administrativo (API Bearer)</label>
         <input
           value={token}
           type="password"
           onChange={(event) => setToken(event.target.value)}
           placeholder="Cole seu token de autenticação administrativa aqui"
-          className="mt-2 w-full rounded-xl border border-glass bg-slate-950 px-3.5 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all text-sm font-mono"
+          className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs font-mono transition-all"
         />
-        <p className="text-xs text-slate-500">Este token é salvo no armazenamento local do seu navegador para assinar as requisições.</p>
+        <p className="text-[11px] text-[#8B92A0]">Este token é salvo no armazenamento local do seu navegador para assinar as requisições.</p>
       </div>
 
       <button
@@ -1671,7 +2015,7 @@ function Settings() {
           localStorage.setItem('callcenter_api_token', token);
           window.alert('Token administrativo salvo com sucesso neste navegador!');
         }}
-        className="btn-click rounded-xl bg-primary hover:bg-primary-hover px-6 py-3 font-bold text-sm text-white shadow-lg shadow-primary/20"
+        className="btn-click rounded-lg bg-[#D9480F] hover:bg-[#B9380B] px-4 py-2 font-semibold text-xs text-white transition-colors shadow-xs"
       >
         Salvar Configurações
       </button>
@@ -1679,70 +2023,124 @@ function Settings() {
   );
 }
 
-function Sidebar() {
+function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const location = useLocation();
   const links = [
     ['/', 'Painel Geral', BarChart3],
+    ['/campanhas', 'Campanhas & Disparador', Play],
     ['/configuracoes', 'Configurações', SettingsIcon],
   ] as const;
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 border-r border-glass bg-slate-950 text-slate-300 flex flex-col justify-between p-6">
-      <div className="space-y-8">
-        <div className="flex items-center gap-2.5 py-2">
-          <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
-            <PhoneCall size={20} />
-          </div>
-          <span className="font-extrabold text-white text-base tracking-wide flex flex-col">
-            UVA Call Center
-            <span className="text-[10px] text-slate-400 font-normal">Painel Grupo DDM</span>
-          </span>
-        </div>
+    <>
+      {/* Backdrop para mobile */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
 
-        <nav className="space-y-1">
-          {links.map(([path, label, Icon]) => (
-            <Link
-              key={path}
-              to={path}
-              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
-                location.pathname === path
-                  ? 'bg-primary text-white shadow-lg shadow-primary/15'
-                  : 'hover:bg-slate-900/50 hover:text-white text-slate-400 border border-transparent hover:border-glass'
-              }`}
+      <aside
+        className={`fixed left-0 top-0 h-screen w-60 border-r border-[#E5E7EB] bg-white text-[#18181B] flex flex-col justify-between p-5 z-50 shadow-[1px_0_4px_0_rgba(0,0,0,0.02)] transition-transform duration-200 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        <div className="space-y-6">
+          <div className="flex items-center justify-between py-1">
+            <div className="flex items-center gap-3">
+              <div className="bg-white px-2.5 py-1.5 rounded-lg border border-[#E5E7EB] shadow-xs flex items-center justify-center">
+                <img
+                  src={`${basePath}/logo_ddm.jpg`}
+                  alt="Grupo DDM Logo"
+                  className="h-6 w-auto object-contain"
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fechar menu"
+              className="lg:hidden text-[#5F6570] hover:text-[#18181B] p-1"
             >
-              <Icon size={18} />
-              {label}
-            </Link>
-          ))}
-        </nav>
-      </div>
+              <X size={18} />
+            </button>
+          </div>
 
-      <div className="rounded-xl border border-glass bg-slate-900/30 p-4 space-y-2">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Versão da Operação</p>
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="text-xs font-semibold text-white">v2.1 (Vapi Direct)</span>
+          <nav className="space-y-1">
+            {links.map(([path, label, Icon]) => {
+              const isActive = location.pathname === path || (path === '/campanhas' && location.pathname.startsWith('/campanhas'));
+              return (
+                <Link
+                  key={path}
+                  to={path}
+                  onClick={onClose}
+                  className={`flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs transition-colors ${
+                    isActive
+                      ? 'bg-[#FFF1E8] text-[#B9380B] font-bold border-l-[3px] border-[#D9480F]'
+                      : 'text-[#5F6570] hover:bg-[#F8F9FB] hover:text-[#18181B] font-medium'
+                  }`}
+                >
+                  <Icon size={16} className={isActive ? 'text-[#D9480F]' : 'text-[#5F6570]'} />
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-      </div>
-    </aside>
+
+        <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] p-3 space-y-1.5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#8B92A0]">Ambiente de Operação</p>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-[#15803D]"></span>
+            <span className="text-xs font-semibold text-[#18181B]">v2.4 (Vapi + DDM Pay)</span>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
 
 export default function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   useEffect(() => {
-    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('dark');
   }, []);
 
   return (
     <BrowserRouter basename={basePath || '/'}>
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex">
-        <Sidebar />
-        <main className="ml-64 p-8 flex-1 min-w-0 max-w-[1600px] mx-auto space-y-6">
-          <Routes>
-            <Route path="/" element={<Campaigns />} />
-            <Route path="/configuracoes" element={<Settings />} />
-          </Routes>
-        </main>
+      <div className="min-h-screen bg-[#F6F7F9] text-[#18181B] flex relative overflow-x-hidden">
+        <ThreeBackground />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+        <div className="flex-1 min-w-0 flex flex-col lg:ml-60 transition-all">
+          {/* Header Mobile com Toggle */}
+          <header className="lg:hidden bg-white border-b border-[#E5E7EB] px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Abrir menu lateral"
+                className="p-2 rounded-lg bg-[#111827] text-slate-200 border border-[#1E293B] hover:bg-[#1E293B]"
+              >
+                <Menu size={18} />
+              </button>
+              <div className="bg-white px-2 py-1 rounded-lg flex items-center">
+                <img src={`${basePath}/logo_ddm.jpg`} alt="Grupo DDM Logo" className="h-5 w-auto object-contain" />
+              </div>
+            </div>
+            <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+          </header>
+
+          <main className="p-4 sm:p-6 lg:p-8 flex-1 min-w-0 max-w-[1600px] w-full mx-auto space-y-6 z-10 relative">
+            <Routes>
+              <Route path="/" element={<Campaigns />} />
+              <Route path="/campanhas" element={<Campaigns />} />
+              <Route path="/configuracoes" element={<Settings />} />
+            </Routes>
+          </main>
+        </div>
       </div>
     </BrowserRouter>
   );
