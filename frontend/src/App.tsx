@@ -233,6 +233,9 @@ function Campaigns() {
   const [decisionFilter, setDecisionFilter] = useState<string>('all');
   const [selectedCall, setSelectedCall] = useState<CallRow | null>(null);
   const [callsPage, setCallsPage] = useState(1);
+  const [callsLimit, setCallsLimit] = useState(25);
+  const [totalCallsCount, setTotalCallsCount] = useState(0);
+  const [totalPagesCount, setTotalPagesCount] = useState(1);
   const [terminatingCallId, setTerminatingCallId] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -271,9 +274,11 @@ function Campaigns() {
 
         if (stillExists) {
           const callsResult = await apiFetch(
-            `/campaigns/${selectedId}/calls?page=${callsPage}&limit=100&decision=${decisionFilter}&search=${searchQuery}&_=${Date.now()}`,
+            `/campaigns/${selectedId}/calls?page=${callsPage}&limit=${callsLimit}&decision=${decisionFilter}&search=${searchQuery}&_=${Date.now()}`,
           );
           setCalls(Array.isArray(callsResult.data) ? callsResult.data : []);
+          setTotalCallsCount(Number(callsResult.total || (Array.isArray(callsResult.data) ? callsResult.data.length : 0)));
+          setTotalPagesCount(Number(callsResult.totalPages || 1));
         } else {
           setSelectedId(null);
           setCalls([]);
@@ -286,11 +291,17 @@ function Campaigns() {
     }
   }
 
-  async function loadCalls(id: number, page: number = 1) {
+  async function loadCalls(id: number, page: number = 1, limit: number = callsLimit) {
     setSelectedId(id);
     setCallsPage(page);
-    const result = await apiFetch(`/campaigns/${id}/calls?page=${page}&limit=100&decision=${decisionFilter}&search=${searchQuery}&_=${Date.now()}`);
-    setCalls(Array.isArray(result.data) ? result.data : []);
+    try {
+      const result = await apiFetch(`/campaigns/${id}/calls?page=${page}&limit=${limit}&decision=${decisionFilter}&search=${searchQuery}&_=${Date.now()}`);
+      setCalls(Array.isArray(result.data) ? result.data : []);
+      setTotalCallsCount(Number(result.total || (Array.isArray(result.data) ? result.data.length : 0)));
+      setTotalPagesCount(Number(result.totalPages || 1));
+    } catch (e) {
+      console.warn('[loadCalls] error:', e);
+    }
   }
 
   async function changeStatus(id: number, status: string) {
@@ -739,7 +750,14 @@ function Campaigns() {
                           <button
                             type="button"
                             title="Ver Fila de Contatos"
-                            onClick={() => setSelectedId(campaign.id)}
+                            onClick={() => {
+                              setSelectedId(campaign.id);
+                              setCallsPage(1);
+                              void loadCalls(campaign.id, 1, callsLimit);
+                              setTimeout(() => {
+                                document.getElementById('queue-table-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              }, 80);
+                            }}
                             className={`btn-click rounded-lg px-2.5 py-1 border text-xs font-semibold flex items-center gap-1 transition-colors ${
                               isSelected
                                 ? 'bg-[#D9480F] text-white border-[#D9480F]'
@@ -899,7 +917,7 @@ function Campaigns() {
             )}
 
             {/* Filtros e Tabela de Contatos */}
-            <div className="space-y-3 pt-1">
+            <div id="queue-table-section" className="space-y-3 pt-1">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#E5E7EB] shadow-xs">
                   <input
@@ -1071,6 +1089,64 @@ function Campaigns() {
                     )}
                   </tbody>
                 </table>
+
+                {/* Barra de Paginação de Leads */}
+                <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-[#FAFAFA] border-t border-[#E5E7EB] text-xs text-[#5F6570]">
+                  <div className="flex items-center gap-2">
+                    <span>Exibir:</span>
+                    <select
+                      value={callsLimit}
+                      onChange={(e) => {
+                        const newLimit = Number(e.target.value);
+                        setCallsLimit(newLimit);
+                        setCallsPage(1);
+                        if (selectedId) void loadCalls(selectedId, 1, newLimit);
+                      }}
+                      className="bg-white text-[#18181B] border border-[#E5E7EB] rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none cursor-pointer"
+                    >
+                      <option value={25}>25 por página</option>
+                      <option value={50}>50 por página</option>
+                      <option value={100}>100 por página</option>
+                    </select>
+                    <span className="text-[#8B92A0]">|</span>
+                    <span>
+                      Mostrando <strong>{filteredCalls.length > 0 ? (callsPage - 1) * callsLimit + 1 : 0}</strong> a{' '}
+                      <strong>{Math.min(callsPage * callsLimit, totalCallsCount)}</strong> de <strong>{totalCallsCount.toLocaleString('pt-BR')}</strong> contatos
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={callsPage <= 1}
+                      onClick={() => {
+                        const prev = Math.max(1, callsPage - 1);
+                        setCallsPage(prev);
+                        if (selectedId) void loadCalls(selectedId, prev, callsLimit);
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white text-[#18181B] font-semibold hover:bg-[#F8F9FB] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Anterior
+                    </button>
+
+                    <span className="px-3 py-1.5 font-bold text-[#18181B]">
+                      Página {callsPage} de {totalPagesCount}
+                    </span>
+
+                    <button
+                      type="button"
+                      disabled={callsPage >= totalPagesCount}
+                      onClick={() => {
+                        const next = Math.min(totalPagesCount, callsPage + 1);
+                        setCallsPage(next);
+                        if (selectedId) void loadCalls(selectedId, next, callsLimit);
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white text-[#18181B] font-semibold hover:bg-[#F8F9FB] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Próxima
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
