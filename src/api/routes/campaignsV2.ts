@@ -969,7 +969,18 @@ campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
     params.push(`%${search}%`, `%${search}%`, `%${search}%`);
   }
 
+  const countParams = params.slice(0);
   params.push(limit, offset);
+
+  const [countRows]: any = await pool.query(
+    `SELECT COUNT(*) AS total
+     FROM campaign_calls cc
+     LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id
+     WHERE cc.campaign_id = ? ${whereClause}`,
+    countParams,
+  );
+  const total = Number(countRows[0]?.total || 0);
+  const totalPages = Math.ceil(total / limit) || 1;
 
   const [rows]: any = await pool.query(
     `SELECT cc.*, cr.decision, cr.scheduled_callback_at, cr.ended_reason, cr.created_at AS result_created_at
@@ -979,7 +990,7 @@ campaignsV2Router.get('/campaigns/:id/calls', async (req, res) => {
      ORDER BY (CASE WHEN cc.status = 'pending' THEN 1 ELSE 0 END) ASC, cc.id DESC LIMIT ? OFFSET ?`,
     params,
   );
-  return res.json({ page, limit, data: rows });
+  return res.json({ page, limit, total, totalPages, data: rows });
 });
 
 campaignsV2Router.post('/campaigns/:id/import', upload.single('file'), async (req, res) => {
