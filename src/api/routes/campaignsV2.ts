@@ -547,24 +547,43 @@ campaignsV2Router.get('/campaigns', async (req, res) => {
   const limit = Math.min(100, Math.max(1, Number(req.query.limit || 25)));
   const offset = (page - 1) * limit;
   const status = String(req.query.status || '').trim();
-  const where = status ? 'WHERE c.status = ?' : '';
-  const params = status ? [status, limit, offset] : [limit, offset];
+  const period = String(req.query.period || 'all').trim();
+
+  const whereConditions: string[] = [];
+  const params: any[] = [];
+
+  if (status) {
+    whereConditions.push('c.status = ?');
+    params.push(status);
+  }
+
+  let ccDateFilter = '';
+  if (period === 'today') {
+    ccDateFilter = ' AND (cc.updated_at >= CURDATE() OR cr.created_at >= CURDATE())';
+  } else if (period === '7d') {
+    ccDateFilter = ' AND (cc.updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) OR cr.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY))';
+  } else if (period === '30d') {
+    ccDateFilter = ' AND (cc.updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) OR cr.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY))';
+  }
+
+  const where = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+  params.push(limit, offset);
 
   const [rows]: any = await pool.query(
     `SELECT c.*,
-      SUM(cc.status IN ('pending','retry_scheduled')) AS pending_calls,
-      SUM(cc.status IN ('reserved','queued','in_progress','answered')) AS active_calls,
-      SUM(cc.status = 'completed') AS completed_calls,
-      SUM(cc.status = 'failed') AS failed_calls,
-      SUM(cc.status = 'skipped') AS skipped_calls,
-      SUM(COALESCE(cr.duration_seconds, 0) > 0 OR cc.status = 'answered') AS answered_calls,
-      SUM(cr.decision = 'formalize') AS formalized_calls,
-      SUM(cr.decision = 'schedule') AS scheduled_calls,
-      SUM(cr.decision = 'zero') AS zero_calls,
-      COALESCE(SUM(cr.duration_seconds), 0) AS total_duration_seconds,
-      COALESCE(ROUND(AVG(NULLIF(cr.duration_seconds, 0))), 0) AS avg_duration_seconds,
-      COUNT(DISTINCT cc.cpf) AS total_leads,
-      COUNT(cc.id) AS total_calls
+      SUM(cc.status IN ('pending','retry_scheduled')${ccDateFilter}) AS pending_calls,
+      SUM(cc.status IN ('reserved','queued','in_progress','answered')${ccDateFilter}) AS active_calls,
+      SUM(cc.status = 'completed'${ccDateFilter}) AS completed_calls,
+      SUM(cc.status = 'failed'${ccDateFilter}) AS failed_calls,
+      SUM(cc.status = 'skipped'${ccDateFilter}) AS skipped_calls,
+      SUM((COALESCE(cr.duration_seconds, 0) > 0 OR cc.status = 'answered')${ccDateFilter}) AS answered_calls,
+      SUM(cr.decision = 'formalize'${ccDateFilter}) AS formalized_calls,
+      SUM(cr.decision = 'schedule'${ccDateFilter}) AS scheduled_calls,
+      SUM(cr.decision = 'zero'${ccDateFilter}) AS zero_calls,
+      COALESCE(SUM(CASE WHEN 1=1 ${ccDateFilter} THEN cr.duration_seconds ELSE 0 END), 0) AS total_duration_seconds,
+      COALESCE(ROUND(AVG(CASE WHEN 1=1 ${ccDateFilter} THEN NULLIF(cr.duration_seconds, 0) ELSE NULL END)), 0) AS avg_duration_seconds,
+      COUNT(DISTINCT CASE WHEN 1=1 ${ccDateFilter} THEN cc.cpf ELSE NULL END) AS total_leads,
+      COUNT(CASE WHEN 1=1 ${ccDateFilter} THEN cc.id ELSE NULL END) AS total_calls
      FROM campaigns c
      LEFT JOIN campaign_calls cc ON cc.campaign_id = c.id
      LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id

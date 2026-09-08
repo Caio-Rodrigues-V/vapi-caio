@@ -234,6 +234,7 @@ function Campaigns() {
   const [selectedCall, setSelectedCall] = useState<CallRow | null>(null);
   const [callsPage, setCallsPage] = useState(1);
   const [callsLimit, setCallsLimit] = useState(25);
+  const [pageInput, setPageInput] = useState('1');
   const [totalCallsCount, setTotalCallsCount] = useState(0);
   const [totalPagesCount, setTotalPagesCount] = useState(1);
   const [terminatingCallId, setTerminatingCallId] = useState<string | null>(null);
@@ -262,7 +263,7 @@ function Campaigns() {
     setError('');
 
     try {
-      const result = await apiFetch(`/campaigns?limit=100&_=${Date.now()}`);
+      const result = await apiFetch(`/campaigns?limit=100&period=${period}&_=${Date.now()}`);
       const nextCampaigns = Array.isArray(result.data) ? result.data : [];
       setCampaigns(nextCampaigns);
       setLastUpdatedAt(new Date());
@@ -294,6 +295,7 @@ function Campaigns() {
   async function loadCalls(id: number, page: number = 1, limit: number = callsLimit) {
     setSelectedId(id);
     setCallsPage(page);
+    setPageInput(String(page));
     try {
       const result = await apiFetch(`/campaigns/${id}/calls?page=${page}&limit=${limit}&decision=${decisionFilter}&search=${searchQuery}&_=${Date.now()}`);
       setCalls(Array.isArray(result.data) ? result.data : []);
@@ -380,7 +382,7 @@ function Campaigns() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [period]);
 
   useEffect(() => {
     let eventSource: EventSource | null = null;
@@ -1129,9 +1131,32 @@ function Campaigns() {
                       Anterior
                     </button>
 
-                    <span className="px-3 py-1.5 font-bold text-[#18181B]">
-                      Página {callsPage} de {totalPagesCount}
-                    </span>
+                    <div className="flex items-center gap-1.5 font-semibold text-[#18181B] px-1">
+                      <span>Página</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={totalPagesCount}
+                        value={pageInput}
+                        onChange={(e) => setPageInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = Math.max(1, Math.min(totalPagesCount, Number(pageInput) || 1));
+                            setCallsPage(val);
+                            setPageInput(String(val));
+                            if (selectedId) void loadCalls(selectedId, val, callsLimit);
+                          }
+                        }}
+                        onBlur={() => {
+                          const val = Math.max(1, Math.min(totalPagesCount, Number(pageInput) || 1));
+                          setCallsPage(val);
+                          setPageInput(String(val));
+                          if (selectedId) void loadCalls(selectedId, val, callsLimit);
+                        }}
+                        className="w-14 text-center bg-white border border-[#E5E7EB] rounded-md py-1 px-1 font-bold text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-1 focus:ring-[#D9480F]"
+                      />
+                      <span>de {totalPagesCount}</span>
+                    </div>
 
                     <button
                       type="button"
