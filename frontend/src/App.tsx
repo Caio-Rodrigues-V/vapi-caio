@@ -217,7 +217,7 @@ function StatusBadge({ status }: { status: string }) {
 function Campaigns() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const isCampaignRoute = location.pathname.startsWith('/campanhas');
 
@@ -301,8 +301,14 @@ function Campaigns() {
     setPageInput('1');
     if (id) {
       void loadCalls(id, 1, callsLimit, 'all', '');
+      if (isCampaignRoute) {
+        setSearchParams({ id: String(id) }, { replace: true });
+      }
     } else {
       setCalls([]);
+      if (isCampaignRoute) {
+        setSearchParams({}, { replace: true });
+      }
     }
     if (shouldScroll) {
       setTimeout(() => {
@@ -449,12 +455,12 @@ function Campaigns() {
     if (urlId) {
       const parsedId = Number(urlId);
       if (!isNaN(parsedId) && parsedId !== selectedId) {
-        setSelectedId(parsedId);
+        selectCampaign(parsedId);
       }
     } else if (isCampaignRoute && !selectedId && campaigns.length > 0) {
-      setSelectedId(campaigns[0].id);
+      selectCampaign(campaigns[0].id);
     }
-  }, [searchParams, isCampaignRoute, campaigns, selectedId]);
+  }, [searchParams, isCampaignRoute, campaigns]);
 
   const selectedCampaign = campaigns.find(c => c.id === selectedId);
 
@@ -565,6 +571,11 @@ function Campaigns() {
     if (decisionFilter === 'no_debt') return calls.filter(c => c.status === 'skipped' || c.last_error === 'no_debt' || c.last_error === 'already_has_agreement');
     return calls.filter(c => c.decision === decisionFilter);
   }, [calls, decisionFilter]);
+
+  const selectedCallIndex = useMemo(() => {
+    if (!selectedCall) return -1;
+    return filteredCalls.findIndex((c) => c.id === selectedCall.id);
+  }, [selectedCall, filteredCalls]);
 
   const [exporting, setExporting] = useState(false);
 
@@ -1199,7 +1210,12 @@ function Campaigns() {
         )}
 
         {selectedCall && (
-          <CallDetailsModal call={selectedCall} onClose={() => setSelectedCall(null)} />
+          <CallDetailsModal
+            call={selectedCall}
+            onClose={() => setSelectedCall(null)}
+            onPrevious={selectedCallIndex > 0 ? () => setSelectedCall(filteredCalls[selectedCallIndex - 1]) : undefined}
+            onNext={selectedCallIndex >= 0 && selectedCallIndex < filteredCalls.length - 1 ? () => setSelectedCall(filteredCalls[selectedCallIndex + 1]) : undefined}
+          />
         )}
       </div>
     );
@@ -1636,13 +1652,28 @@ function Campaigns() {
       )}
 
       {selectedCall && (
-        <CallDetailsModal call={selectedCall} onClose={() => setSelectedCall(null)} />
+        <CallDetailsModal
+          call={selectedCall}
+          onClose={() => setSelectedCall(null)}
+          onPrevious={selectedCallIndex > 0 ? () => setSelectedCall(filteredCalls[selectedCallIndex - 1]) : undefined}
+          onNext={selectedCallIndex >= 0 && selectedCallIndex < filteredCalls.length - 1 ? () => setSelectedCall(filteredCalls[selectedCallIndex + 1]) : undefined}
+        />
       )}
     </div>
   );
 }
 
-function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => void }) {
+function CallDetailsModal({
+  call,
+  onClose,
+  onPrevious,
+  onNext,
+}: {
+  call: CallRow;
+  onClose: () => void;
+  onPrevious?: () => void;
+  onNext?: () => void;
+}) {
   const [cpfPhones, setCpfPhones] = useState<any[]>([]);
   const [loadingPhones, setLoadingPhones] = useState(false);
 
@@ -1697,6 +1728,28 @@ function CallDetailsModal({ call, onClose }: { call: CallRow; onClose: () => voi
       subtitle={`CPF: ${call.cpf || '-'} | Telefone: ${call.customer_number}`}
     >
       <div className="space-y-5">
+        {/* Navegação entre chamadas da fila */}
+        {(onPrevious || onNext) && (
+          <div className="flex items-center justify-between bg-[#FAFAFA] border border-[#E5E7EB] p-2 rounded-xl shadow-xs">
+            <button
+              type="button"
+              disabled={!onPrevious}
+              onClick={onPrevious}
+              className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white text-xs font-bold text-[#18181B] hover:bg-[#FFF1E8] hover:text-[#B9380B] hover:border-[#FFD1B8] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              ← Contato Anterior
+            </button>
+            <span className="text-[11px] font-extrabold text-[#D9480F]">Navegar na Fila</span>
+            <button
+              type="button"
+              disabled={!onNext}
+              onClick={onNext}
+              className="px-3 py-1.5 rounded-lg border border-[#FFD1B8] bg-[#FFF1E8] text-xs font-bold text-[#B9380B] hover:bg-[#D9480F] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              Próximo Contato →
+            </button>
+          </div>
+        )}
         {/* Informações Gerais */}
         <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4 space-y-3">
           <h4 className="text-xs font-bold uppercase tracking-wider text-[#D9480F]">Informações Gerais</h4>
