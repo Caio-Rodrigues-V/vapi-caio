@@ -421,8 +421,6 @@ function Campaigns() {
       }
     } else if (isCampaignRoute && !selectedId && campaigns.length > 0) {
       setSelectedId(campaigns[0].id);
-    } else if (!isCampaignRoute && selectedId !== null) {
-      setSelectedId(null);
     }
   }, [searchParams, isCampaignRoute, campaigns, selectedId]);
 
