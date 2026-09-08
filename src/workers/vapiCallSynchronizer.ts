@@ -68,7 +68,10 @@ export async function runVapiCallSynchronizer(limit = 100): Promise<SyncResult> 
     `SELECT id, provider_call_id, status
      FROM campaign_calls
      WHERE provider_call_id IS NOT NULL
-       AND status IN ('queued','in_progress','answered')
+       AND (
+         status IN ('queued','in_progress','answered')
+         OR (status IN ('completed','answered') AND recording_url IS NULL)
+       )
      ORDER BY updated_at ASC
      LIMIT ?`,
     [safeLimit],
@@ -98,8 +101,17 @@ export async function runVapiCallSynchronizer(limit = 100): Promise<SyncResult> 
 
       const transcript = String(call.transcript || call.artifact?.transcript || '') || null;
       const recordingUrl = String(
-        call.recordingUrl || call.artifact?.recordingUrl || call.artifact?.recording?.url || '',
-      ) || null;
+        (call as any).recordingUrl ||
+        (call as any).stereoRecordingUrl ||
+        call.artifact?.recordingUrl ||
+        (call.artifact as any)?.stereoRecordingUrl ||
+        call.artifact?.recording?.url ||
+        (call.artifact as any)?.stereoRecording?.url ||
+        (call as any).presignedUrl ||
+        (call as any).presignedMonoUrl ||
+        (call as any).presignedStereoUrl ||
+        '',
+      ).trim() || null;
       const endedReason = String(call.endedReason || '') || null;
       const duration = durationSeconds(call);
 

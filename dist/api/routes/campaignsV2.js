@@ -373,23 +373,58 @@ exports.campaignsV2Router.get('/calls/:providerCallId/recording', async (req, re
     if (!providerCallId)
         return res.status(400).json({ error: 'ID da chamada é obrigatório' });
     try {
+        // 1. Check DB first
+        const [rows] = await db_1.default.query(`SELECT recording_url FROM campaign_calls WHERE provider_call_id = ? LIMIT 1`, [providerCallId]);
+        const dbUrl = rows[0]?.recording_url;
+        if (dbUrl && typeof dbUrl === 'string' && dbUrl.startsWith('http')) {
+            return res.redirect(dbUrl);
+        }
         const apiKey = process.env.VAPI_API_KEY;
         if (!apiKey)
             throw new Error('VAPI_API_KEY não configurada no servidor.');
-        // We do not follow redirects (maxRedirects: 0) to capture the 302 Location header
-        // and redirect the user directly to the presigned R2/S3 URL from Vapi.
-        const response = await axios_1.default.get(`https://api.vapi.ai/call/${providerCallId}/mono-recording`, {
+        // 2. Query Vapi call details
+        try {
+            const response = await axios_1.default.get(`https://api.vapi.ai/call/${providerCallId}`, {
+                headers: { Authorization: `Bearer ${apiKey}` },
+                timeout: 8000,
+            });
+            const callData = response.data || {};
+            const audioUrl = String(callData.recordingUrl ||
+                callData.stereoRecordingUrl ||
+                callData.artifact?.recordingUrl ||
+                callData.artifact?.stereoRecordingUrl ||
+                callData.artifact?.recording?.url ||
+                callData.artifact?.stereoRecording?.url ||
+                callData.presignedUrl ||
+                callData.presignedMonoUrl ||
+                callData.presignedStereoUrl ||
+                '').trim();
+            if (audioUrl && audioUrl.startsWith('http')) {
+                await db_1.default.query(`UPDATE campaign_calls SET recording_url = ? WHERE provider_call_id = ?`, [audioUrl, providerCallId]).catch(() => { });
+                return res.redirect(audioUrl);
+            }
+        }
+        catch (apiErr) {
+            console.warn(`[recording proxy] Direct call detail fetch failed for ${providerCallId}:`, apiErr.message);
+        }
+        // 3. Fallback: query mono-recording endpoint
+        const monoResp = await axios_1.default.get(`https://api.vapi.ai/call/${providerCallId}/mono-recording`, {
             headers: { Authorization: `Bearer ${apiKey}` },
             maxRedirects: 0,
             validateStatus: (status) => status >= 200 && status < 400,
         });
-        if (response.status === 302 || response.status === 301 || response.status === 307 || response.status === 308) {
-            const redirectUrl = response.headers.location;
-            if (redirectUrl) {
-                return res.redirect(redirectUrl);
+        if ([301, 302, 307, 308].includes(monoResp.status) && monoResp.headers.location) {
+            return res.redirect(monoResp.headers.location);
+        }
+        if (monoResp.data) {
+            if (typeof monoResp.data === 'string' && monoResp.data.startsWith('http')) {
+                return res.redirect(monoResp.data);
+            }
+            if (typeof monoResp.data === 'object' && monoResp.data.url) {
+                return res.redirect(monoResp.data.url);
             }
         }
-        return res.status(response.status).send(response.data);
+        return res.status(404).json({ error: 'Áudio de gravação não disponível para esta chamada' });
     }
     catch (err) {
         console.error('[recording proxy] Error:', err.message);

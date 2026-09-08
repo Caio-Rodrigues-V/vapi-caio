@@ -1856,15 +1856,15 @@ function CallDetailsModal({
         </div>
 
         {/* Audio Player Card */}
-        {call.recording_url ? (
+        {call.recording_url || call.provider_call_id ? (
           <div className="rounded-xl border border-[#DCFCE7] bg-[#ECFDF3] p-4 space-y-2">
             <h4 className="text-xs font-bold uppercase tracking-wider text-[#15803D] flex items-center gap-1.5 font-bold">
               <Volume2 size={14} /> Gravação do Áudio
             </h4>
             <audio 
-              src={call.provider_call_id 
-                ? apiUrl(`/calls/${call.provider_call_id}/recording?token=${getToken()}`) 
-                : call.recording_url || undefined} 
+              src={call.recording_url && call.recording_url.startsWith('http')
+                ? call.recording_url
+                : (call.provider_call_id ? apiUrl(`/calls/${call.provider_call_id}/recording?token=${getToken()}`) : undefined)} 
               controls 
               className="w-full mt-1 rounded-lg" 
             />
