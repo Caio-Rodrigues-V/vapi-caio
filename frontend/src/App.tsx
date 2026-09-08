@@ -292,12 +292,31 @@ function Campaigns() {
     }
   }
 
-  async function loadCalls(id: number, page: number = 1, limit: number = callsLimit) {
+  const selectCampaign = (id: number | null, shouldScroll: boolean = false) => {
+    setSelectedId(id);
+    setDecisionFilter('all');
+    setSearchInput('');
+    setSearchQuery('');
+    setCallsPage(1);
+    setPageInput('1');
+    if (id) {
+      void loadCalls(id, 1, callsLimit, 'all', '');
+    } else {
+      setCalls([]);
+    }
+    if (shouldScroll) {
+      setTimeout(() => {
+        document.getElementById('queue-table-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
+    }
+  };
+
+  async function loadCalls(id: number, page: number = 1, limit: number = callsLimit, decision: string = decisionFilter, search: string = searchQuery) {
     setSelectedId(id);
     setCallsPage(page);
     setPageInput(String(page));
     try {
-      const result = await apiFetch(`/campaigns/${id}/calls?page=${page}&limit=${limit}&decision=${decisionFilter}&search=${searchQuery}&_=${Date.now()}`);
+      const result = await apiFetch(`/campaigns/${id}/calls?page=${page}&limit=${limit}&decision=${decision}&search=${encodeURIComponent(search)}&_=${Date.now()}`);
       setCalls(Array.isArray(result.data) ? result.data : []);
       setTotalCallsCount(Number(result.total || (Array.isArray(result.data) ? result.data.length : 0)));
       setTotalPagesCount(Number(result.totalPages || 1));
@@ -636,7 +655,7 @@ function Campaigns() {
                 <span className="text-xs text-[#5F6570] font-medium hidden sm:inline">Campanha:</span>
                 <select
                   value={selectedId || ''}
-                  onChange={(e) => setSelectedId(Number(e.target.value))}
+                  onChange={(e) => selectCampaign(Number(e.target.value))}
                   className="bg-transparent text-[#18181B] text-xs font-semibold focus:outline-none cursor-pointer"
                 >
                   {campaigns.map((c) => (
@@ -692,7 +711,7 @@ function Campaigns() {
                           </div>
                           <div>
                             <button
-                              onClick={() => setSelectedId(campaign.id)}
+                              onClick={() => selectCampaign(campaign.id)}
                               className="font-bold text-[#18181B] hover:text-[#D9480F] transition-colors text-left block text-xs"
                             >
                               {campaign.name}
@@ -752,14 +771,7 @@ function Campaigns() {
                           <button
                             type="button"
                             title="Ver Fila de Contatos"
-                            onClick={() => {
-                              setSelectedId(campaign.id);
-                              setCallsPage(1);
-                              void loadCalls(campaign.id, 1, callsLimit);
-                              setTimeout(() => {
-                                document.getElementById('queue-table-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                              }, 80);
-                            }}
+                            onClick={() => selectCampaign(campaign.id, true)}
                             className={`btn-click rounded-lg px-2.5 py-1 border text-xs font-semibold flex items-center gap-1 transition-colors ${
                               isSelected
                                 ? 'bg-[#D9480F] text-white border-[#D9480F]'
@@ -822,7 +834,7 @@ function Campaigns() {
                     <Layers size={15} className="text-[#D9480F]" />
                     <select
                       value={selectedId || ''}
-                      onChange={(e) => setSelectedId(Number(e.target.value))}
+                      onChange={(e) => selectCampaign(Number(e.target.value))}
                       className="bg-transparent text-[#18181B] text-xs font-semibold focus:outline-none cursor-pointer pr-2"
                     >
                       {campaigns.map((c) => (
@@ -1262,7 +1274,7 @@ function Campaigns() {
       <FilterBar
         selectedCampaignId={selectedId}
         campaigns={campaigns}
-        onSelectCampaign={(id) => setSelectedId(id)}
+        onSelectCampaign={(id) => selectCampaign(id)}
         period={period}
         onSelectPeriod={(p) => setPeriod(p)}
         statusFilter={decisionFilter}
@@ -1270,11 +1282,8 @@ function Campaigns() {
         searchInput={searchInput}
         onSearchChange={(val) => setSearchInput(val)}
         onClearFilters={() => {
-          setSelectedId(null);
+          selectCampaign(null);
           setPeriod('all');
-          setDecisionFilter('all');
-          setSearchInput('');
-          setSearchQuery('');
         }}
         activeFiltersCount={
           (selectedId ? 1 : 0) +
