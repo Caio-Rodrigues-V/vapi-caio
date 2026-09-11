@@ -71,11 +71,21 @@ export class VapiPhoneProvider implements DialerProvider {
       payload.serverUrl = webhookUrl;
     }
 
+    const maxConcurrency = Number(process.env.VAPI_MAX_CONCURRENCY || process.env.GLOBAL_MAX_CONCURRENT || 30);
+    if (maxConcurrency > 0) {
+      payload.maxConcurrency = maxConcurrency;
+    }
+
     if (Object.keys(overrides).length > 0) {
       payload.assistantOverrides = overrides;
     }
 
-    const response = await this.client.post('/call/phone', payload);
+    const headers: Record<string, string> = {};
+    if (maxConcurrency > 0) {
+      headers['X-Max-Concurrency'] = String(maxConcurrency);
+    }
+
+    const response = await this.client.post('/call/phone', payload, { headers });
 
     const providerCallId = String(response.data?.id || '');
     if (!providerCallId) {
