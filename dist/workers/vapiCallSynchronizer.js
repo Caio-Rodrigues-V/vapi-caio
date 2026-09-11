@@ -41,7 +41,7 @@ async function runVapiCallSynchronizer(limit = 100) {
     const apiKey = requiredEnv('VAPI_API_KEY');
     const safeLimit = Math.min(500, Math.max(1, Math.floor(limit)));
     const client = axios_1.default.create({
-        baseURL: 'https://api.vapi.ai',
+        baseURL: process.env.VAPI_BASE_URL || 'https://api.vapi.ai',
         timeout: 20_000,
         headers: { Authorization: `Bearer ${apiKey}` },
     });

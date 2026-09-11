@@ -137,7 +137,8 @@ campaignsV2Router.get('/campaigns/diag-vapi-call/:callId', async (req, res) => {
   try {
     const apiKey = process.env.VAPI_API_KEY;
     if (!apiKey) throw new Error('VAPI_API_KEY não configurada no servidor.');
-    const response = await axios.get(`https://api.vapi.ai/call/${req.params.callId}`, {
+    const vapiBaseUrl = process.env.VAPI_BASE_URL || 'https://api.vapi.ai';
+    const response = await axios.get(`${vapiBaseUrl}/call/${req.params.callId}`, {
       headers: { Authorization: `Bearer ${apiKey}` }
     });
     return res.json(response.data);
@@ -420,10 +421,11 @@ campaignsV2Router.get('/calls/:providerCallId/recording', async (req, res) => {
 
     const apiKey = process.env.VAPI_API_KEY;
     if (!apiKey) throw new Error('VAPI_API_KEY não configurada no servidor.');
+    const vapiBaseUrl = process.env.VAPI_BASE_URL || 'https://api.vapi.ai';
 
     // 2. Query Vapi call details
     try {
-      const response = await axios.get(`https://api.vapi.ai/call/${providerCallId}`, {
+      const response = await axios.get(`${vapiBaseUrl}/call/${providerCallId}`, {
         headers: { Authorization: `Bearer ${apiKey}` },
         timeout: 8000,
       });
@@ -455,7 +457,7 @@ campaignsV2Router.get('/calls/:providerCallId/recording', async (req, res) => {
     }
 
     // 3. Fallback: query mono-recording endpoint
-    const monoResp = await axios.get(`https://api.vapi.ai/call/${providerCallId}/mono-recording`, {
+    const monoResp = await axios.get(`${vapiBaseUrl}/call/${providerCallId}/mono-recording`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       maxRedirects: 0,
       validateStatus: (status) => status >= 200 && status < 400,
@@ -489,9 +491,11 @@ campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, res) => {
     const apiKey = configuredValue(undefined, 'VAPI_API_KEY');
     if (!apiKey) throw new Error('VAPI_API_KEY não configurada no servidor.');
 
+    const vapiBaseUrl = process.env.VAPI_BASE_URL || 'https://api.vapi.ai';
+
     // 1. Terminate call on Vapi
     await axios.delete(
-      `https://api.vapi.ai/call/${providerCallId}`,
+      `${vapiBaseUrl}/call/${providerCallId}`,
       {
         headers: { Authorization: `Bearer ${apiKey}` },
         timeout: 10000,
@@ -538,7 +542,7 @@ campaignsV2Router.get('/vapi/config', async (_req, res) => {
     const phoneNumberId = configuredValue(undefined, 'VAPI_PHONE_NUMBER_ID');
 
     const client = axios.create({
-      baseURL: 'https://api.vapi.ai',
+      baseURL: process.env.VAPI_BASE_URL || 'https://api.vapi.ai',
       timeout: 10_000,
       headers: { Authorization: `Bearer ${apiKey}` },
     });
