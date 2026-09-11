@@ -34,7 +34,7 @@ async function runCampaignDispatcher() {
         maxRetries: envInt('DDM_MAX_RETRIES', 3),
     });
     const assistantResolver = new AssistantResolver_1.AssistantResolver({
-        uvaAssistantId: requiredEnv('VAPI_ASSISTANT_ID_UVA'),
+        uvaAssistantId: process.env.DEFAULT_ASSISTANT_ID || process.env.VAPI_ASSISTANT_ID_UVA || '2',
         cruzeiroAssistantId: process.env.VAPI_ASSISTANT_ID_CRUZEIRO,
     });
     const retryPolicy = new RetryPolicy_1.RetryPolicy({
