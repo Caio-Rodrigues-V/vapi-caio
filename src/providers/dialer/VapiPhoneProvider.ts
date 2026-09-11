@@ -18,7 +18,7 @@ export class VapiPhoneProvider implements DialerProvider {
     }
 
     this.client = axios.create({
-      baseURL: 'https://api.vapi.ai',
+      baseURL: process.env.VAPI_BASE_URL || 'https://api.vapi.ai',
       timeout: 30_000,
       headers: {
         Authorization: `Bearer ${apiKey}`,

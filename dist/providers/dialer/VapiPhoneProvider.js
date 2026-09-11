@@ -14,7 +14,7 @@ class VapiPhoneProvider {
             throw new Error('VAPI_API_KEY não configurada.');
         }
         this.client = axios_1.default.create({
-            baseURL: 'https://api.vapi.ai',
+            baseURL: process.env.VAPI_BASE_URL || 'https://api.vapi.ai',
             timeout: 30_000,
             headers: {
                 Authorization: `Bearer ${apiKey}`,
