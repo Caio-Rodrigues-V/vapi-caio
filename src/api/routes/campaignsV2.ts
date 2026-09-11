@@ -137,7 +137,7 @@ campaignsV2Router.get('/campaigns/diag-vapi-call/:callId', async (req, res) => {
   try {
     const apiKey = process.env.VAPI_API_KEY;
     if (!apiKey) throw new Error('VAPI_API_KEY não configurada no servidor.');
-    const vapiBaseUrl = process.env.VAPI_BASE_URL || 'https://api.vapi.ai';
+    const vapiBaseUrl = process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1';
     const response = await axios.get(`${vapiBaseUrl}/call/${req.params.callId}`, {
       headers: { Authorization: `Bearer ${apiKey}` }
     });
@@ -421,7 +421,7 @@ campaignsV2Router.get('/calls/:providerCallId/recording', async (req, res) => {
 
     const apiKey = process.env.VAPI_API_KEY;
     if (!apiKey) throw new Error('VAPI_API_KEY não configurada no servidor.');
-    const vapiBaseUrl = process.env.VAPI_BASE_URL || 'https://api.vapi.ai';
+    const vapiBaseUrl = process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1';
 
     // 2. Query Vapi call details
     try {
@@ -491,7 +491,7 @@ campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, res) => {
     const apiKey = configuredValue(undefined, 'VAPI_API_KEY');
     if (!apiKey) throw new Error('VAPI_API_KEY não configurada no servidor.');
 
-    const vapiBaseUrl = process.env.VAPI_BASE_URL || 'https://api.vapi.ai';
+    const vapiBaseUrl = process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1';
 
     // 1. Terminate call on Vapi
     await axios.delete(
@@ -538,11 +538,11 @@ campaignsV2Router.get('/vapi/config', async (_req, res) => {
   try {
     const apiKey = configuredValue(undefined, 'VAPI_API_KEY');
     const uvaAssistantId = process.env.DEFAULT_ASSISTANT_ID || process.env.VAPI_ASSISTANT_ID_UVA || '2';
-    const cruzeiroAssistantId = process.env.VAPI_ASSISTANT_ID_CRUZEIRO || 'd0e0eea1-2e61-4ae5-91b8-85e29ba8e60f';
+    const cruzeiroAssistantId = process.env.VAPI_ASSISTANT_ID_CRUZEIRO || '2';
     const phoneNumberId = configuredValue(undefined, 'VAPI_PHONE_NUMBER_ID');
 
     const client = axios.create({
-      baseURL: process.env.VAPI_BASE_URL || 'https://api.vapi.ai',
+      baseURL: process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1',
       timeout: 10_000,
       headers: { Authorization: `Bearer ${apiKey}` },
     });

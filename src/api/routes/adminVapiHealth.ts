@@ -58,7 +58,7 @@ adminVapiHealthRouter.get('/vapi/health', async (req, res) => {
     const assistantId = getRequiredEnv('VAPI_ASSISTANT_ID_UVA');
 
     const client = axios.create({
-      baseURL: process.env.VAPI_BASE_URL || 'https://api.vapi.ai',
+      baseURL: process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1',
       timeout: 25_000,
       headers: {
         Authorization: `Bearer ${apiKey}`,
