@@ -75,7 +75,8 @@ async function processarRegistro(registro) {
                 return;
             }
         }
-        const response = await axios_1.default.post('https://api.vapi.ai/call/phone', {
+        const baseUrl = (process.env.DIALOG_DDM_BASE_URL || process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1').replace(/\/$/, '');
+        const response = await axios_1.default.post(`${baseUrl}/call/phone`, {
             phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
             assistantId: process.env.VAPI_ASSISTANT_ID,
             customer: {

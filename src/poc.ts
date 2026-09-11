@@ -15,8 +15,9 @@ async function makeCall() {
   console.log(`Starting call to ${YOUR_PHONE_NUMBER}...`);
 
   try {
+    const baseUrl = (process.env.DIALOG_DDM_BASE_URL || process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1').replace(/\/$/, '');
     const response = await axios.post(
-      'https://api.vapi.ai/call/phone',
+      `${baseUrl}/call/phone`,
       {
         phoneNumberId: VAPI_PHONE_NUMBER_ID,
         assistantId: VAPI_ASSISTANT_ID,
