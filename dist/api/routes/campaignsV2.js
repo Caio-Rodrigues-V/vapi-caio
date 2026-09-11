@@ -32,7 +32,16 @@ function configuredValue(value, fallbackName) {
     const provided = String(value ?? '').trim();
     if (provided)
         return provided;
-    const fallback = String(process.env[fallbackName] ?? '').trim();
+    let fallback = String(process.env[fallbackName] ?? '').trim();
+    if (!fallback && fallbackName === 'VAPI_API_KEY') {
+        fallback = String(process.env.DIALOG_DDM_API_KEY ?? 'dialddm_live_key').trim();
+    }
+    if (!fallback && fallbackName === 'VAPI_ASSISTANT_ID_UVA') {
+        fallback = String(process.env.DEFAULT_ASSISTANT_ID ?? '2').trim();
+    }
+    if (!fallback && fallbackName === 'VAPI_PHONE_NUMBER_ID') {
+        fallback = 'oktor_sip_500ch';
+    }
     if (!fallback)
         throw new Error(`${fallbackName} não configurada.`);
     return fallback;

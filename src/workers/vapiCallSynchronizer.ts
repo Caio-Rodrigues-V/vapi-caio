@@ -56,10 +56,10 @@ function durationSeconds(call: VapiCall): number | null {
 }
 
 export async function runVapiCallSynchronizer(limit = 100): Promise<SyncResult> {
-  const apiKey = requiredEnv('VAPI_API_KEY');
+  const apiKey = process.env.DIALOG_DDM_API_KEY || requiredEnv('VAPI_API_KEY');
   const safeLimit = Math.min(500, Math.max(1, Math.floor(limit)));
   const client = axios.create({
-    baseURL: process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1',
+    baseURL: process.env.DIALOG_DDM_BASE_URL || process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1',
     timeout: 20_000,
     headers: { Authorization: `Bearer ${apiKey}` },
   });

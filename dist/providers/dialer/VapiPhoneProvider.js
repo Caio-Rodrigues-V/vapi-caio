@@ -14,7 +14,7 @@ class VapiPhoneProvider {
             throw new Error('VAPI_API_KEY não configurada.');
         }
         this.client = axios_1.default.create({
-            baseURL: process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1',
+            baseURL: process.env.DIALOG_DDM_BASE_URL || process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1',
             timeout: 30_000,
             headers: {
                 Authorization: `Bearer ${apiKey}`,

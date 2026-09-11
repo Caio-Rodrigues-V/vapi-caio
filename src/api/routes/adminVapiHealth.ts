@@ -53,12 +53,12 @@ adminVapiHealthRouter.get('/vapi/health', async (req, res) => {
   }
 
   try {
-    const apiKey = getRequiredEnv('VAPI_API_KEY');
-    const phoneNumberId = getRequiredEnv('VAPI_PHONE_NUMBER_ID');
-    const assistantId = getRequiredEnv('VAPI_ASSISTANT_ID_UVA');
+    const apiKey = process.env.DIALOG_DDM_API_KEY || getRequiredEnv('VAPI_API_KEY');
+    const phoneNumberId = process.env.VAPI_PHONE_NUMBER_ID || 'oktor_sip_500ch';
+    const assistantId = process.env.DEFAULT_ASSISTANT_ID || process.env.VAPI_ASSISTANT_ID_UVA || '2';
 
     const client = axios.create({
-      baseURL: process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1',
+      baseURL: process.env.DIALOG_DDM_BASE_URL || process.env.VAPI_BASE_URL || 'https://dialddm.grupoddm.ia.br/v1',
       timeout: 25_000,
       headers: {
         Authorization: `Bearer ${apiKey}`,
