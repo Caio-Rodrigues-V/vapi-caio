@@ -97,38 +97,25 @@ class ProcessVapiWebhook {
                     wasToolCalled(messages, 'formalizar_acordo') ||
                     wasToolCalled(messages, 'efetivar_acordo') ||
                     wasToolCalled(messages, 'formaliza_acordo');
-                const spokenMessages = messages.filter((m) => {
-                    const role = String(m?.role || '').toLowerCase();
-                    return role !== 'system';
-                });
-                const fullText = (transcript + ' ' + spokenMessages.map((m) => String(m.message || m.content || '')).join(' ')).toLowerCase();
                 const assistantSpokeAgreement = messages.some((m) => {
                     const role = String(m.role || '').toLowerCase();
                     const content = String(m.message || m.content || '').toLowerCase();
-                    return (role === 'assistant' || role === 'ai' || role === 'bot') && (content.includes('acordo formalizado') ||
-                        content.includes('acordo fechado') ||
-                        content.includes('acordo foi gerado') ||
-                        content.includes('acordo gerado') ||
-                        content.includes('formalizado com sucesso') ||
-                        content.includes('enviado por e-mail') ||
-                        content.includes('enviado para o seu e-mail') ||
-                        content.includes('enviado no seu e-mail'));
+                    return (role === 'assistant' || role === 'ai' || role === 'bot') && (content.includes('#acordoformalizado') ||
+                        content.includes('#acordo_formalizado') ||
+                        content.includes('acordo formalizado com sucesso'));
                 });
-                const agreementInTranscript = (fullText.includes('#acordoformalizado') ||
-                    fullText.includes('#acordo_formalizado') ||
-                    fullText.includes('#fechado') ||
-                    fullText.includes('#formalizado') ||
-                    fullText.includes('#acordo') ||
-                    fullText.includes('#efetivado') ||
-                    fullText.includes('formaliz') ||
-                    fullText.includes('acordo fechad') ||
-                    fullText.includes('acordo gerad')) || (fullText.includes('acordo') && (fullText.includes('email') || fullText.includes('e-mail') || fullText.includes('boleto')));
-                const agendamentoTriggeredByTool = fullText.includes('#agendamento') || fullText.includes('agendad');
+                const agendamentoTriggeredByTool = wasToolCalled(messages, 'agendar') ||
+                    messages.some((m) => {
+                        const role = String(m.role || '').toLowerCase();
+                        const content = String(m.message || m.content || '').toLowerCase();
+                        return (role === 'assistant' || role === 'ai' || role === 'bot') && (content.includes('#agendamento') ||
+                            content.includes('#agendado'));
+                    });
                 let decision = 'zero';
                 let scheduledAt = null;
-                if (agreementConfirmedByTool || assistantSpokeAgreement || agreementInTranscript) {
+                if (agreementConfirmedByTool || assistantSpokeAgreement) {
                     decision = 'formalize';
-                    console.log(`[ProcessVapiWebhook] Acordo formalizado detectado (#ACORDOFORMALIZADO) para a chamada ${providerCallId}`);
+                    console.log(`[ProcessVapiWebhook] Acordo formalizado confirmado para a chamada ${providerCallId}`);
                 }
                 else if (agendamentoTriggeredByTool) {
                     decision = 'schedule';
