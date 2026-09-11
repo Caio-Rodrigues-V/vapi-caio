@@ -561,12 +561,12 @@ campaignsV2Router.get('/vapi/config', async (_req, res) => {
     const assistants = [
       {
         id: uvaAssistantId,
-        name: isStaging ? 'JULIA - VEIGA VAPI (UVA - HML)' : 'JULIA - VEIGA VAPI (UVA)',
+        name: isStaging ? 'SOFIA - DIALOG DDM (AGENTE 2 - HML)' : 'SOFIA - DIALOG DDM (AGENTE 2)',
         institution: 'UVA',
       },
       {
         id: cruzeiroAssistantId,
-        name: 'JULIA - CRUZEIRO DO SUL',
+        name: 'JULIA - CRUZEIRO DO SUL (AGENTE 2)',
         institution: 'CRUZEIRO',
       },
     ];
@@ -583,7 +583,7 @@ campaignsV2Router.get('/vapi/config', async (_req, res) => {
       operation: 'multi',
       assistant: {
         id: uvaAssistantId,
-        name: 'JULIA - VEIGA VAPI (CAIO)',
+        name: 'SOFIA - DIALOG DDM (AGENTE 2)',
       },
       assistants,
       phoneNumber: {
@@ -592,7 +592,7 @@ campaignsV2Router.get('/vapi/config', async (_req, res) => {
           phoneData?.number ||
           phoneData?.phoneNumber ||
           phoneData?.name ||
-          'Número Vapi configurado',
+          'Tronco SIP Oktor Telecom (500 Canais)',
         ),
       },
     });
