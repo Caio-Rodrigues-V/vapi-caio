@@ -2071,25 +2071,25 @@ function CreateCampaign({
                       🎓 {ast.name}
                     </option>
                   ))}
-                  <option value="custom">⚙️ Outro Assistente (Informar ID Vapi)</option>
+                  <option value="custom">⚙️ Outro Assistente (Informar ID)</option>
                 </select>
               </div>
 
               {selectedAssistantId === 'custom' && (
                 <div className="space-y-1 pt-1">
-                  <label className="block text-xs font-semibold text-[#18181B]">ID do Assistente Vapi</label>
+                  <label className="block text-xs font-semibold text-[#18181B]">ID do Assistente (Agente IA)</label>
                   <input
                     value={customAssistantId}
                     onChange={(e) => setCustomAssistantId(e.target.value)}
                     required={selectedAssistantId === 'custom'}
-                    placeholder="Cole o ID da Vapi (ex: 15190261-096d-47fe-bbbe-cbfe8dceb2ae)"
+                    placeholder="Informe o ID do Agente (ex: 2)"
                     className="w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[#18181B] focus:outline-none focus:border-[#D9480F] focus:ring-2 focus:ring-[#D9480F]/14 text-xs font-mono transition-all"
                   />
                 </div>
               )}
 
               <div className="pt-2 border-t border-[#E5E7EB] flex justify-between items-center text-[11px] text-[#5F6570]">
-                <span>Telefone de Saída Vapi:</span>
+                <span>Tronco / Telefone de Saída:</span>
                 <strong className="font-semibold text-[#18181B]">{vapiConfig.phoneNumber.number}</strong>
               </div>
             </div>
