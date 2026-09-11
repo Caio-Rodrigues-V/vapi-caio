@@ -7,6 +7,7 @@ import pool from '../../db';
 import { normalizePhone } from '../../utils/phoneValidator';
 import { DdmDebtProvider } from '../../providers/debt/DdmDebtProvider';
 import { runVapiCallSynchronizer } from '../../workers/vapiCallSynchronizer';
+import { runCampaignDispatcher } from '../../workers/campaignDispatcher';
 
 export const campaignsV2Router = Router();
 
@@ -728,6 +729,12 @@ campaignsV2Router.patch('/campaigns/:id/status', async (req, res) => {
        SET status = 'pending', locked_at = NULL
        WHERE campaign_id = ? AND status IN ('reserved', 'queued') AND provider_call_id IS NULL`,
       [id]
+    );
+  }
+
+  if (status === 'running') {
+    runCampaignDispatcher().catch((err) =>
+      console.error('[campaignsV2] Erro ao disparar campanha no status change:', err),
     );
   }
 

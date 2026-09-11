@@ -13,6 +13,7 @@ const db_1 = __importDefault(require("../../db"));
 const phoneValidator_1 = require("../../utils/phoneValidator");
 const DdmDebtProvider_1 = require("../../providers/debt/DdmDebtProvider");
 const vapiCallSynchronizer_1 = require("../../workers/vapiCallSynchronizer");
+const campaignDispatcher_1 = require("../../workers/campaignDispatcher");
 exports.campaignsV2Router = (0, express_1.Router)();
 const upload = (0, multer_1.default)({
     dest: 'uploads/',
@@ -625,6 +626,9 @@ exports.campaignsV2Router.patch('/campaigns/:id/status', async (req, res) => {
         await db_1.default.execute(`UPDATE campaign_calls
        SET status = 'pending', locked_at = NULL
        WHERE campaign_id = ? AND status IN ('reserved', 'queued') AND provider_call_id IS NULL`, [id]);
+    }
+    if (status === 'running') {
+        (0, campaignDispatcher_1.runCampaignDispatcher)().catch((err) => console.error('[campaignsV2] Erro ao disparar campanha no status change:', err));
     }
     return res.json({ ok: true, id, status });
 });

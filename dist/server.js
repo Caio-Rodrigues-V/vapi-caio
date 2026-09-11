@@ -139,12 +139,32 @@ if (fs_1.default.existsSync(frontendIndex)) {
         return res.sendFile(frontendIndex);
     });
 }
+const campaignDispatcher_1 = require("./workers/campaignDispatcher");
+let isDispatching = false;
+function startBackgroundDispatcher() {
+    console.log('[Dispatcher] Loop de disparo automático ativado (intervalo: 5s)...');
+    setInterval(async () => {
+        if (isDispatching)
+            return;
+        isDispatching = true;
+        try {
+            await (0, campaignDispatcher_1.runCampaignDispatcher)();
+        }
+        catch (err) {
+            console.error('[Dispatcher] Erro no loop de disparo:', err);
+        }
+        finally {
+            isDispatching = false;
+        }
+    }, 5000);
+}
 if (require.main === module) {
     (0, runMigrations_1.runPendingMigrations)()
         .then((results) => {
         console.log('Database migrations processed on startup:', results);
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
+            startBackgroundDispatcher();
         });
     })
         .catch((err) => {
@@ -152,6 +172,7 @@ if (require.main === module) {
         // Still listen so the server doesn't crash completely, allowing admin route access
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
+            startBackgroundDispatcher();
         });
     });
 }
