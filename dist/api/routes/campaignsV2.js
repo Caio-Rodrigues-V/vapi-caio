@@ -470,7 +470,7 @@ exports.campaignsV2Router.post('/calls/:providerCallId/terminate', async (req, r
 exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
     try {
         const apiKey = configuredValue(undefined, 'VAPI_API_KEY');
-        const uvaAssistantId = process.env.VAPI_ASSISTANT_ID_UVA || '15190261-096d-47fe-bbbe-cbfe8dceb2ae';
+        const uvaAssistantId = process.env.DEFAULT_ASSISTANT_ID || process.env.VAPI_ASSISTANT_ID_UVA || '2';
         const cruzeiroAssistantId = process.env.VAPI_ASSISTANT_ID_CRUZEIRO || 'd0e0eea1-2e61-4ae5-91b8-85e29ba8e60f';
         const phoneNumberId = configuredValue(undefined, 'VAPI_PHONE_NUMBER_ID');
         const client = axios_1.default.create({
