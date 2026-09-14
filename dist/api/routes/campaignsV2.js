@@ -489,18 +489,34 @@ exports.campaignsV2Router.get('/vapi/config', async (_req, res) => {
             headers: { Authorization: `Bearer ${apiKey}` },
         });
         const isStaging = process.env.NODE_ENV === 'staging';
-        const assistants = [
-            {
-                id: uvaAssistantId,
-                name: isStaging ? 'SOFIA - DIALOG DDM (AGENTE 2 - HML)' : 'SOFIA - DIALOG DDM (AGENTE 2)',
-                institution: 'UVA',
-            },
-            {
-                id: cruzeiroAssistantId,
-                name: 'JULIA - CRUZEIRO DO SUL (AGENTE 2)',
-                institution: 'CRUZEIRO',
-            },
-        ];
+        let assistants = [];
+        try {
+            const resp = await client.get('/assistants');
+            if (Array.isArray(resp.data) && resp.data.length > 0) {
+                assistants = resp.data.map((a) => ({
+                    id: String(a.id),
+                    name: `${a.name} (AGENTE #${a.id})`,
+                    institution: String(a.name || '').toUpperCase().includes('CRUZEIRO') ? 'CRUZEIRO' : 'UVA',
+                }));
+            }
+        }
+        catch (err) {
+            console.warn('[vapi/config] warning fetching assistants from gateway:', err.message);
+        }
+        if (!assistants.length) {
+            assistants = [
+                {
+                    id: uvaAssistantId,
+                    name: isStaging ? 'SOFIA - DIALOG DDM (AGENTE 2 - HML)' : 'SOFIA - DIALOG DDM (AGENTE 2)',
+                    institution: 'UVA',
+                },
+                {
+                    id: cruzeiroAssistantId,
+                    name: 'JULIA - CRUZEIRO DO SUL (AGENTE 2)',
+                    institution: 'CRUZEIRO',
+                },
+            ];
+        }
         let phoneData;
         try {
             const resp = await client.get(`/phone-number/${phoneNumberId}`);
