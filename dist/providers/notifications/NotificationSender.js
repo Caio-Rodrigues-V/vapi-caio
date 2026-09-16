@@ -129,13 +129,20 @@ class NotificationSender {
                     instituicao: input.instituicao,
                     valor: input.valor,
                     forma_pagamento: input.formaPagamento,
+                    formaPagamento: input.formaPagamento,
                     link_boleto: input.linkBoleto,
+                    linkBoleto: input.linkBoleto,
                     link_pix: input.linkPix,
+                    linkPix: input.linkPix,
                     linha_dig: input.linhaDigitavel,
+                    linhaDigitavel: input.linhaDigitavel,
                     vencimento: input.vencimento,
                     nr_acordo: input.numeroAcordo,
+                    numeroAcordo: input.numeroAcordo,
                     vapi_call_id: input.vapiCallId,
+                    vapiCallId: input.vapiCallId,
                     pagamento_pronto: input.pagamentoPronto,
+                    pagamentoPronto: input.pagamentoPronto,
                 }, { timeout: 10000 });
                 if (response.status >= 200 && response.status < 300) {
                     n8nSent = true;
