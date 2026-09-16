@@ -187,9 +187,13 @@ export class ProcessVapiWebhook {
         await this.repository.scheduleCallbackFromCall(campaignCallId, scheduledAt);
       }
 
-      // Se o cliente mencionou WhatsApp/zap ou pediu retorno, dispara link direto via SMS/RCS/N8N
-      const lowerTranscript = (transcript || '').toLowerCase();
-      if (lowerTranscript.includes('whatsapp') || lowerTranscript.includes('zap') || lowerTranscript.includes('manda no meu')) {
+      // Dispara link WhatsApp por SMS/N8N APENAS se o CLIENTE (fala do devedor) solicitou WhatsApp/zap
+      const customerAskedWhatsapp = customerMessages.some((msg: string) => {
+        const lower = msg.toLowerCase();
+        return lower.includes('whatsapp') || lower.includes('zap') || lower.includes('manda no meu') || lower.includes('envia no whats');
+      });
+
+      if (customerAskedWhatsapp) {
         void (async () => {
           try {
             const callDetails = await this.repository.findCampaignCall(campaignCallId);
