@@ -663,7 +663,9 @@ campaignsV2Router.get('/campaigns', async (req, res) => {
       COALESCE(SUM(CASE WHEN 1=1 ${ccDateFilter} THEN cr.duration_seconds ELSE 0 END), 0) AS total_duration_seconds,
       COALESCE(ROUND(AVG(CASE WHEN 1=1 ${ccDateFilter} THEN NULLIF(cr.duration_seconds, 0) ELSE NULL END)), 0) AS avg_duration_seconds,
       COUNT(DISTINCT CASE WHEN 1=1 ${ccDateFilter} THEN cc.cpf ELSE NULL END) AS total_leads,
-      COUNT(CASE WHEN 1=1 ${ccDateFilter} THEN cc.id ELSE NULL END) AS total_calls
+      COUNT(CASE WHEN 1=1 ${ccDateFilter} THEN cc.id ELSE NULL END) AS total_calls,
+      SUM(CASE WHEN (cc.attempts > 0 OR cc.status IN ('queued','in_progress','answered','completed') OR cr.id IS NOT NULL) ${ccDateFilter} THEN 1 ELSE 0 END) AS dialed_calls,
+      SUM(CASE WHEN (COALESCE(cc.attempts, 0) = 0 AND cc.status IN ('pending','reserved') AND cr.id IS NULL) ${ccDateFilter} THEN 1 ELSE 0 END) AS remaining_calls
      FROM campaigns c
      LEFT JOIN campaign_calls cc ON cc.campaign_id = c.id
      LEFT JOIN call_results cr ON cr.campaign_call_id = cc.id

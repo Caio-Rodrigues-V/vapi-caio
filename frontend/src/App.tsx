@@ -113,6 +113,8 @@ type Campaign = {
   zero_calls?: number;
   total_duration_seconds?: number;
   avg_duration_seconds?: number;
+  dialed_calls?: number;
+  remaining_calls?: number;
 };
 
 type CallRow = {
@@ -479,6 +481,8 @@ function Campaigns() {
           campaigns: 1,
           leads: Number(selectedCampaign.total_leads || 0),
           calls: Number(selectedCampaign.total_calls || 0),
+          dialed: Number(selectedCampaign.dialed_calls || 0),
+          remaining: Number(selectedCampaign.remaining_calls || 0),
           active: Number(selectedCampaign.active_calls || 0),
           completed: Number(selectedCampaign.completed_calls || 0),
           pending: Number(selectedCampaign.pending_calls || 0),
@@ -493,6 +497,8 @@ function Campaigns() {
             campaigns: acc.campaigns + 1,
             leads: acc.leads + Number(item.total_leads || 0),
             calls: acc.calls + Number(item.total_calls || 0),
+            dialed: acc.dialed + Number(item.dialed_calls || 0),
+            remaining: acc.remaining + Number(item.remaining_calls || 0),
             active: acc.active + Number(item.active_calls || 0),
             completed: acc.completed + Number(item.completed_calls || 0),
             pending: acc.pending + Number(item.pending_calls || 0),
@@ -503,7 +509,7 @@ function Campaigns() {
             totalDuration: acc.totalDuration + Number(item.total_duration_seconds || 0),
           }),
           {
-            campaigns: 0, leads: 0, calls: 0, active: 0, completed: 0, pending: 0, failed: 0,
+            campaigns: 0, leads: 0, calls: 0, dialed: 0, remaining: 0, active: 0, completed: 0, pending: 0, failed: 0,
             answered: 0, formalized: 0, scheduled: 0, totalDuration: 0,
           },
         );
@@ -700,7 +706,7 @@ function Campaigns() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-[#FAFAFA] text-[11px] font-bold uppercase tracking-wider text-[#5F6570] border-b border-[#E5E7EB]">
                 <tr>
-                  {['Campanha', 'Status', 'CPFs', 'Discados', 'Atendidos (Alô)', 'Cobraram (Acordos)', 'Agendados', 'Sem Débito / Ignorados', 'Falhas', 'Ações Operacionais'].map((header) => (
+                  {['Campanha', 'Status', 'Base CPFs', 'Já Ligaram', 'Faltam Ligar', 'Atendidos (Alô)', 'Cobraram (Acordos)', 'Agendados', 'Sem Débito / Ignorados', 'Falhas', 'Ações Operacionais'].map((header) => (
                     <th key={header} className="px-4 py-3">{header}</th>
                   ))}
                 </tr>
@@ -735,7 +741,8 @@ function Campaigns() {
                       </td>
                       <td className="px-4 py-3.5"><StatusBadge status={campaign.status} /></td>
                       <td className="px-4 py-3.5 font-medium text-[#18181B]">{Number(campaign.total_leads || 0).toLocaleString('pt-BR')}</td>
-                      <td className="px-4 py-3.5 font-medium text-[#0369A1]">{Number(campaign.total_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-bold text-[#0284C7]">{Number(campaign.dialed_calls || 0).toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3.5 font-bold text-[#A16207]">{Number(campaign.remaining_calls || 0).toLocaleString('pt-BR')}</td>
                       <td className="px-4 py-3.5 font-semibold text-[#15803D]">{Number(campaign.answered_calls || 0).toLocaleString('pt-BR')}</td>
                       <td className="px-4 py-3.5 font-extrabold text-[#D9480F] bg-[#FFF1E8]/40">{Number(campaign.formalized_calls || 0).toLocaleString('pt-BR')}</td>
                       <td className="px-4 py-3.5 font-semibold text-[#B45309]">{Number(campaign.scheduled_calls || 0).toLocaleString('pt-BR')}</td>
@@ -872,15 +879,30 @@ function Campaigns() {
               </div>
             </div>
 
-            {/* 7 Metric Cards Detalhadas da Campanha */}
-            <div className="w-full grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+            {/* 8 Metric Cards Detalhadas da Campanha */}
+            <div className="w-full grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
               <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
-                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Base CPFs</span>
-                <p className="text-base font-bold text-[#18181B] mt-0.5">{Number(selectedCampaign.total_leads || 0).toLocaleString('pt-BR')}</p>
+                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Base Total</span>
+                <p className="text-base font-bold text-[#18181B] mt-0.5">{Number(selectedCampaign.total_calls || 0).toLocaleString('pt-BR')}</p>
+                <span className="text-[10px] text-[#5F6570] block truncate">({Number(selectedCampaign.total_leads || 0).toLocaleString('pt-BR')} CPFs)</span>
               </div>
-              <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
-                <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Discados</span>
-                <p className="text-base font-bold text-[#0369A1] mt-0.5">{Number(selectedCampaign.total_calls || 0).toLocaleString('pt-BR')}</p>
+              <div className="rounded-lg bg-[#F0F9FF] p-3 border border-[#BAE6FD]">
+                <span className="text-[11px] text-[#0369A1] font-bold uppercase tracking-wider block">Já Ligaram</span>
+                <p className="text-base font-extrabold text-[#0284C7] mt-0.5">{Number(selectedCampaign.dialed_calls || 0).toLocaleString('pt-BR')}</p>
+                <span className="text-[10px] text-[#0369A1] block font-medium">
+                  {Number(selectedCampaign.total_calls || 0) > 0
+                    ? `${((Number(selectedCampaign.dialed_calls || 0) / Number(selectedCampaign.total_calls || 1)) * 100).toFixed(1)}% do lote`
+                    : '0%'}
+                </span>
+              </div>
+              <div className="rounded-lg bg-[#FEF9C3] p-3 border border-[#FEF08A]">
+                <span className="text-[11px] text-[#854D0E] font-bold uppercase tracking-wider block">Faltam Ligar</span>
+                <p className="text-base font-extrabold text-[#A16207] mt-0.5">{Number(selectedCampaign.remaining_calls || 0).toLocaleString('pt-BR')}</p>
+                <span className="text-[10px] text-[#854D0E] block font-medium">
+                  {Number(selectedCampaign.total_calls || 0) > 0
+                    ? `${((Number(selectedCampaign.remaining_calls || 0) / Number(selectedCampaign.total_calls || 1)) * 100).toFixed(1)}% pendente`
+                    : '0%'}
+                </span>
               </div>
               <div className="rounded-lg bg-[#FAFAFA] p-3 border border-[#E5E7EB]">
                 <span className="text-[11px] text-[#5F6570] font-semibold uppercase tracking-wider block">Atendidos</span>
@@ -1591,7 +1613,7 @@ function Campaigns() {
           <table className="w-full text-left border-collapse">
             <thead className="bg-[#FAFAFA] text-[11px] font-bold uppercase tracking-wider text-[#5F6570] border-b border-[#E5E7EB]">
               <tr>
-                {['Campanha', 'Status', 'CPFs', 'Discados', 'Atendidos (Alô)', 'Cobraram (Acordos)', 'Agendados', 'Sem Débito / Ignorados', 'Falhas', 'Ação'].map((header) => (
+                {['Campanha', 'Status', 'Base CPFs', 'Já Ligaram', 'Faltam Ligar', 'Atendidos (Alô)', 'Cobraram (Acordos)', 'Agendados', 'Sem Débito / Ignorados', 'Falhas', 'Ação'].map((header) => (
                   <th key={header} className="px-4 py-2.5">{header}</th>
                 ))}
               </tr>
@@ -1607,7 +1629,8 @@ function Campaigns() {
                   </td>
                   <td className="px-4 py-3.5"><StatusBadge status={campaign.status} /></td>
                   <td className="px-4 py-3.5 font-medium text-[#18181B]">{Number(campaign.total_leads || 0).toLocaleString('pt-BR')}</td>
-                  <td className="px-4 py-3.5 font-medium text-[#0369A1]">{Number(campaign.total_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-bold text-[#0284C7]">{Number(campaign.dialed_calls || 0).toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-3.5 font-bold text-[#A16207]">{Number(campaign.remaining_calls || 0).toLocaleString('pt-BR')}</td>
                   <td className="px-4 py-3.5 font-semibold text-[#15803D]">{Number(campaign.answered_calls || 0).toLocaleString('pt-BR')}</td>
                   <td className="px-4 py-3.5 font-extrabold text-[#D9480F] bg-[#FFF1E8]/40">{Number(campaign.formalized_calls || 0).toLocaleString('pt-BR')}</td>
                   <td className="px-4 py-3.5 font-semibold text-[#B45309]">{Number(campaign.scheduled_calls || 0).toLocaleString('pt-BR')}</td>
