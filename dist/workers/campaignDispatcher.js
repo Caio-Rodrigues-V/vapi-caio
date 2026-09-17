@@ -30,7 +30,7 @@ async function runCampaignDispatcher() {
         token: process.env.DDM_TOKEN_BUSCA || process.env.DDM_API_TOKEN || '',
         tokenCalcula: process.env.DDM_TOKEN || '',
         baseUrl: process.env.DDM_BASE_URL || 'https://ddmacordos.com',
-        timeoutMs: envInt('DDM_TIMEOUT_MS', 7_000),
+        timeoutMs: Math.max(25_000, envInt('DDM_TIMEOUT_MS', 25_000)),
         maxRetries: envInt('DDM_MAX_RETRIES', 3),
     });
     const assistantResolver = new AssistantResolver_1.AssistantResolver({

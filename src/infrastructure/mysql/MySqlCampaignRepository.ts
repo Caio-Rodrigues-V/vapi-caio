@@ -143,8 +143,9 @@ export class MySqlCampaignCallRepository implements CampaignCallRepository {
 
   async releaseStaleLocks(olderThan: Date): Promise<number> {
     const [result] = await pool.execute<ResultSetHeader>(
-      `UPDATE campaign_calls SET status='pending', locked_at=NULL, last_error='stale_lock_recovered'
-       WHERE status='reserved' AND (locked_at IS NULL OR locked_at < ?)`, [olderThan]
+      `UPDATE campaign_calls SET status='pending', locked_at=NULL, next_attempt_at=NULL, last_error='recovered_for_dial'
+       WHERE (status='reserved' AND (locked_at IS NULL OR locked_at < ?))
+          OR (status='retry_scheduled' AND last_error = 'api_lookup_failed')`, [olderThan]
     );
     return result.affectedRows;
   }

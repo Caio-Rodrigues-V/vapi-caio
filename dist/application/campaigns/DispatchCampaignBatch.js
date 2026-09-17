@@ -64,11 +64,11 @@ class DispatchCampaignBatch {
         const result = { ...empty, reserved: batch.length };
         if (!batch.length)
             return result;
-        // Rate limiter estrito de 10 req/s para a API da DDM
-        const ddmRps = Number(process.env.DDM_MAX_RPS || 10);
+        // Rate limiter estrito e seguro para a API da DDM (4 req/s)
+        const ddmRps = Number(process.env.DDM_MAX_RPS || 4);
         const rateLimiter = new RateLimiter(ddmRps);
-        // Pool com 10 workers em paralelo
-        const concurrency = Math.min(batch.length, Math.max(1, Number(process.env.DDM_CONCURRENCY || 10)));
+        // Pool com 3 workers em paralelo (concorrência segura para não dar rate limit na DDM)
+        const concurrency = Math.min(batch.length, Math.max(1, Number(process.env.DDM_CONCURRENCY || 3)));
         let nextIndex = 0;
         let dispatchedSlotsTaken = 0;
         const worker = async () => {
