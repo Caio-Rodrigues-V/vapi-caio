@@ -65,7 +65,7 @@ export async function runCampaignDispatcher(): Promise<CampaignDispatcherResult>
     {
       globalMaxConcurrent: envInt('VAPI_MAX_CONCURRENCY', envInt('GLOBAL_MAX_CONCURRENT', 30)),
       campaignScanLimit: envInt('WORKER_CAMPAIGN_SCAN_LIMIT', 20),
-      staleLockMinutes: envInt('WORKER_STALE_LOCK_MINUTES', 15),
+      staleLockMinutes: envInt('WORKER_STALE_LOCK_MINUTES', 1),
       watchdogTimeoutMinutes: envInt('WORKER_WATCHDOG_TIMEOUT_MINUTES', 8),
       defaultMaxAttempts: envInt('WORKER_MAX_TRIES', 5),
     },

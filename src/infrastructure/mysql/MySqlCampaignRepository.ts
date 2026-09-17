@@ -101,7 +101,7 @@ export class MySqlCampaignCallRepository implements CampaignCallRepository {
 
   async countActive(campaignId?: number): Promise<number> {
     const params: number[] = [];
-    let sql = `SELECT COUNT(*) AS total FROM campaign_calls WHERE status IN ('reserved','queued','in_progress','answered')`;
+    let sql = `SELECT COUNT(*) AS total FROM campaign_calls WHERE status IN ('queued','in_progress','answered')`;
     if (campaignId !== undefined) { sql += ' AND campaign_id = ?'; params.push(campaignId); }
     const [rows] = await pool.execute<RowDataPacket[]>(sql, params);
     return Number(rows[0]?.total ?? 0);
@@ -143,8 +143,8 @@ export class MySqlCampaignCallRepository implements CampaignCallRepository {
 
   async releaseStaleLocks(olderThan: Date): Promise<number> {
     const [result] = await pool.execute<ResultSetHeader>(
-      `UPDATE campaign_calls SET status='retry_scheduled', locked_at=NULL, next_attempt_at=NOW(), last_error='stale_lock_recovered'
-       WHERE status='reserved' AND locked_at < ?`, [olderThan]
+      `UPDATE campaign_calls SET status='pending', locked_at=NULL, last_error='stale_lock_recovered'
+       WHERE status='reserved' AND (locked_at IS NULL OR locked_at < ?)`, [olderThan]
     );
     return result.affectedRows;
   }

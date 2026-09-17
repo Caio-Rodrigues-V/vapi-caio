@@ -125,17 +125,22 @@ const server = app.listen(port, () => {
   console.log(`Servidor iniciado na porta ${port}`);
 });
 
-// Auto-dispatcher loop: roda a cada 15s no Node.js
+// Auto-dispatcher loop: roda a cada 2s no Node.js
+const workerIntervalMs = Number(process.env.WORKER_INTERVAL_MS || 2000);
+console.log(`[app.js] Loop de disparo automático ativado (intervalo: ${workerIntervalMs}ms)...`);
 setInterval(async () => {
   if (dispatcherRunning) return;
   dispatcherRunning = true;
   try {
-    await runCampaignDispatcher();
+    const result = await runCampaignDispatcher();
+    if (result && (result.dispatched > 0 || result.reserved > 0)) {
+      console.log(`[app.js] Disparo: ${result.dispatched} ligadas, ${result.skipped} sem divida, ${result.reserved} reservadas`);
+    }
   } catch (err) {
-    console.error('[app.js] Erro no worker automático:', err.message);
+    console.error('[app.js] Erro no worker automático:', err?.message || err);
   } finally {
     dispatcherRunning = false;
   }
-}, 15000);
+}, workerIntervalMs);
 
 module.exports = server;

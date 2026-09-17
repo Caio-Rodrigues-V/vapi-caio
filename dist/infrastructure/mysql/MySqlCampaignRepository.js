@@ -95,7 +95,7 @@ class MySqlCampaignCallRepository {
     }
     async countActive(campaignId) {
         const params = [];
-        let sql = `SELECT COUNT(*) AS total FROM campaign_calls WHERE status IN ('reserved','queued','in_progress','answered')`;
+        let sql = `SELECT COUNT(*) AS total FROM campaign_calls WHERE status IN ('queued','in_progress','answered')`;
         if (campaignId !== undefined) {
             sql += ' AND campaign_id = ?';
             params.push(campaignId);
@@ -127,8 +127,8 @@ class MySqlCampaignCallRepository {
         await db_1.default.execute(`UPDATE campaign_calls SET status='retry_scheduled', attempts=attempts+1, next_attempt_at=?, last_error=?, locked_at=NULL WHERE id=?`, [nextAttemptAt, error, id]);
     }
     async releaseStaleLocks(olderThan) {
-        const [result] = await db_1.default.execute(`UPDATE campaign_calls SET status='retry_scheduled', locked_at=NULL, next_attempt_at=NOW(), last_error='stale_lock_recovered'
-       WHERE status='reserved' AND locked_at < ?`, [olderThan]);
+        const [result] = await db_1.default.execute(`UPDATE campaign_calls SET status='pending', locked_at=NULL, last_error='stale_lock_recovered'
+       WHERE status='reserved' AND (locked_at IS NULL OR locked_at < ?)`, [olderThan]);
         return result.affectedRows;
     }
     async recoverTimedOutCalls(olderThan, maxAttempts) {

@@ -200,6 +200,7 @@ class DispatchCampaignBatch {
                     });
                     await this.calls.attachProviderCall(call.id, providerResult.providerCallId);
                     result.dispatched += 1;
+                    console.log(`[Dispatch] Chamada #${call.id} disparada com sucesso -> ${call.customerNumber}`);
                     const delayMs = Number(process.env.WORKER_DELAY_BETWEEN_CALLS_MS ?? 100);
                     if (delayMs > 0) {
                         await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -207,6 +208,7 @@ class DispatchCampaignBatch {
                 }
                 catch (error) {
                     const message = error instanceof Error ? error.message : String(error);
+                    console.error(`[Dispatch] Falha ao processar chamada #${call.id} (${call.customerNumber}):`, message);
                     const permanent = error instanceof DebtProvider_1.DebtProviderPermanentError;
                     const temporary = error instanceof DebtProvider_1.DebtProviderTemporaryError;
                     const isSipTimeout = message.includes('408') || message.includes('timeout') || message.includes('providerfault');
