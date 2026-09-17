@@ -142,7 +142,8 @@ if (fs_1.default.existsSync(frontendIndex)) {
 const campaignDispatcher_1 = require("./workers/campaignDispatcher");
 let isDispatching = false;
 function startBackgroundDispatcher() {
-    console.log('[Dispatcher] Loop de disparo automático ativado (intervalo: 5s)...');
+    const intervalMs = Number(process.env.WORKER_INTERVAL_MS || 2000);
+    console.log(`[Dispatcher] Loop de disparo automático ativado (intervalo: ${intervalMs}ms)...`);
     setInterval(async () => {
         if (isDispatching)
             return;
@@ -156,7 +157,7 @@ function startBackgroundDispatcher() {
         finally {
             isDispatching = false;
         }
-    }, 5000);
+    }, intervalMs);
 }
 if (require.main === module) {
     (0, runMigrations_1.runPendingMigrations)()

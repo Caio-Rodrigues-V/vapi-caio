@@ -162,7 +162,8 @@ import { runCampaignDispatcher } from './workers/campaignDispatcher';
 
 let isDispatching = false;
 function startBackgroundDispatcher() {
-  console.log('[Dispatcher] Loop de disparo automático ativado (intervalo: 5s)...');
+  const intervalMs = Number(process.env.WORKER_INTERVAL_MS || 2000);
+  console.log(`[Dispatcher] Loop de disparo automático ativado (intervalo: ${intervalMs}ms)...`);
   setInterval(async () => {
     if (isDispatching) return;
     isDispatching = true;
@@ -173,7 +174,7 @@ function startBackgroundDispatcher() {
     } finally {
       isDispatching = false;
     }
-  }, 5000);
+  }, intervalMs);
 }
 
 if (require.main === module) {

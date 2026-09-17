@@ -39,12 +39,26 @@ class DispatchCampaignBatch {
         const campaign = await this.campaigns.findById(campaignId);
         if (!campaign || campaign.status !== 'running')
             return empty;
-        const limit = Math.max(0, Math.min(capacity ?? campaign.maxConcurrent, campaign.maxConcurrent));
-        if (limit === 0)
+        const targetDispatched = Math.max(0, Math.min(capacity ?? campaign.maxConcurrent, campaign.maxConcurrent));
+        if (targetDispatched === 0)
             return empty;
-        const batch = await this.calls.reserveBatch(campaign.id, limit, (0, crypto_1.randomUUID)());
+        // Fator de reserva inteligente: compensa os contatos sem debito na DDM (puxa ate 3x da capacidade)
+        const configuredBatch = Number(process.env.WORKER_BATCH_SIZE || 25);
+        const reserveLimit = Math.max(targetDispatched, Math.min(targetDispatched * 3, Math.max(configuredBatch, 25)));
+        const batch = await this.calls.reserveBatch(campaign.id, reserveLimit, (0, crypto_1.randomUUID)());
         const result = { ...empty, reserved: batch.length };
-        for (const call of batch) {
+        for (let i = 0; i < batch.length; i++) {
+            const call = batch[i];
+            if (!call)
+                continue;
+            // Se ja alcancamos a capacidade maxima de ligacoes disparadas deste ciclo, devolve o excedente para pending
+            if (result.dispatched >= targetDispatched) {
+                const remainingBatch = batch.slice(i);
+                for (const rem of remainingBatch) {
+                    await this.calls.updateStatus(rem.id, 'pending', null);
+                }
+                break;
+            }
             try {
                 let assistantId = campaign.assistantId;
                 let debtMetadata = {};
