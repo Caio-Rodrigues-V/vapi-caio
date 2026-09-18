@@ -196,12 +196,67 @@ class DdmDebtProvider {
             const isCruzeiro = system.includes('cruzeiro') || instRaw.includes('cruzeiro');
             const client = isCruzeiro ? 'cruzeiro' : 'ddm';
             try {
+                const idCrm = isCruzeiro ? (`9966${debtorId}`) : debtorId;
                 const calcToken = client === 'cruzeiro' ? (process.env.DDM_TOKEN_CRUZEIRO || this.token) : this.token;
-                const rawCalculation = await this.getWithRetry('/calc/', {
-                    tk: calcToken,
-                    idDev: debtorId,
-                    cli: client,
-                });
+                // FASE 1: Consulta ultra-rápida dos dados cadastrais e verificação de bloqueio
+                let transferirParaOperador = false;
+                let fase1Data = null;
+                try {
+                    const rawFase1 = await this.getWithRetry('/calc/retell_fase1.php', {
+                        tk: calcToken,
+                        IdCRM: idCrm,
+                        cpf,
+                    });
+                    if (Array.isArray(rawFase1) && rawFase1.length > 0 && typeof rawFase1[0] === 'object') {
+                        fase1Data = rawFase1[0];
+                        if (fase1Data.transferir_para_operador === true) {
+                            transferirParaOperador = true;
+                        }
+                    }
+                }
+                catch (f1Err) {
+                    console.warn(`[DdmDebtProvider] Falha ao consultar retell_fase1.php para debtorId ${debtorId}:`, f1Err);
+                }
+                if (transferirParaOperador) {
+                    lastResult = {
+                        cpf,
+                        hasDebt: false,
+                        institution: String(fase1Data?.Cliente || instRaw),
+                        debtorName: String(fase1Data?.NomeDevedor || debtor.nome || ''),
+                        debtorId,
+                        calculationId: null,
+                        nominalAmount: null,
+                        cashAmount: null,
+                        firstDueDate: null,
+                        email: String(fase1Data?.email || debtor.email || '') || null,
+                        installments: [],
+                        raw: { fase1: fase1Data },
+                        skipReason: 'blocked_operator',
+                    };
+                    continue;
+                }
+                // FASE 2: Consulta dos cálculos financeiros detalhados (com fallback para /calc/)
+                let rawCalculation = null;
+                try {
+                    const resFase2 = await this.getWithRetry('/calc/retell_fase2.php', {
+                        tk: calcToken,
+                        IdCRM: idCrm,
+                        cpf,
+                    });
+                    if (Array.isArray(resFase2) && resFase2.length > 0) {
+                        rawCalculation = resFase2;
+                    }
+                }
+                catch (f2Err) {
+                    console.warn(`[DdmDebtProvider] Falha em retell_fase2.php para debtorId ${debtorId}, usando fallback /calc/:`, f2Err);
+                }
+                if (!rawCalculation) {
+                    rawCalculation = await this.getWithRetry('/calc/', {
+                        tk: calcToken,
+                        idDev: debtorId,
+                        cli: client,
+                    });
+                }
                 const calculation = consolidateCalculation(rawCalculation);
                 const installmentContainer = getAny(calculation, ['ListaParcelas', 'lista_parcelas', 'parcelas']);
                 const rawInstallments = getAny(installmentContainer, ['Parcelas', 'Parcela', 'parcelas']);
@@ -224,10 +279,12 @@ class DdmDebtProvider {
                 const institution = findFirst(calculation, ['Cliente', 'Instituicao', 'instituicao']).replace(/\bNOVO\b/gi, '').trim() || null;
                 const email = findFirst(calculation, ['email', 'emaildev', 'emaildevedor', 'mail']) || null;
                 const hasInstallments = (installments.length > 0 && Boolean(cashAmount)) || (Boolean(cashAmount) && cashAmount > 0);
-                const rawJsonStr = JSON.stringify(rawCalculation).toLowerCase();
-                const isBlocked = rawJsonStr.includes('bloqueado') || rawJsonStr.includes('operador');
+                const isOperatorBlocked = fase1Data?.transferir_para_operador === true ||
+                    calculation?.transferir_para_operador === true ||
+                    (calculation.Dados?.transferir_para_operador === true) ||
+                    String(calculation.Mensagem || calculation.Msg || '').toLowerCase().includes('bloqueado');
                 let skipReason = null;
-                if (isBlocked) {
+                if (isOperatorBlocked) {
                     skipReason = 'blocked_operator';
                 }
                 else if (calculation.FechaAcordo === false) {
@@ -240,9 +297,9 @@ class DdmDebtProvider {
                 }
                 const result = {
                     cpf,
-                    hasDebt: hasInstallments && calculation.FechaAcordo !== false,
+                    hasDebt: hasInstallments && calculation.FechaAcordo !== false && !isOperatorBlocked,
                     institution,
-                    debtorName: findFirst(calculation, ['NomeDev', 'NomeDevedor', 'nome_devedor']) || null,
+                    debtorName: findFirst(calculation, ['NomeDev', 'NomeDevedor', 'nome_devedor']) || String(fase1Data?.NomeDevedor || '') || null,
                     debtorId,
                     calculationId: findFirst(calculation, ['idcalc', 'id_calc', 'idCalculo', 'calculoId', 'CalculoID', 'codigo', 'cod_status', 'status_codigo', 'id_cadastro', 'cadastro', 'cod_motivo', 'motivo_codigo']) || null,
                     nominalAmount: parseMoney(findFirst(calculation, ['TotalNominal', 'ValorTotal', 'valor_total'])),
