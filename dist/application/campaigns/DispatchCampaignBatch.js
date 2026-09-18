@@ -58,17 +58,17 @@ class DispatchCampaignBatch {
         if (targetDispatched === 0)
             return empty;
         // Reserva contatos suficientes para compensar os sem dívida na DDM (~75% taxa de skip)
-        const configuredBatch = Number(process.env.WORKER_BATCH_SIZE || 25);
-        const reserveLimit = Math.max(targetDispatched, Math.min(targetDispatched * 4, Math.max(configuredBatch, 60)));
+        const configuredBatch = Number(process.env.WORKER_BATCH_SIZE || 60);
+        const reserveLimit = Math.max(targetDispatched * 4, Math.max(configuredBatch, 100));
         const batch = await this.calls.reserveBatch(campaign.id, reserveLimit, (0, crypto_1.randomUUID)());
         const result = { ...empty, reserved: batch.length };
         if (!batch.length)
             return result;
-        // Rate limiter estrito e seguro para a API da DDM (4 req/s)
-        const ddmRps = Number(process.env.DDM_MAX_RPS || 4);
+        // Rate limiter estrito e seguro para a API da DDM (15 req/s)
+        const ddmRps = Number(process.env.DDM_MAX_RPS || 15);
         const rateLimiter = new RateLimiter(ddmRps);
-        // Pool com 3 workers em paralelo (concorrência segura para não dar rate limit na DDM)
-        const concurrency = Math.min(batch.length, Math.max(1, Number(process.env.DDM_CONCURRENCY || 3)));
+        // Pool com workers em paralelo para validar o lote rapidamente sem engasgar
+        const concurrency = Math.min(batch.length, Math.max(1, Number(process.env.DDM_CONCURRENCY || 8)));
         let nextIndex = 0;
         let dispatchedSlotsTaken = 0;
         const worker = async () => {
