@@ -89,8 +89,6 @@ class ProcessVapiWebhook {
                     .filter((item) => item?.role === 'user' || item?.role === 'customer')
                     .map((item) => String(item.message || item.content || ''))
                     .filter(Boolean);
-                if (!customerMessages.length && transcript)
-                    customerMessages.push(transcript);
                 // 1. Check if the call triggered an agreement tool call in the messages history
                 const agreementConfirmedByTool = wasToolCalled(messages, 'confirmar_acordo') ||
                     wasToolCalled(messages, 'confirmar_acordo_hml') ||
@@ -122,7 +120,7 @@ class ProcessVapiWebhook {
                     scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
                     console.log(`[ProcessVapiWebhook] Agendamento detectado (#AGENDAMENTO) para a chamada ${providerCallId}`);
                 }
-                else if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'dummy_key') {
+                else if (customerMessages.length > 0 && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'dummy_key') {
                     try {
                         const classification = await (0, llmClassifier_1.classificarLigacao)(transcript, customerMessages);
                         decision = classification.decisao === 'Formaliza'
@@ -135,7 +133,7 @@ class ProcessVapiWebhook {
                     }
                 }
                 else {
-                    console.log(`[ProcessVapiWebhook] OPENAI_API_KEY nao configurada. Mantendo decisao como 'zero' para a chamada ${providerCallId}`);
+                    console.log(`[ProcessVapiWebhook] Sem mensagens do devedor ou sem OPENAI_API_KEY. Mantendo decisao como 'zero' para a chamada ${providerCallId}`);
                 }
                 const startedAt = call.startedAt ? new Date(call.startedAt).getTime() : NaN;
                 const endedAt = call.endedAt ? new Date(call.endedAt).getTime() : NaN;
