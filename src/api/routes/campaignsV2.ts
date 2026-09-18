@@ -975,7 +975,7 @@ campaignsV2Router.get('/campaigns/:id/export', async (req, res) => {
         name,
         row.customer_number,
         row.cpf || '',
-        'Júlia (Vapi AI)',
+        'Julia IA',
         statusText,
         row.attempts,
         decisionText,

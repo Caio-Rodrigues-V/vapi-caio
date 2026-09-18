@@ -663,7 +663,7 @@ function Campaigns() {
               <Play size={20} className="text-[#D9480F]" />
               Campanhas & Disparador
             </h2>
-            <p className="text-xs text-[#5F6570]">Gestão de lotes de cobrança, disparador automático Vapi e fila de contatos</p>
+            <p className="text-xs text-[#5F6570]">Gestão de lotes de cobrança, disparador automático Julia IA e fila de contatos</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -1251,7 +1251,7 @@ function Campaigns() {
           <h2 className="text-xl font-extrabold text-[#18181B] flex items-center gap-2">
             Painel Geral — <span className="text-[#FF5A0A]">Grupo DDM</span>
           </h2>
-          <p className="text-[#5F6570] text-xs font-normal">Métricas analíticas consolidadas da operação e disparador Vapi</p>
+          <p className="text-[#5F6570] text-xs font-normal">Métricas analíticas consolidadas da operação e disparador Julia IA</p>
 
           <div className="flex flex-wrap items-center gap-3 text-xs pt-1">
             <div className="flex items-center gap-1.5 rounded-full bg-[#ECFDF3] border border-[#DCFCE7] px-2.5 py-0.5 text-[#15803D] font-semibold">
@@ -2013,7 +2013,7 @@ function CreateCampaign({
       : (selectedAssistantId || vapiConfig.assistant.id);
 
     if (!finalAssistantId) {
-      window.alert('Selecione ou informe um Assistente Vapi válido.');
+      window.alert('Selecione ou informe uma Assistente Julia IA válida.');
       setSaving(false);
       return;
     }
@@ -2078,7 +2078,7 @@ function CreateCampaign({
 
         <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] p-4 space-y-3">
           <p className="text-xs font-bold uppercase tracking-wider text-[#D9480F]">Agente de Voz & Carteira</p>
-          {loadingConfig && <p className="text-xs text-[#5F6570]">Verificando dados Vapi...</p>}
+          {loadingConfig && <p className="text-xs text-[#5F6570]">Verificando dados Julia IA...</p>}
           {configError && <p className="text-xs text-[#B91C1C]">{configError}</p>}
           {vapiConfig && (
             <div className="space-y-3 text-xs">
@@ -2277,7 +2277,7 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#8B92A0]">Ambiente de Operação</p>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-[#15803D]"></span>
-            <span className="text-xs font-semibold text-[#18181B]">v2.4 (Vapi + DDM Pay)</span>
+            <span className="text-xs font-semibold text-[#18181B]">v2.5 (Julia IA + DDM Pay)</span>
           </div>
         </div>
       </aside>
